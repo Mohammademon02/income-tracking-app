@@ -185,21 +185,20 @@ export function WithdrawalsTable({ withdrawals, accounts }: { withdrawals: Withd
                 </TableCell>
                 <TableCell>
                   {withdrawal.completedAt ? (
-                    <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
-                      Math.ceil((new Date(withdrawal.completedAt).getTime() - new Date(withdrawal.date).getTime()) / (1000 * 60 * 60 * 24)) <= 7 
-                        ? 'bg-green-100 text-green-700 border border-green-200' :
-                      Math.ceil((new Date(withdrawal.completedAt).getTime() - new Date(withdrawal.date).getTime()) / (1000 * 60 * 60 * 24)) <= 15 
+                    <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${Math.ceil((new Date(withdrawal.completedAt).getTime() - new Date(withdrawal.date).getTime()) / (1000 * 60 * 60 * 24)) <= 7
+                      ? 'bg-green-100 text-green-700 border border-green-200' :
+                      Math.ceil((new Date(withdrawal.completedAt).getTime() - new Date(withdrawal.date).getTime()) / (1000 * 60 * 60 * 24)) <= 15
                         ? 'bg-blue-100 text-blue-700 border border-blue-200' :
-                      Math.ceil((new Date(withdrawal.completedAt).getTime() - new Date(withdrawal.date).getTime()) / (1000 * 60 * 60 * 24)) <= 25 
-                        ? 'bg-orange-100 text-orange-700 border border-orange-200' : 
-                        'bg-red-100 text-red-700 border border-red-200'
-                    }`}>
+                        Math.ceil((new Date(withdrawal.completedAt).getTime() - new Date(withdrawal.date).getTime()) / (1000 * 60 * 60 * 24)) <= 25
+                          ? 'bg-orange-100 text-orange-700 border border-orange-200' :
+                          'bg-red-100 text-red-700 border border-red-200'
+                      }`}>
                       <Clock className="w-3 h-3" />
                       {Math.ceil((new Date(withdrawal.completedAt).getTime() - new Date(withdrawal.date).getTime()) / (1000 * 60 * 60 * 24))} days
                       <span className="ml-1">
                         {Math.ceil((new Date(withdrawal.completedAt).getTime() - new Date(withdrawal.date).getTime()) / (1000 * 60 * 60 * 24)) <= 7 ? '⚡ Fast' :
-                         Math.ceil((new Date(withdrawal.completedAt).getTime() - new Date(withdrawal.date).getTime()) / (1000 * 60 * 60 * 24)) <= 15 ? '✅ Normal' :
-                         Math.ceil((new Date(withdrawal.completedAt).getTime() - new Date(withdrawal.date).getTime()) / (1000 * 60 * 60 * 24)) <= 25 ? '🐌 Slow' : '🔴 Very Slow'}
+                          Math.ceil((new Date(withdrawal.completedAt).getTime() - new Date(withdrawal.date).getTime()) / (1000 * 60 * 60 * 24)) <= 15 ? '✅ Normal' :
+                            Math.ceil((new Date(withdrawal.completedAt).getTime() - new Date(withdrawal.date).getTime()) / (1000 * 60 * 60 * 24)) <= 25 ? '🐌 Slow' : '🔴 Very Slow'}
                       </span>
                     </div>
                   ) : withdrawal.status === "COMPLETED" ? (
@@ -333,6 +332,19 @@ export function WithdrawalsTable({ withdrawals, accounts }: { withdrawals: Withd
                     </SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-completed-date">Completion Date (Optional)</Label>
+                <Input
+                  id="edit-completed-date"
+                  name="completedDate"
+                  type="date"
+                  defaultValue={editingWithdrawal?.completedAt ? new Date(editingWithdrawal.completedAt).toISOString().split("T")[0] : ""}
+                  placeholder="Leave empty for automatic date when marked as completed"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Only used when status is "Completed". Leave empty to use current date automatically.
+                </p>
               </div>
             </div>
             <DialogFooter>

@@ -63,6 +63,7 @@ export async function updateWithdrawal(id: string, formData: FormData) {
   const date = formData.get("date") as string
   const pointsAmount = parseFloat(formData.get("amount") as string)
   const status = formData.get("status") as "PENDING" | "COMPLETED"
+  const completedDate = formData.get("completedDate") as string
 
   if (!accountId || !date || isNaN(pointsAmount) || !status) {
     return { error: "All fields are required" }
@@ -83,9 +84,16 @@ export async function updateWithdrawal(id: string, formData: FormData) {
     status,
   }
 
-  // If status is changing to COMPLETED, set completedAt to current time
-  if (status === "COMPLETED" && currentWithdrawal?.status !== "COMPLETED") {
-    updateData.completedAt = new Date()
+  // Handle completion date logic
+  if (status === "COMPLETED") {
+    if (completedDate) {
+      // Use the manually provided completion date
+      updateData.completedAt = new Date(completedDate)
+    } else if (currentWithdrawal?.status !== "COMPLETED") {
+      // If no manual date provided and status is changing to COMPLETED, use current time
+      updateData.completedAt = new Date()
+    }
+    // If already completed and no new date provided, keep existing completedAt
   } else if (status === "PENDING") {
     // If status is changing to PENDING, clear completedAt
     updateData.completedAt = null
