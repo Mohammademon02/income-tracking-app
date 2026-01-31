@@ -167,11 +167,15 @@ export default async function DashboardPage() {
               <div className="space-y-6">
                 {accounts.map((account, index) => {
                   const progressValue = totalPoints > 0 ? (account.totalPoints / totalPoints) * 100 : 0
+                  const isWithdrawalReady = account.currentBalance >= 1000
                   return (
-                    <div key={account.id} className="relative group transition-all duration-300 hover:bg-slate-50/50 rounded-lg p-2 -m-2">
+                    <div key={account.id} className={`relative group transition-all duration-300 hover:bg-slate-50/50 rounded-lg p-2 -m-2 ${
+                      account.currentBalance >= 1000 ? 'bg-gradient-to-r from-green-50/30 to-emerald-50/30 border border-green-200/50 shadow-sm' : ''
+                    }`}>
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-3">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold text-sm ${
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold text-sm relative ${
+                            account.currentBalance >= 1000 ? 'bg-gradient-to-r from-green-500 to-emerald-600 shadow-lg shadow-green-200/50' :
                             index % 6 === 0 ? 'bg-gradient-to-r from-blue-500 to-blue-600' :
                             index % 6 === 1 ? 'bg-gradient-to-r from-green-500 to-green-600' :
                             index % 6 === 2 ? 'bg-gradient-to-r from-orange-500 to-orange-600' :
@@ -180,6 +184,11 @@ export default async function DashboardPage() {
                             'bg-gradient-to-r from-cyan-500 to-cyan-600'
                           }`}>
                             {account.name.charAt(0).toUpperCase()}
+                            {account.currentBalance >= 1000 && (
+                              <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full border-2 border-white animate-pulse">
+                                <div className="w-1 h-1 bg-yellow-600 rounded-full mx-auto mt-0.5"></div>
+                              </div>
+                            )}
                           </div>
                           <div>
                             <p className="font-semibold text-slate-800">{account.name}</p>
@@ -189,20 +198,35 @@ export default async function DashboardPage() {
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="text-xl font-bold text-slate-800">{account.currentBalance.toLocaleString()} <span className="text-sm text-slate-500">pts</span></p>
-                          {account.pendingWithdrawals > 0 && (
-                            <Badge variant="secondary" className="text-xs bg-orange-100 text-orange-700">
-                              {(account.pendingWithdrawals * 100).toLocaleString()} pts pending
-                            </Badge>
-                          )}
+                          <p className={`text-2xl font-bold ${isWithdrawalReady ? 'text-green-600' : 'text-slate-800'}`}>
+                            {account.currentBalance.toLocaleString()} <span className="text-sm text-slate-500">pts</span>
+                          </p>
+                          <p className="text-sm text-slate-400">${(account.currentBalance / 100).toFixed(2)}</p>
+                          
+                          <div className="flex flex-col gap-2 mt-2">
+                            {isWithdrawalReady && (
+                              <div className="inline-flex items-center gap-2 px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium self-end">
+                                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                                Ready to withdraw
+                              </div>
+                            )}
+                            {account.pendingWithdrawals > 0 && (
+                              <div className="inline-flex items-center gap-2 px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-medium self-end">
+                                <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
+                                ${account.pendingWithdrawals.toFixed(2)} withdrawal pending
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                       <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
                         <div
-                          className={`h-2 rounded-full transition-all duration-700 ease-out group-hover:animate-pulse ${index % 4 === 0 ? 'bg-blue-500' :
+                          className={`h-2 rounded-full transition-all duration-700 ease-out group-hover:animate-pulse ${
+                            account.currentBalance >= 1000 ? 'bg-gradient-to-r from-green-500 to-emerald-500' :
+                            index % 4 === 0 ? 'bg-blue-500' :
                             index % 4 === 1 ? 'bg-green-500' :
-                              index % 4 === 2 ? 'bg-orange-500' : 'bg-purple-500'
-                            }`}
+                            index % 4 === 2 ? 'bg-orange-500' : 'bg-purple-500'
+                          }`}
                           style={{ width: `${progressValue}%` }}
                         ></div>
                       </div>
