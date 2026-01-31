@@ -259,10 +259,10 @@ export function WithdrawalsTable({ withdrawals, accounts }: { withdrawals: Withd
               </div>
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setEditingWithdrawal(null)}>
+              <Button type="button" variant="outline" onClick={() => setEditingWithdrawal(null)} className="hover:bg-slate-50 transition-colors">
                 Cancel
               </Button>
-              <Button type="submit" disabled={loading}>
+              <Button type="submit" disabled={loading} className="bg-gradient-to-r from-purple-500 to-violet-600 hover:from-purple-600 hover:to-violet-700 text-white shadow-lg transition-all duration-200">
                 {loading ? "Saving..." : "Save Changes"}
               </Button>
             </DialogFooter>
@@ -281,10 +281,10 @@ export function WithdrawalsTable({ withdrawals, accounts }: { withdrawals: Withd
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="hover:bg-slate-50 transition-colors">Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-lg shadow-red-200/50 transition-all duration-200"
             >
               {loading ? "Deleting..." : "Delete"}
             </AlertDialogAction>

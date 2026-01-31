@@ -62,7 +62,7 @@ export function AddWithdrawalDialog({ accounts }: { accounts: Account[] }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>
+        <Button className="bg-gradient-to-r from-purple-500 to-violet-600 hover:from-purple-600 hover:to-violet-700 text-white shadow-lg shadow-purple-200/50 transition-all duration-200 hover:scale-105">
           <Plus className="mr-2 h-4 w-4" />
           Add Withdrawal
         </Button>
@@ -138,10 +138,10 @@ export function AddWithdrawalDialog({ accounts }: { accounts: Account[] }) {
             {error && <p className="text-sm text-destructive">{error}</p>}
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)} className="hover:bg-slate-50 transition-colors">
               Cancel
             </Button>
-            <Button type="submit" disabled={loading}>
+            <Button type="submit" disabled={loading} className="bg-gradient-to-r from-purple-500 to-violet-600 hover:from-purple-600 hover:to-violet-700 text-white shadow-lg transition-all duration-200">
               {loading ? "Adding..." : "Add Withdrawal"}
             </Button>
           </DialogFooter>

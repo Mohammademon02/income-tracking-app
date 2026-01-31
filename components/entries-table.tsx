@@ -113,12 +113,17 @@ export function EntriesTable({ entries, accounts }: { entries: Entry[]; accounts
                   year: 'numeric' 
                 })}</TableCell>
                 <TableCell>
-                  <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${
-                      index % 4 === 0 ? 'bg-blue-500' :
-                      index % 4 === 1 ? 'bg-green-500' :
-                      index % 4 === 2 ? 'bg-orange-500' : 'bg-purple-500'
-                    }`}></div>
+                  <div className="flex items-center gap-3">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold text-sm ${
+                      index % 6 === 0 ? 'bg-gradient-to-r from-blue-500 to-blue-600' :
+                      index % 6 === 1 ? 'bg-gradient-to-r from-green-500 to-green-600' :
+                      index % 6 === 2 ? 'bg-gradient-to-r from-orange-500 to-orange-600' :
+                      index % 6 === 3 ? 'bg-gradient-to-r from-purple-500 to-purple-600' :
+                      index % 6 === 4 ? 'bg-gradient-to-r from-pink-500 to-pink-600' :
+                      'bg-gradient-to-r from-cyan-500 to-cyan-600'
+                    }`}>
+                      {entry.accountName.charAt(0).toUpperCase()}
+                    </div>
                     <span className="font-medium">{entry.accountName}</span>
                   </div>
                 </TableCell>
@@ -208,10 +213,10 @@ export function EntriesTable({ entries, accounts }: { entries: Entry[]; accounts
               </div>
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setEditingEntry(null)}>
+              <Button type="button" variant="outline" onClick={() => setEditingEntry(null)} className="hover:bg-slate-50 transition-colors">
                 Cancel
               </Button>
-              <Button type="submit" disabled={loading}>
+              <Button type="submit" disabled={loading} className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg transition-all duration-200">
                 {loading ? "Saving..." : "Save Changes"}
               </Button>
             </DialogFooter>
@@ -230,10 +235,10 @@ export function EntriesTable({ entries, accounts }: { entries: Entry[]; accounts
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="hover:bg-slate-50 transition-colors">Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-lg shadow-red-200/50 transition-all duration-200"
             >
               {loading ? "Deleting..." : "Delete"}
             </AlertDialogAction>

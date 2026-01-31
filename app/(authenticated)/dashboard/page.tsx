@@ -171,10 +171,16 @@ export default async function DashboardPage() {
                     <div key={account.id} className="relative group transition-all duration-300 hover:bg-slate-50/50 rounded-lg p-2 -m-2">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-3">
-                          <div className={`w-3 h-3 rounded-full ${index % 4 === 0 ? 'bg-blue-500' :
-                            index % 4 === 1 ? 'bg-green-500' :
-                              index % 4 === 2 ? 'bg-orange-500' : 'bg-purple-500'
-                            }`}></div>
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold text-sm ${
+                            index % 6 === 0 ? 'bg-gradient-to-r from-blue-500 to-blue-600' :
+                            index % 6 === 1 ? 'bg-gradient-to-r from-green-500 to-green-600' :
+                            index % 6 === 2 ? 'bg-gradient-to-r from-orange-500 to-orange-600' :
+                            index % 6 === 3 ? 'bg-gradient-to-r from-purple-500 to-purple-600' :
+                            index % 6 === 4 ? 'bg-gradient-to-r from-pink-500 to-pink-600' :
+                            'bg-gradient-to-r from-cyan-500 to-cyan-600'
+                          }`}>
+                            {account.name.charAt(0).toUpperCase()}
+                          </div>
                           <div>
                             <p className="font-semibold text-slate-800">{account.name}</p>
                             <p className="text-sm text-slate-500">
@@ -276,7 +282,16 @@ export default async function DashboardPage() {
                 {recentEntries.map((entry) => (
                   <div key={entry.id} className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-blue-50/50 to-indigo-50/50 border border-blue-100/50 transition-all duration-300 hover:from-blue-100/70 hover:to-indigo-100/70 hover:border-blue-200/70 hover:shadow-md cursor-pointer transform hover:scale-[1.02]">
                     <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-white font-semibold text-xs ${
+                        entry.accountName.charAt(0).charCodeAt(0) % 6 === 0 ? 'bg-gradient-to-r from-blue-500 to-blue-600' :
+                        entry.accountName.charAt(0).charCodeAt(0) % 6 === 1 ? 'bg-gradient-to-r from-green-500 to-green-600' :
+                        entry.accountName.charAt(0).charCodeAt(0) % 6 === 2 ? 'bg-gradient-to-r from-orange-500 to-orange-600' :
+                        entry.accountName.charAt(0).charCodeAt(0) % 6 === 3 ? 'bg-gradient-to-r from-purple-500 to-purple-600' :
+                        entry.accountName.charAt(0).charCodeAt(0) % 6 === 4 ? 'bg-gradient-to-r from-pink-500 to-pink-600' :
+                        'bg-gradient-to-r from-cyan-500 to-cyan-600'
+                      }`}>
+                        {entry.accountName.charAt(0).toUpperCase()}
+                      </div>
                       <div>
                         <p className="font-medium text-slate-800">{entry.accountName}</p>
                         <p className="text-sm text-slate-500">
@@ -328,8 +343,16 @@ export default async function DashboardPage() {
                     : "bg-gradient-to-r from-orange-50/50 to-amber-50/50 border-orange-100/50 hover:from-orange-100/70 hover:to-amber-100/70 hover:border-orange-200/70"
                     }`}>
                     <div className="flex items-center gap-3">
-                      <div className={`w-2 h-2 rounded-full ${withdrawal.status === "COMPLETED" ? "bg-green-500" : "bg-orange-500"
-                        }`}></div>
+                      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-white font-semibold text-xs ${
+                        withdrawal.accountName.charAt(0).charCodeAt(0) % 6 === 0 ? 'bg-gradient-to-r from-blue-500 to-blue-600' :
+                        withdrawal.accountName.charAt(0).charCodeAt(0) % 6 === 1 ? 'bg-gradient-to-r from-green-500 to-green-600' :
+                        withdrawal.accountName.charAt(0).charCodeAt(0) % 6 === 2 ? 'bg-gradient-to-r from-orange-500 to-orange-600' :
+                        withdrawal.accountName.charAt(0).charCodeAt(0) % 6 === 3 ? 'bg-gradient-to-r from-purple-500 to-purple-600' :
+                        withdrawal.accountName.charAt(0).charCodeAt(0) % 6 === 4 ? 'bg-gradient-to-r from-pink-500 to-pink-600' :
+                        'bg-gradient-to-r from-cyan-500 to-cyan-600'
+                      }`}>
+                        {withdrawal.accountName.charAt(0).toUpperCase()}
+                      </div>
                       <div>
                         <p className="font-medium text-slate-800">{withdrawal.accountName}</p>
                         <p className="text-sm text-slate-500">
