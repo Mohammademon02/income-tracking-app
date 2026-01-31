@@ -141,7 +141,7 @@ export function WithdrawalsTable({ withdrawals, accounts }: { withdrawals: Withd
               <TableHead>Account</TableHead>
               <TableHead className="text-right">Amount</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Completed Date</TableHead>
+              <TableHead>Approved Date</TableHead>
               <TableHead>Processing Time</TableHead>
               <TableHead className="w-[50px]"></TableHead>
             </TableRow>
