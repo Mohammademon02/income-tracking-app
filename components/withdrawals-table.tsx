@@ -381,7 +381,7 @@ export function WithdrawalsTable({ withdrawals, accounts }: { withdrawals: Withd
                         : "bg-orange-100 text-orange-700 border-orange-200 hover:bg-orange-100"
                       }
                     >
-                      {withdrawal.status === "COMPLETED" ? "Completed" : "Pending"}
+                      {withdrawal.status === "COMPLETED" ? "Approved" : "Pending"}
                     </Badge>
                   </div>
                 </TableCell>
@@ -482,7 +482,7 @@ export function WithdrawalsTable({ withdrawals, accounts }: { withdrawals: Withd
                         {withdrawal.status === "PENDING" ? (
                           <>
                             <div className="mr-2 h-4 w-4 rounded-full bg-green-500"></div>
-                            Mark as Completed
+                            Mark as Approved
                           </>
                         ) : (
                           <>
@@ -588,7 +588,7 @@ export function WithdrawalsTable({ withdrawals, accounts }: { withdrawals: Withd
                   placeholder="Leave empty for automatic date when marked as completed"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Only used when status is "Completed". Leave empty to use current date automatically.
+                  Only used when status is "Approved". Leave empty to use current date automatically.
                 </p>
               </div>
             </div>

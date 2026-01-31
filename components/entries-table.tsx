@@ -9,6 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { Pagination } from "@/components/ui/pagination"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -45,6 +46,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { getAvatarGradient } from "@/lib/avatar-utils"
+import { cn } from "@/lib/utils"
 import { MoreHorizontal, Pencil, Trash2, Plus, Filter, X } from "lucide-react"
 import { updateEntry, deleteEntry } from "@/app/actions/entries"
 
@@ -67,6 +69,10 @@ export function EntriesTable({ entries, accounts }: { entries: Entry[]; accounts
   const [editingEntry, setEditingEntry] = useState<Entry | null>(null)
   const [deletingEntry, setDeletingEntry] = useState<Entry | null>(null)
   const [loading, setLoading] = useState(false)
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(10)
 
   // Filter states
   const [accountFilter, setAccountFilter] = useState<string>("all")
@@ -108,6 +114,17 @@ export function EntriesTable({ entries, accounts }: { entries: Entry[]; accounts
     })
   }, [entries, accountFilter, dateFromFilter, dateToFilter, minPointsFilter, maxPointsFilter])
 
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredEntries.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const paginatedEntries = filteredEntries.slice(startIndex, endIndex)
+
+  // Reset to first page when filters change or page size changes
+  useMemo(() => {
+    setCurrentPage(1)
+  }, [accountFilter, dateFromFilter, dateToFilter, minPointsFilter, maxPointsFilter, itemsPerPage])
+
   // Clear all filters
   const clearFilters = () => {
     setAccountFilter("all")
@@ -115,6 +132,7 @@ export function EntriesTable({ entries, accounts }: { entries: Entry[]; accounts
     setDateToFilter("")
     setMinPointsFilter("")
     setMaxPointsFilter("")
+    setCurrentPage(1)
   }
 
   // Check if any filters are active
@@ -139,12 +157,21 @@ export function EntriesTable({ entries, accounts }: { entries: Entry[]; accounts
 
   if (entries.length === 0) {
     return (
-      <div className="text-center py-12">
-        <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <Plus className="w-8 h-8 text-blue-600" />
+      <div className="bg-white border border-slate-200 rounded-xl shadow-sm">
+        <div className="text-center py-16 px-6">
+          <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-blue-200 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+            <Plus className="w-10 h-10 text-blue-600" />
+          </div>
+          <h3 className="text-xl font-semibold text-slate-800 mb-2">No entries yet</h3>
+          <p className="text-slate-500 text-base max-w-md mx-auto">
+            Start tracking your daily points by adding your first entry. Every point counts towards your goals!
+          </p>
+          <div className="mt-6 flex items-center justify-center gap-2 text-sm text-slate-400">
+            <div className="w-2 h-2 bg-blue-300 rounded-full"></div>
+            <span>Ready to begin your journey</span>
+            <div className="w-2 h-2 bg-blue-300 rounded-full"></div>
+          </div>
         </div>
-        <p className="text-slate-500 text-lg">No entries yet</p>
-        <p className="text-slate-400 text-sm">Add your first entry to start tracking daily points</p>
       </div>
     )
   }
@@ -253,61 +280,89 @@ export function EntriesTable({ entries, accounts }: { entries: Entry[]; accounts
         </div>
       </div>
 
-      <div className="rounded-lg overflow-hidden">
+      <div className="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead>Date</TableHead>
-              <TableHead>Account</TableHead>
-              <TableHead className="text-right">Points</TableHead>
-              <TableHead className="w-[50px]"></TableHead>
+            <TableRow className="bg-slate-50/50 border-b border-slate-200">
+              <TableHead className="font-semibold text-slate-700 py-4">Date</TableHead>
+              <TableHead className="font-semibold text-slate-700 py-4">Account</TableHead>
+              <TableHead className="text-right font-semibold text-slate-700 py-4">Points</TableHead>
+              <TableHead className="w-[50px] py-4"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredEntries.map((entry) => (
-              <TableRow key={entry.id} className="hover:bg-blue-50/50 transition-colors duration-200">
-                <TableCell>{new Date(entry.date).toLocaleDateString('en-GB', {
-                  day: 'numeric',
-                  month: 'short',
-                  year: 'numeric'
-                })}</TableCell>
-                <TableCell>
+            {paginatedEntries.map((entry, index) => (
+              <TableRow 
+                key={entry.id} 
+                className={cn(
+                  "hover:bg-blue-50/30 transition-all duration-200 border-b border-slate-100 last:border-b-0",
+                  index % 2 === 0 ? "bg-white" : "bg-slate-50/20"
+                )}
+              >
+                <TableCell className="py-4">
+                  <div className="flex flex-col">
+                    <span className="font-medium text-slate-800">
+                      {new Date(entry.date).toLocaleDateString('en-GB', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric'
+                      })}
+                    </span>
+                    <span className="text-xs text-slate-500">
+                      {new Date(entry.date).toLocaleDateString('en-GB', { weekday: 'short' })}
+                    </span>
+                  </div>
+                </TableCell>
+                <TableCell className="py-4">
                   <div className="flex items-center gap-3">
                     <div className="relative">
-                      <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-md ring-1 ring-white/30 ${getAvatarGradient(entry.accountColor)}`}>
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg ring-2 ring-white/50 ${getAvatarGradient(entry.accountColor)}`}>
                         {entry.accountName.charAt(0).toUpperCase()}
                       </div>
                       {/* Entry type indicator */}
-                      <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full border border-white shadow-sm"></div>
+                      <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full border-2 border-white shadow-sm"></div>
                     </div>
                     <div className="flex flex-col">
                       <span className="font-semibold text-slate-800">{entry.accountName}</span>
-                      <span className="text-xs text-slate-500">Survey Entry</span>
+                      <div className="flex items-center gap-1">
+                        <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
+                        <span className="text-xs text-slate-500">Survey Entry</span>
+                      </div>
                     </div>
                   </div>
                 </TableCell>
-                <TableCell className="text-right font-medium">
+                <TableCell className="text-right font-medium py-4">
                   <div className="flex flex-col items-end">
-                    <span className="text-lg font-bold text-blue-600">{entry.points.toLocaleString()}</span>
-                    <span className="text-xs text-muted-foreground">${(entry.points / 100).toFixed(2)}</span>
+                    <span className="text-xl font-bold text-blue-600">{entry.points.toLocaleString()}</span>
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs text-slate-500">≈</span>
+                      <span className="text-sm font-medium text-green-600">${(entry.points / 100).toFixed(2)}</span>
+                    </div>
                   </div>
                 </TableCell>
-                <TableCell>
+                <TableCell className="py-4">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        className="h-8 w-8 hover:bg-slate-100 transition-colors duration-200"
+                      >
                         <MoreHorizontal className="h-4 w-4" />
                         <span className="sr-only">Open menu</span>
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48">
-                      <DropdownMenuItem onClick={() => setEditingEntry(entry)} className="cursor-pointer">
-                        <Pencil className="mr-2 h-4 w-4" />
-                        Edit Entry
+                    <DropdownMenuContent align="end" className="w-48 shadow-lg border-slate-200">
+                      <DropdownMenuItem 
+                        onClick={() => setEditingEntry(entry)} 
+                        className="cursor-pointer hover:bg-blue-50 focus:bg-blue-50"
+                      >
+                        <Pencil className="mr-2 h-4 w-4 text-blue-600" />
+                        <span className="text-slate-700">Edit Entry</span>
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => setDeletingEntry(entry)}
-                        className="text-destructive cursor-pointer"
+                        className="text-red-600 cursor-pointer hover:bg-red-50 focus:bg-red-50"
                       >
                         <Trash2 className="mr-2 h-4 w-4" />
                         Delete Entry
@@ -320,6 +375,51 @@ export function EntriesTable({ entries, accounts }: { entries: Entry[]; accounts
           </TableBody>
         </Table>
       </div>
+
+      {/* Enhanced Pagination and Results Info */}
+      {filteredEntries.length > 0 && (
+        <div className="mt-8 bg-white border border-slate-200 rounded-xl shadow-sm p-6">
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
+            <div className="flex flex-col sm:flex-row items-center gap-6">
+              {/* Results Info */}
+              <div className="text-center sm:text-left">
+                <div className="text-sm font-medium text-slate-800">
+                  Showing {startIndex + 1} to {Math.min(endIndex, filteredEntries.length)} of {filteredEntries.length} entries
+                </div>
+                {filteredEntries.length !== entries.length && (
+                  <div className="text-xs text-slate-500 mt-1">
+                    Filtered from {entries.length} total entries
+                  </div>
+                )}
+              </div>
+
+              {/* Page Size Selector */}
+              <div className="flex items-center gap-3 bg-slate-50 rounded-lg p-2">
+                <Label className="text-sm font-medium text-slate-700 whitespace-nowrap">Rows per page:</Label>
+                <Select value={itemsPerPage.toString()} onValueChange={(value) => setItemsPerPage(Number(value))}>
+                  <SelectTrigger className="w-20 h-8 bg-white border-slate-200 shadow-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="5">5</SelectItem>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="25">25</SelectItem>
+                    <SelectItem value="50">50</SelectItem>
+                    <SelectItem value="100">100</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Pagination Controls */}
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Edit Dialog */}
       <Dialog open={!!editingEntry} onOpenChange={() => setEditingEntry(null)}>

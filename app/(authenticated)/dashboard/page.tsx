@@ -387,7 +387,7 @@ export default async function DashboardPage() {
                             <>
                               <span className="text-slate-300">•</span>
                               <span className="text-green-600 font-medium">
-                                Completed: {new Date(withdrawal.completedAt).toLocaleDateString('en-GB', {
+                                Approved: {new Date(withdrawal.completedAt).toLocaleDateString('en-GB', {
                                   day: 'numeric',
                                   month: 'short',
                                   year: 'numeric'
@@ -434,7 +434,7 @@ export default async function DashboardPage() {
                           : "bg-orange-100 text-orange-700 border-orange-200"
                         }
                       >
-                        {withdrawal.status === "COMPLETED" ? "Completed" : "Pending"}
+                        {withdrawal.status === "COMPLETED" ? "Approved" : "Pending"}
                       </Badge>
                     </div>
                   </div>
