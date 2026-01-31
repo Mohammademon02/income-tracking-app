@@ -3,6 +3,7 @@ import { getEntries } from "@/app/actions/entries"
 import { getWithdrawals } from "@/app/actions/withdrawals"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { getAvatarGradient } from "@/lib/avatar-utils"
 import { TrendingUp, Wallet, Clock, DollarSign, Target, Activity, ArrowUpRight, Calendar, Users } from "lucide-react"
 
 export default async function DashboardPage() {
@@ -175,18 +176,10 @@ export default async function DashboardPage() {
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-3">
                           <div className="relative">
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg ring-2 ring-white/20 ${
-                              // Premium styling for high balance accounts
-                              account.currentBalance >= 1000 ? 'bg-gradient-to-br from-amber-400 via-orange-500 to-red-500 shadow-xl shadow-orange-200/50' :
-                                account.currentBalance >= 500 ? 'bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600 shadow-lg shadow-emerald-200/50' :
-                                  // Regular styling based on index
-                                  index % 7 === 0 ? 'bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600' :
-                                    index % 7 === 1 ? 'bg-gradient-to-br from-green-500 via-emerald-500 to-teal-600' :
-                                      index % 7 === 2 ? 'bg-gradient-to-br from-orange-500 via-red-500 to-pink-600' :
-                                        index % 7 === 3 ? 'bg-gradient-to-br from-purple-500 via-violet-500 to-indigo-600' :
-                                          index % 7 === 4 ? 'bg-gradient-to-br from-pink-500 via-rose-500 to-red-600' :
-                                            index % 7 === 5 ? 'bg-gradient-to-br from-cyan-500 via-blue-500 to-indigo-600' :
-                                              'bg-gradient-to-br from-slate-500 via-gray-500 to-zinc-600'
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg ring-2 ring-white/20 ${getAvatarGradient(account.color || "blue")} ${
+                              // Add premium styling for high balance accounts
+                              account.currentBalance >= 1000 ? 'shadow-xl shadow-orange-200/50' :
+                                account.currentBalance >= 500 ? 'shadow-lg shadow-emerald-200/50' : ''
                               }`}>
                               {account.name.charAt(0).toUpperCase()}
                             </div>
@@ -316,15 +309,7 @@ export default async function DashboardPage() {
                   <div key={entry.id} className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-blue-50/50 to-indigo-50/50 border border-blue-100/50 transition-all duration-300 hover:from-blue-100/70 hover:to-indigo-100/70 hover:border-blue-200/70 hover:shadow-md cursor-pointer transform hover:scale-[1.02]">
                     <div className="flex items-center gap-3">
                       <div className="relative">
-                        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white font-bold text-xs shadow-md ring-1 ring-white/40 ${entry.accountName.charAt(0).charCodeAt(0) % 8 === 0 ? 'bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600' :
-                          entry.accountName.charAt(0).charCodeAt(0) % 8 === 1 ? 'bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600' :
-                            entry.accountName.charAt(0).charCodeAt(0) % 8 === 2 ? 'bg-gradient-to-br from-orange-500 via-red-500 to-pink-600' :
-                              entry.accountName.charAt(0).charCodeAt(0) % 8 === 3 ? 'bg-gradient-to-br from-violet-500 via-purple-500 to-indigo-600' :
-                                entry.accountName.charAt(0).charCodeAt(0) % 8 === 4 ? 'bg-gradient-to-br from-rose-500 via-pink-500 to-red-600' :
-                                  entry.accountName.charAt(0).charCodeAt(0) % 8 === 5 ? 'bg-gradient-to-br from-cyan-500 via-blue-500 to-indigo-600' :
-                                    entry.accountName.charAt(0).charCodeAt(0) % 8 === 6 ? 'bg-gradient-to-br from-amber-500 via-orange-500 to-red-600' :
-                                      'bg-gradient-to-br from-green-500 via-emerald-500 to-teal-600'
-                          }`}>
+                        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white font-bold text-xs shadow-md ring-1 ring-white/40 ${getAvatarGradient(entry.accountColor)}`}>
                           {entry.accountName.charAt(0).toUpperCase()}
                         </div>
                         <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full border border-white shadow-sm"></div>
@@ -381,15 +366,7 @@ export default async function DashboardPage() {
                     }`}>
                     <div className="flex items-center gap-3">
                       <div className="relative">
-                        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white font-bold text-xs shadow-md ring-1 ring-white/40 ${withdrawal.accountName.charAt(0).charCodeAt(0) % 8 === 0 ? 'bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600' :
-                          withdrawal.accountName.charAt(0).charCodeAt(0) % 8 === 1 ? 'bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600' :
-                            withdrawal.accountName.charAt(0).charCodeAt(0) % 8 === 2 ? 'bg-gradient-to-br from-orange-500 via-red-500 to-pink-600' :
-                              withdrawal.accountName.charAt(0).charCodeAt(0) % 8 === 3 ? 'bg-gradient-to-br from-violet-500 via-purple-500 to-indigo-600' :
-                                withdrawal.accountName.charAt(0).charCodeAt(0) % 8 === 4 ? 'bg-gradient-to-br from-rose-500 via-pink-500 to-red-600' :
-                                  withdrawal.accountName.charAt(0).charCodeAt(0) % 8 === 5 ? 'bg-gradient-to-br from-cyan-500 via-blue-500 to-indigo-600' :
-                                    withdrawal.accountName.charAt(0).charCodeAt(0) % 8 === 6 ? 'bg-gradient-to-br from-amber-500 via-orange-500 to-red-600' :
-                                      'bg-gradient-to-br from-green-500 via-emerald-500 to-teal-600'
-                          }`}>
+                        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white font-bold text-xs shadow-md ring-1 ring-white/40 ${getAvatarGradient(withdrawal.accountColor)}`}>
                           {withdrawal.accountName.charAt(0).toUpperCase()}
                         </div>
                         {/* Status indicator */}

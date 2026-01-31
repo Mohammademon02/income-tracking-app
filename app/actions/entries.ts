@@ -20,6 +20,7 @@ export async function getEntries(accountId?: string) {
     points: entry.points,
     accountId: entry.accountId,
     accountName: entry.account.name,
+    accountColor: entry.account.color || "blue",
   }))
 }
 
@@ -43,8 +44,12 @@ export async function createEntry(formData: FormData) {
     },
   })
 
-  revalidatePath("/dashboard")
-  revalidatePath("/entries")
+  // Clear all possible caches
+  revalidatePath("/dashboard", "page")
+  revalidatePath("/entries", "page")
+  revalidatePath("/accounts", "page")
+  revalidatePath("/", "layout")
+  
   return { success: true }
 }
 
@@ -69,8 +74,12 @@ export async function updateEntry(id: string, formData: FormData) {
     },
   })
 
-  revalidatePath("/dashboard")
-  revalidatePath("/entries")
+  // Clear all possible caches
+  revalidatePath("/dashboard", "page")
+  revalidatePath("/entries", "page")
+  revalidatePath("/accounts", "page")
+  revalidatePath("/", "layout")
+  
   return { success: true }
 }
 
@@ -82,7 +91,11 @@ export async function deleteEntry(id: string) {
     where: { id },
   })
 
-  revalidatePath("/dashboard")
-  revalidatePath("/entries")
+  // Clear all possible caches
+  revalidatePath("/dashboard", "page")
+  revalidatePath("/entries", "page")
+  revalidatePath("/accounts", "page")
+  revalidatePath("/", "layout")
+  
   return { success: true }
 }

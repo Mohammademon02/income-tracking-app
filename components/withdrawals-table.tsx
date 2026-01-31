@@ -45,6 +45,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card } from "@/components/ui/card"
+import { getAvatarGradient } from "@/lib/avatar-utils"
 import { MoreHorizontal, Pencil, Trash2, Wallet, Clock, Filter, X, Calendar, DollarSign } from "lucide-react"
 import { updateWithdrawal, deleteWithdrawal } from "@/app/actions/withdrawals"
 
@@ -56,11 +57,13 @@ type Withdrawal = {
   completedAt: Date | null
   accountId: string
   accountName: string
+  accountColor: string
 }
 
 type Account = {
   id: string
   name: string
+  color: string
 }
 
 export function WithdrawalsTable({ withdrawals, accounts }: { withdrawals: Withdrawal[]; accounts: Account[] }) {
@@ -342,7 +345,25 @@ export function WithdrawalsTable({ withdrawals, accounts }: { withdrawals: Withd
                   month: 'short',
                   year: 'numeric'
                 })}</TableCell>
-                <TableCell>{withdrawal.accountName}</TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-3">
+                    <div className="relative">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-xs shadow-md ring-1 ring-white/30 ${getAvatarGradient(withdrawal.accountColor)}`}>
+                        {withdrawal.accountName.charAt(0).toUpperCase()}
+                      </div>
+                      {/* Status indicator */}
+                      <div className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border border-white shadow-sm ${
+                        withdrawal.status === 'COMPLETED' 
+                          ? 'bg-gradient-to-r from-green-400 to-emerald-500' 
+                          : 'bg-gradient-to-r from-orange-400 to-amber-500'
+                      }`}></div>
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="font-semibold text-slate-800">{withdrawal.accountName}</span>
+                      <span className="text-xs text-slate-500">Survey Platform</span>
+                    </div>
+                  </div>
+                </TableCell>
                 <TableCell className="text-right font-medium">
                   <div className="flex flex-col items-end">
                     <span className="text-lg font-bold">{(withdrawal.amount * 100).toLocaleString()} pts</span>

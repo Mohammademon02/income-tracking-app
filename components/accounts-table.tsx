@@ -37,12 +37,15 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { ColorPicker } from "@/components/ui/color-picker"
+import { getAvatarGradient } from "@/lib/avatar-utils"
 import { MoreHorizontal, Pencil, Trash2, Users } from "lucide-react"
 import { updateAccount, deleteAccount } from "@/app/actions/accounts"
 
 type Account = {
   id: string
   name: string
+  color: string
   totalPoints: number
   completedWithdrawals: number
   pendingWithdrawals: number
@@ -54,13 +57,25 @@ export function AccountsTable({ accounts }: { accounts: Account[] }) {
   const [editingAccount, setEditingAccount] = useState<Account | null>(null)
   const [deletingAccount, setDeletingAccount] = useState<Account | null>(null)
   const [loading, setLoading] = useState(false)
+  const [editColor, setEditColor] = useState("")
+  const [error, setError] = useState<string | null>(null)
 
   async function handleUpdate(formData: FormData) {
     if (!editingAccount) return
     setLoading(true)
-    await updateAccount(editingAccount.id, formData)
-    setEditingAccount(null)
-    setLoading(false)
+    setError(null)
+    
+    const result = await updateAccount(editingAccount.id, formData)
+    
+    if (result?.error) {
+      setError(result.error)
+      setLoading(false)
+    } else {
+      setEditingAccount(null)
+      setLoading(false)
+      // Force router refresh
+      window.location.href = window.location.href
+    }
   }
 
   async function handleDelete() {
@@ -69,6 +84,12 @@ export function AccountsTable({ accounts }: { accounts: Account[] }) {
     await deleteAccount(deletingAccount.id)
     setDeletingAccount(null)
     setLoading(false)
+  }
+
+  function handleEditClick(account: Account) {
+    setEditingAccount(account)
+    setEditColor(account.color || "blue")
+    setError(null)
   }
 
   if (accounts.length === 0) {
@@ -98,37 +119,12 @@ export function AccountsTable({ accounts }: { accounts: Account[] }) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {accounts.map((account, index) => (
+            {accounts.map((account) => (
               <TableRow key={account.id} className="hover:bg-blue-50/50 transition-colors duration-200">
                 <TableCell className="font-medium">
                   <div className="flex items-center gap-3">
                     <div className="relative">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg ring-2 ring-white/20 ${
-                        // High performers (1000+ points) get premium gradients
-                        account.totalPoints >= 1000 ? (
-                          index % 4 === 0 ? 'bg-gradient-to-br from-amber-400 via-orange-500 to-red-500' :
-                          index % 4 === 1 ? 'bg-gradient-to-br from-emerald-400 via-teal-500 to-cyan-600' :
-                          index % 4 === 2 ? 'bg-gradient-to-br from-violet-400 via-purple-500 to-indigo-600' :
-                          'bg-gradient-to-br from-pink-400 via-rose-500 to-red-500'
-                        ) : 
-                        // Medium performers (500-999 points) get vibrant gradients
-                        account.totalPoints >= 500 ? (
-                          index % 5 === 0 ? 'bg-gradient-to-br from-blue-500 to-indigo-600' :
-                          index % 5 === 1 ? 'bg-gradient-to-br from-green-500 to-emerald-600' :
-                          index % 5 === 2 ? 'bg-gradient-to-br from-orange-500 to-red-500' :
-                          index % 5 === 3 ? 'bg-gradient-to-br from-purple-500 to-pink-600' :
-                          'bg-gradient-to-br from-cyan-500 to-blue-600'
-                        ) :
-                        // New accounts get softer gradients
-                        (
-                          index % 6 === 0 ? 'bg-gradient-to-br from-slate-400 to-slate-600' :
-                          index % 6 === 1 ? 'bg-gradient-to-br from-gray-400 to-gray-600' :
-                          index % 6 === 2 ? 'bg-gradient-to-br from-zinc-400 to-zinc-600' :
-                          index % 6 === 3 ? 'bg-gradient-to-br from-stone-400 to-stone-600' :
-                          index % 6 === 4 ? 'bg-gradient-to-br from-neutral-400 to-neutral-600' :
-                          'bg-gradient-to-br from-slate-500 to-gray-600'
-                        )
-                      }`}>
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg ring-2 ring-white/20 ${getAvatarGradient(account.color || "blue")}`}>
                         {account.name.charAt(0).toUpperCase()}
                       </div>
                       {/* Performance indicator dot */}
@@ -191,7 +187,7 @@ export function AccountsTable({ accounts }: { accounts: Account[] }) {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => setEditingAccount(account)}>
+                      <DropdownMenuItem onClick={() => handleEditClick(account)}>
                         <Pencil className="mr-2 h-4 w-4" />
                         Edit
                       </DropdownMenuItem>
@@ -216,10 +212,10 @@ export function AccountsTable({ accounts }: { accounts: Account[] }) {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit Account</DialogTitle>
-            <DialogDescription>Update the account name.</DialogDescription>
+            <DialogDescription>Update the account name and color.</DialogDescription>
           </DialogHeader>
           <form action={handleUpdate}>
-            <div className="space-y-4 py-4">
+            <div className="space-y-6 py-4">
               <div className="space-y-2">
                 <Label htmlFor="edit-name">Account Name</Label>
                 <Input
@@ -229,9 +225,35 @@ export function AccountsTable({ accounts }: { accounts: Account[] }) {
                   required
                 />
               </div>
+              
+              <div className="space-y-3">
+                <Label>Preview</Label>
+                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg ring-2 ring-white/20 ${getAvatarGradient(editColor)}`}>
+                    {editingAccount?.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="font-semibold text-slate-800">
+                      {editingAccount?.name}
+                    </span>
+                    <span className="text-xs text-slate-500">Survey Platform</span>
+                  </div>
+                </div>
+              </div>
+
+              <ColorPicker 
+                selectedColor={editColor} 
+                onColorChange={setEditColor}
+                name="color"
+              />
+              
+              {error && <p className="text-sm text-destructive">{error}</p>}
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setEditingAccount(null)} className="hover:bg-slate-50 transition-colors">
+              <Button type="button" variant="outline" onClick={() => {
+                setEditingAccount(null)
+                setError(null)
+              }} className="hover:bg-slate-50 transition-colors">
                 Cancel
               </Button>
               <Button type="submit" disabled={loading} className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg transition-all duration-200">

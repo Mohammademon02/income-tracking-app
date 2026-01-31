@@ -13,6 +13,8 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { ColorPicker } from "@/components/ui/color-picker"
+import { getAvatarGradient } from "@/lib/avatar-utils"
 import { Plus } from "lucide-react"
 import { createAccount } from "@/app/actions/accounts"
 
@@ -20,6 +22,8 @@ export function AddAccountDialog() {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [selectedColor, setSelectedColor] = useState("blue")
+  const [accountName, setAccountName] = useState("")
 
   async function handleSubmit(formData: FormData) {
     setLoading(true)
@@ -33,6 +37,10 @@ export function AddAccountDialog() {
     } else {
       setOpen(false)
       setLoading(false)
+      setAccountName("")
+      setSelectedColor("blue")
+      // Force page refresh to see new account
+      window.location.reload()
     }
   }
 
@@ -50,16 +58,40 @@ export function AddAccountDialog() {
           <DialogDescription>Create a new survey platform account to track.</DialogDescription>
         </DialogHeader>
         <form action={handleSubmit}>
-          <div className="space-y-4 py-4">
+          <div className="space-y-6 py-4">
             <div className="space-y-2">
               <Label htmlFor="name">Account Name</Label>
               <Input
                 id="name"
                 name="name"
+                value={accountName}
+                onChange={(e) => setAccountName(e.target.value)}
                 placeholder="e.g., Swagbucks, Survey Junkie"
                 required
               />
             </div>
+            
+            <div className="space-y-3">
+              <Label>Preview</Label>
+              <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg ring-2 ring-white/20 ${getAvatarGradient(selectedColor)}`}>
+                  {accountName ? accountName.charAt(0).toUpperCase() : "A"}
+                </div>
+                <div className="flex flex-col">
+                  <span className="font-semibold text-slate-800">
+                    {accountName || "Account Name"}
+                  </span>
+                  <span className="text-xs text-slate-500">Survey Platform</span>
+                </div>
+              </div>
+            </div>
+
+            <ColorPicker 
+              selectedColor={selectedColor} 
+              onColorChange={setSelectedColor}
+              name="color"
+            />
+            
             {error && <p className="text-sm text-destructive">{error}</p>}
           </div>
           <DialogFooter>

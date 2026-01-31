@@ -22,6 +22,7 @@ export async function getWithdrawals(accountId?: string) {
     completedAt: withdrawal.completedAt || null,
     accountId: withdrawal.accountId,
     accountName: withdrawal.account.name,
+    accountColor: withdrawal.account.color || "blue",
   }))
 }
 
@@ -50,8 +51,12 @@ export async function createWithdrawal(formData: FormData) {
     },
   })
 
-  revalidatePath("/dashboard")
-  revalidatePath("/withdrawals")
+  // Clear all possible caches
+  revalidatePath("/dashboard", "page")
+  revalidatePath("/withdrawals", "page")
+  revalidatePath("/accounts", "page")
+  revalidatePath("/", "layout")
+  
   return { success: true }
 }
 
@@ -104,8 +109,12 @@ export async function updateWithdrawal(id: string, formData: FormData) {
     data: updateData,
   })
 
-  revalidatePath("/dashboard")
-  revalidatePath("/withdrawals")
+  // Clear all possible caches
+  revalidatePath("/dashboard", "page")
+  revalidatePath("/withdrawals", "page")
+  revalidatePath("/accounts", "page")
+  revalidatePath("/", "layout")
+  
   return { success: true }
 }
 
@@ -117,7 +126,11 @@ export async function deleteWithdrawal(id: string) {
     where: { id },
   })
 
-  revalidatePath("/dashboard")
-  revalidatePath("/withdrawals")
+  // Clear all possible caches
+  revalidatePath("/dashboard", "page")
+  revalidatePath("/withdrawals", "page")
+  revalidatePath("/accounts", "page")
+  revalidatePath("/", "layout")
+  
   return { success: true }
 }

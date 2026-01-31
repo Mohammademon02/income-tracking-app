@@ -43,9 +43,9 @@ import {
 } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { MoreHorizontal, Pencil, Trash2, Plus, Filter, X, Calendar, Hash } from "lucide-react"
+import { getAvatarGradient } from "@/lib/avatar-utils"
+import { MoreHorizontal, Pencil, Trash2, Plus, Filter, X } from "lucide-react"
 import { updateEntry, deleteEntry } from "@/app/actions/entries"
 
 type Entry = {
@@ -54,18 +54,20 @@ type Entry = {
   points: number
   accountId: string
   accountName: string
+  accountColor: string
 }
 
 type Account = {
   id: string
   name: string
+  color: string
 }
 
 export function EntriesTable({ entries, accounts }: { entries: Entry[]; accounts: Account[] }) {
   const [editingEntry, setEditingEntry] = useState<Entry | null>(null)
   const [deletingEntry, setDeletingEntry] = useState<Entry | null>(null)
   const [loading, setLoading] = useState(false)
-  
+
   // Filter states
   const [accountFilter, setAccountFilter] = useState<string>("all")
   const [dateFromFilter, setDateFromFilter] = useState<string>("")
@@ -116,7 +118,7 @@ export function EntriesTable({ entries, accounts }: { entries: Entry[]; accounts
   }
 
   // Check if any filters are active
-  const hasActiveFilters = accountFilter !== "all" || 
+  const hasActiveFilters = accountFilter !== "all" ||
     dateFromFilter || dateToFilter || minPointsFilter || maxPointsFilter
 
   async function handleUpdate(formData: FormData) {
@@ -182,7 +184,7 @@ export function EntriesTable({ entries, accounts }: { entries: Entry[]; accounts
               )}
             </div>
           </div>
-          
+
           <div className="px-6 py-5">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {/* Account Filter */}
@@ -264,25 +266,15 @@ export function EntriesTable({ entries, accounts }: { entries: Entry[]; accounts
           <TableBody>
             {filteredEntries.map((entry) => (
               <TableRow key={entry.id} className="hover:bg-blue-50/50 transition-colors duration-200">
-                <TableCell>{new Date(entry.date).toLocaleDateString('en-GB', { 
-                  day: 'numeric', 
-                  month: 'short', 
-                  year: 'numeric' 
+                <TableCell>{new Date(entry.date).toLocaleDateString('en-GB', {
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric'
                 })}</TableCell>
                 <TableCell>
                   <div className="flex items-center gap-3">
                     <div className="relative">
-                      <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-md ring-1 ring-white/30 ${
-                        // Use account name hash for consistent colors
-                        entry.accountName.charAt(0).charCodeAt(0) % 8 === 0 ? 'bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600' :
-                        entry.accountName.charAt(0).charCodeAt(0) % 8 === 1 ? 'bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600' :
-                        entry.accountName.charAt(0).charCodeAt(0) % 8 === 2 ? 'bg-gradient-to-br from-orange-500 via-red-500 to-pink-600' :
-                        entry.accountName.charAt(0).charCodeAt(0) % 8 === 3 ? 'bg-gradient-to-br from-violet-500 via-purple-500 to-indigo-600' :
-                        entry.accountName.charAt(0).charCodeAt(0) % 8 === 4 ? 'bg-gradient-to-br from-rose-500 via-pink-500 to-red-600' :
-                        entry.accountName.charAt(0).charCodeAt(0) % 8 === 5 ? 'bg-gradient-to-br from-cyan-500 via-blue-500 to-indigo-600' :
-                        entry.accountName.charAt(0).charCodeAt(0) % 8 === 6 ? 'bg-gradient-to-br from-amber-500 via-orange-500 to-red-600' :
-                        'bg-gradient-to-br from-green-500 via-emerald-500 to-teal-600'
-                      }`}>
+                      <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-md ring-1 ring-white/30 ${getAvatarGradient(entry.accountColor)}`}>
                         {entry.accountName.charAt(0).toUpperCase()}
                       </div>
                       {/* Entry type indicator */}
