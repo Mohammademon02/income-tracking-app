@@ -421,12 +421,12 @@ export default async function DashboardPage() {
                         {withdrawal.status === "COMPLETED" && withdrawal.completedAt && (
                           <div className="flex items-center gap-2 mt-1">
                             <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${Math.ceil((new Date(withdrawal.completedAt).getTime() - new Date(withdrawal.date).getTime()) / (1000 * 60 * 60 * 24)) <= 7
-                                ? 'bg-green-100 text-green-700 border border-green-200' :
-                                Math.ceil((new Date(withdrawal.completedAt).getTime() - new Date(withdrawal.date).getTime()) / (1000 * 60 * 60 * 24)) <= 15
-                                  ? 'bg-blue-100 text-blue-700 border border-blue-200' :
-                                  Math.ceil((new Date(withdrawal.completedAt).getTime() - new Date(withdrawal.date).getTime()) / (1000 * 60 * 60 * 24)) <= 25
-                                    ? 'bg-orange-100 text-orange-700 border border-orange-200' :
-                                    'bg-red-100 text-red-700 border border-red-200'
+                              ? 'bg-green-100 text-green-700 border border-green-200' :
+                              Math.ceil((new Date(withdrawal.completedAt).getTime() - new Date(withdrawal.date).getTime()) / (1000 * 60 * 60 * 24)) <= 15
+                                ? 'bg-blue-100 text-blue-700 border border-blue-200' :
+                                Math.ceil((new Date(withdrawal.completedAt).getTime() - new Date(withdrawal.date).getTime()) / (1000 * 60 * 60 * 24)) <= 25
+                                  ? 'bg-orange-100 text-orange-700 border border-orange-200' :
+                                  'bg-red-100 text-red-700 border border-red-200'
                               }`}>
                               <Clock className="w-3 h-3" />
                               {Math.ceil((new Date(withdrawal.completedAt).getTime() - new Date(withdrawal.date).getTime()) / (1000 * 60 * 60 * 24))} days
