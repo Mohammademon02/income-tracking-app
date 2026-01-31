@@ -37,7 +37,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { MoreHorizontal, Pencil, Trash2 } from "lucide-react"
+import { MoreHorizontal, Pencil, Trash2, Users } from "lucide-react"
 import { updateAccount, deleteAccount } from "@/app/actions/accounts"
 
 type Account = {
@@ -73,40 +73,73 @@ export function AccountsTable({ accounts }: { accounts: Account[] }) {
 
   if (accounts.length === 0) {
     return (
-      <div className="text-center py-12 border rounded-lg">
-        <p className="text-muted-foreground">No accounts yet. Add your first account to get started.</p>
+      <div className="text-center py-12">
+        <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <Users className="w-8 h-8 text-blue-600" />
+        </div>
+        <p className="text-slate-500 text-lg">No accounts yet</p>
+        <p className="text-slate-400 text-sm">Add your first account to start tracking survey income</p>
       </div>
     )
   }
 
   return (
     <>
-      <div className="border rounded-lg">
+      <div className="rounded-lg overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead className="text-right">Total Points</TableHead>
-              <TableHead className="text-right">Completed</TableHead>
-              <TableHead className="text-right">Pending</TableHead>
-              <TableHead className="text-right">Balance</TableHead>
+              <TableHead className="text-right">Completed (pts)</TableHead>
+              <TableHead className="text-right">Pending (pts)</TableHead>
+              <TableHead className="text-right">Balance (pts)</TableHead>
               <TableHead className="w-[50px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {accounts.map((account) => (
-              <TableRow key={account.id}>
-                <TableCell className="font-medium">{account.name}</TableCell>
-                <TableCell className="text-right">{account.totalPoints.toLocaleString()}</TableCell>
-                <TableCell className="text-right">${account.completedWithdrawals.toFixed(2)}</TableCell>
+            {accounts.map((account, index) => (
+              <TableRow key={account.id} className="hover:bg-blue-50/50 transition-colors duration-200">
+                <TableCell className="font-medium">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${
+                      index % 4 === 0 ? 'bg-blue-500' :
+                      index % 4 === 1 ? 'bg-green-500' :
+                      index % 4 === 2 ? 'bg-orange-500' : 'bg-purple-500'
+                    }`}></div>
+                    <span>{account.name}</span>
+                  </div>
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex flex-col items-end">
+                    <span className="font-bold text-blue-600">{account.totalPoints.toLocaleString()}</span>
+                    <span className="text-xs text-muted-foreground">${(account.totalPoints / 100).toFixed(2)}</span>
+                  </div>
+                </TableCell>
+                <TableCell className="text-right">
+                  <div className="flex flex-col items-end">
+                    <span className="font-bold text-green-600">{(account.completedWithdrawals * 100).toLocaleString()}</span>
+                    <span className="text-xs text-muted-foreground">${account.completedWithdrawals.toFixed(2)}</span>
+                  </div>
+                </TableCell>
                 <TableCell className="text-right">
                   {account.pendingWithdrawals > 0 ? (
-                    <Badge variant="secondary">${account.pendingWithdrawals.toFixed(2)}</Badge>
+                    <div className="flex flex-col items-end">
+                      <Badge variant="secondary" className="bg-orange-100 text-orange-700 border-orange-200">
+                        {(account.pendingWithdrawals * 100).toLocaleString()} pts
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">${account.pendingWithdrawals.toFixed(2)}</span>
+                    </div>
                   ) : (
-                    "$0.00"
+                    <span className="text-muted-foreground">0 pts</span>
                   )}
                 </TableCell>
-                <TableCell className="text-right font-semibold">${account.currentBalance.toFixed(2)}</TableCell>
+                <TableCell className="text-right">
+                  <div className="flex flex-col items-end">
+                    <span className="font-bold text-slate-800">{account.currentBalance.toLocaleString()}</span>
+                    <span className="text-xs text-muted-foreground">${(account.currentBalance / 100).toFixed(2)}</span>
+                  </div>
+                </TableCell>
                 <TableCell>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>

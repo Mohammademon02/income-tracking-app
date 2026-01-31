@@ -105,10 +105,13 @@ export function AddEntryDialog({ accounts }: { accounts: Account[] }) {
                 id="points"
                 name="points"
                 type="number"
-                step="0.01"
-                placeholder="e.g., 150"
+                step="1"
+                placeholder="e.g., 1500"
                 required
               />
+              <p className="text-xs text-muted-foreground">
+                100 points = $1.00
+              </p>
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
           </div>

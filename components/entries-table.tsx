@@ -43,7 +43,7 @@ import {
 } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { MoreHorizontal, Pencil, Trash2 } from "lucide-react"
+import { MoreHorizontal, Pencil, Trash2, Plus } from "lucide-react"
 import { updateEntry, deleteEntry } from "@/app/actions/entries"
 
 type Entry = {
@@ -82,15 +82,19 @@ export function EntriesTable({ entries, accounts }: { entries: Entry[]; accounts
 
   if (entries.length === 0) {
     return (
-      <div className="text-center py-12 border rounded-lg">
-        <p className="text-muted-foreground">No entries yet. Add your first entry to start tracking.</p>
+      <div className="text-center py-12">
+        <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <Plus className="w-8 h-8 text-blue-600" />
+        </div>
+        <p className="text-slate-500 text-lg">No entries yet</p>
+        <p className="text-slate-400 text-sm">Add your first entry to start tracking daily points</p>
       </div>
     )
   }
 
   return (
     <>
-      <div className="border rounded-lg">
+      <div className="rounded-lg overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>
@@ -101,12 +105,28 @@ export function EntriesTable({ entries, accounts }: { entries: Entry[]; accounts
             </TableRow>
           </TableHeader>
           <TableBody>
-            {entries.map((entry) => (
-              <TableRow key={entry.id}>
-                <TableCell>{new Date(entry.date).toLocaleDateString()}</TableCell>
-                <TableCell>{entry.accountName}</TableCell>
+            {entries.map((entry, index) => (
+              <TableRow key={entry.id} className="hover:bg-blue-50/50 transition-colors duration-200">
+                <TableCell>{new Date(entry.date).toLocaleDateString('en-GB', { 
+                  day: 'numeric', 
+                  month: 'short', 
+                  year: 'numeric' 
+                })}</TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${
+                      index % 4 === 0 ? 'bg-blue-500' :
+                      index % 4 === 1 ? 'bg-green-500' :
+                      index % 4 === 2 ? 'bg-orange-500' : 'bg-purple-500'
+                    }`}></div>
+                    <span className="font-medium">{entry.accountName}</span>
+                  </div>
+                </TableCell>
                 <TableCell className="text-right font-medium">
-                  {entry.points.toLocaleString()}
+                  <div className="flex flex-col items-end">
+                    <span className="text-lg font-bold text-blue-600">{entry.points.toLocaleString()}</span>
+                    <span className="text-xs text-muted-foreground">${(entry.points / 100).toFixed(2)}</span>
+                  </div>
                 </TableCell>
                 <TableCell>
                   <DropdownMenu>
@@ -116,17 +136,17 @@ export function EntriesTable({ entries, accounts }: { entries: Entry[]; accounts
                         <span className="sr-only">Open menu</span>
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => setEditingEntry(entry)}>
+                    <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuItem onClick={() => setEditingEntry(entry)} className="cursor-pointer">
                         <Pencil className="mr-2 h-4 w-4" />
-                        Edit
+                        Edit Entry
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => setDeletingEntry(entry)}
-                        className="text-destructive"
+                        className="text-destructive cursor-pointer"
                       >
                         <Trash2 className="mr-2 h-4 w-4" />
-                        Delete
+                        Delete Entry
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -177,10 +197,14 @@ export function EntriesTable({ entries, accounts }: { entries: Entry[]; accounts
                   id="edit-points"
                   name="points"
                   type="number"
-                  step="0.01"
+                  step="1"
                   defaultValue={editingEntry?.points}
                   required
+                  placeholder="Enter points (e.g., 1500)"
                 />
+                <p className="text-xs text-muted-foreground">
+                  Dollar equivalent: ${editingEntry ? (editingEntry.points / 100).toFixed(2) : '0.00'} (100 points = $1)
+                </p>
               </div>
             </div>
             <DialogFooter>

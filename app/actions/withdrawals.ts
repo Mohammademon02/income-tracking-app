@@ -30,18 +30,21 @@ export async function createWithdrawal(formData: FormData) {
 
   const accountId = formData.get("accountId") as string
   const date = formData.get("date") as string
-  const amount = parseFloat(formData.get("amount") as string)
+  const pointsAmount = parseFloat(formData.get("amount") as string)
   const status = (formData.get("status") as "PENDING" | "COMPLETED") || "PENDING"
 
-  if (!accountId || !date || isNaN(amount)) {
+  if (!accountId || !date || isNaN(pointsAmount)) {
     return { error: "All fields are required" }
   }
+
+  // Convert points to dollars (100 points = $1)
+  const dollarAmount = pointsAmount / 100
 
   await prisma.withdrawal.create({
     data: {
       accountId,
       date: new Date(date),
-      amount,
+      amount: dollarAmount,
       status,
     },
   })
@@ -57,19 +60,22 @@ export async function updateWithdrawal(id: string, formData: FormData) {
 
   const accountId = formData.get("accountId") as string
   const date = formData.get("date") as string
-  const amount = parseFloat(formData.get("amount") as string)
+  const pointsAmount = parseFloat(formData.get("amount") as string)
   const status = formData.get("status") as "PENDING" | "COMPLETED"
 
-  if (!accountId || !date || isNaN(amount) || !status) {
+  if (!accountId || !date || isNaN(pointsAmount) || !status) {
     return { error: "All fields are required" }
   }
+
+  // Convert points to dollars (100 points = $1)
+  const dollarAmount = pointsAmount / 100
 
   await prisma.withdrawal.update({
     where: { id },
     data: {
       accountId,
       date: new Date(date),
-      amount,
+      amount: dollarAmount,
       status,
     },
   })

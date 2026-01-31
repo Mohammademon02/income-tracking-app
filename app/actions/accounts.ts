@@ -25,13 +25,17 @@ export async function getAccounts() {
       .filter((w) => w.status === "PENDING")
       .reduce((sum, w) => sum + w.amount, 0)
 
+    // Convert dollar amounts to points for balance calculation (100 points = $1)
+    const completedWithdrawalsInPoints = completedWithdrawals * 100
+    const pendingWithdrawalsInPoints = pendingWithdrawals * 100
+
     return {
       id: account.id,
       name: account.name,
       totalPoints,
-      completedWithdrawals,
-      pendingWithdrawals,
-      currentBalance: totalPoints - completedWithdrawals - pendingWithdrawals,
+      completedWithdrawals, // Keep in dollars for dashboard display conversion
+      pendingWithdrawals, // Keep in dollars for dashboard display conversion
+      currentBalance: totalPoints - completedWithdrawalsInPoints - pendingWithdrawalsInPoints, // Calculate in points
       createdAt: account.createdAt,
     }
   })

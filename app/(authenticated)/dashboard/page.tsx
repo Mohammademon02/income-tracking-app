@@ -13,9 +13,9 @@ export default async function DashboardPage() {
   ])
 
   const totalPoints = accounts.reduce((sum, a) => sum + a.totalPoints, 0)
-  const totalCompleted = accounts.reduce((sum, a) => sum + a.completedWithdrawals, 0)
-  const totalPending = accounts.reduce((sum, a) => sum + a.pendingWithdrawals, 0)
-  const totalBalance = accounts.reduce((sum, a) => sum + a.currentBalance, 0)
+  const totalCompleted = accounts.reduce((sum, a) => sum + a.completedWithdrawals, 0) * 100 // Convert to points
+  const totalPending = accounts.reduce((sum, a) => sum + a.pendingWithdrawals, 0) * 100 // Convert to points
+  const totalBalance = accounts.reduce((sum, a) => sum + a.currentBalance, 0) // Already in points
 
   // Calculate additional metrics
   const totalEarnings = totalCompleted + totalPending + totalBalance
@@ -43,13 +43,13 @@ export default async function DashboardPage() {
   })
 
   const thisMonthIncome = thisMonthEntries.reduce((sum, entry) => sum + entry.points, 0)
-  const thisMonthCompletedWithdrawals = thisMonthWithdrawals.reduce((sum, withdrawal) => sum + withdrawal.amount, 0)
+  const thisMonthCompletedWithdrawals = thisMonthWithdrawals.reduce((sum, withdrawal) => sum + withdrawal.amount, 0) * 100 // Convert to points
   const lastMonthEntries = Math.floor(thisMonthEntries.length * 0.8) // Mock previous month data
 
   // Get current month name
   const currentMonthName = new Date().toLocaleDateString('en-US', { month: 'long' })
 
-  // Convert points to dollars (100 points = $1)
+  // Convert points to dollars (100 points = $1) - for Quick Stats section
   const totalWithdrawalsInDollars = (totalCompleted / 100).toFixed(2)
   const thisMonthWithdrawalsInDollars = (thisMonthCompletedWithdrawals / 100).toFixed(2)
 
@@ -79,9 +79,12 @@ export default async function DashboardPage() {
           </CardHeader>
           <CardContent className="relative z-10">
             <div className="text-3xl font-bold">{totalPoints.toLocaleString()}</div>
-            <div className="flex items-center mt-2 text-blue-100">
-              <ArrowUpRight className="w-4 h-4 mr-1" />
-              <span className="text-sm">Across {accounts.length} accounts</span>
+            <div className="flex items-center justify-between mt-2 text-blue-100">
+              <div className="flex items-center">
+                <ArrowUpRight className="w-4 h-4 mr-1" />
+                <span className="text-sm">Across {accounts.length} accounts</span>
+              </div>
+              <span className="text-lg font-semibold">${(totalPoints / 100).toFixed(2)}</span>
             </div>
           </CardContent>
         </Card>
@@ -94,6 +97,7 @@ export default async function DashboardPage() {
           </CardHeader>
           <CardContent className="relative z-10">
             <div className="text-3xl font-bold">{totalCompleted.toLocaleString()} <span className="text-lg text-green-200">pts</span></div>
+            <div className="text-xl font-semibold text-green-100 mb-2">${(totalCompleted / 100).toFixed(2)}</div>
             <div className="flex items-center mt-2 text-green-100">
               <div className="w-full bg-green-400/30 rounded-full h-2 mr-2">
                 <div
@@ -115,6 +119,7 @@ export default async function DashboardPage() {
           </CardHeader>
           <CardContent className="relative z-10">
             <div className="text-3xl font-bold">{totalPending.toLocaleString()} <span className="text-lg text-orange-200">pts</span></div>
+            <div className="text-xl font-semibold text-orange-100 mb-2">${(totalPending / 100).toFixed(2)}</div>
             <div className="flex items-center mt-2 text-orange-100">
               <Activity className="w-4 h-4 mr-1" />
               <span className="text-sm">Awaiting completion</span>
@@ -131,6 +136,7 @@ export default async function DashboardPage() {
           </CardHeader>
           <CardContent className="relative z-10">
             <div className="text-3xl font-bold">{totalBalance.toLocaleString()} <span className="text-lg text-purple-200">pts</span></div>
+            <div className="text-xl font-semibold text-purple-100 mb-2">${(totalBalance / 100).toFixed(2)}</div>
             <div className="flex items-center mt-2 text-purple-100">
               <Target className="w-4 h-4 mr-1" />
               <span className="text-sm">Ready to withdraw</span>
@@ -180,7 +186,7 @@ export default async function DashboardPage() {
                           <p className="text-xl font-bold text-slate-800">{account.currentBalance.toLocaleString()} <span className="text-sm text-slate-500">pts</span></p>
                           {account.pendingWithdrawals > 0 && (
                             <Badge variant="secondary" className="text-xs bg-orange-100 text-orange-700">
-                              {account.pendingWithdrawals.toLocaleString()} pts pending
+                              {(account.pendingWithdrawals * 100).toLocaleString()} pts pending
                             </Badge>
                           )}
                         </div>
@@ -283,10 +289,15 @@ export default async function DashboardPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-blue-600">
-                        +{entry.points.toLocaleString()}
-                      </span>
-                      <span className="text-xs text-blue-500">pts</span>
+                      <div className="text-right">
+                        <span className="font-bold text-blue-600">
+                          +{entry.points.toLocaleString()}
+                        </span>
+                        <span className="text-xs text-blue-500 ml-1">pts</span>
+                        <div className="text-xs text-slate-400">
+                          ${(entry.points / 100).toFixed(2)}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -331,8 +342,14 @@ export default async function DashboardPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className={`font-bold ${withdrawal.status === "COMPLETED" ? "text-green-600" : "text-orange-600"
-                        }`}>{withdrawal.amount.toLocaleString()} <span className="text-xs opacity-70">pts</span></span>
+                      <div className="text-right">
+                        <span className={`font-bold ${withdrawal.status === "COMPLETED" ? "text-green-600" : "text-orange-600"
+                          }`}>{(withdrawal.amount * 100).toLocaleString()}</span>
+                        <span className="text-xs opacity-70 ml-1">pts</span>
+                        <div className={`text-xs ${withdrawal.status === "COMPLETED" ? "text-green-500" : "text-orange-500"}`}>
+                          ${withdrawal.amount.toFixed(2)}
+                        </div>
+                      </div>
                       <Badge
                         variant="secondary"
                         className={withdrawal.status === "COMPLETED"

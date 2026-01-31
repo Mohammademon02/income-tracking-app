@@ -44,7 +44,7 @@ import {
 } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { MoreHorizontal, Pencil, Trash2 } from "lucide-react"
+import { MoreHorizontal, Pencil, Trash2, Wallet } from "lucide-react"
 import { updateWithdrawal, deleteWithdrawal } from "@/app/actions/withdrawals"
 
 type Withdrawal = {
@@ -84,15 +84,19 @@ export function WithdrawalsTable({ withdrawals, accounts }: { withdrawals: Withd
 
   if (withdrawals.length === 0) {
     return (
-      <div className="text-center py-12 border rounded-lg">
-        <p className="text-muted-foreground">No withdrawals yet. Add your first withdrawal to start tracking.</p>
+      <div className="text-center py-12">
+        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <Wallet className="w-8 h-8 text-green-600" />
+        </div>
+        <p className="text-slate-500 text-lg">No withdrawals yet</p>
+        <p className="text-slate-400 text-sm">Add your first withdrawal to start tracking requests</p>
       </div>
     )
   }
 
   return (
     <>
-      <div className="border rounded-lg">
+      <div className="rounded-lg overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>
@@ -106,15 +110,33 @@ export function WithdrawalsTable({ withdrawals, accounts }: { withdrawals: Withd
           <TableBody>
             {withdrawals.map((withdrawal) => (
               <TableRow key={withdrawal.id}>
-                <TableCell>{new Date(withdrawal.date).toLocaleDateString()}</TableCell>
+                <TableCell>{new Date(withdrawal.date).toLocaleDateString('en-GB', { 
+                  day: 'numeric', 
+                  month: 'short', 
+                  year: 'numeric' 
+                })}</TableCell>
                 <TableCell>{withdrawal.accountName}</TableCell>
                 <TableCell className="text-right font-medium">
-                  ${withdrawal.amount.toFixed(2)}
+                  <div className="flex flex-col items-end">
+                    <span className="text-lg font-bold">{(withdrawal.amount * 100).toLocaleString()} pts</span>
+                    <span className="text-xs text-muted-foreground">${withdrawal.amount.toFixed(2)}</span>
+                  </div>
                 </TableCell>
                 <TableCell>
-                  <Badge variant={withdrawal.status === "COMPLETED" ? "default" : "secondary"}>
-                    {withdrawal.status === "COMPLETED" ? "Completed" : "Pending"}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${
+                      withdrawal.status === "COMPLETED" ? "bg-green-500" : "bg-orange-500"
+                    }`}></div>
+                    <Badge 
+                      variant="secondary"
+                      className={withdrawal.status === "COMPLETED" 
+                        ? "bg-green-100 text-green-700 border-green-200 hover:bg-green-100" 
+                        : "bg-orange-100 text-orange-700 border-orange-200 hover:bg-orange-100"
+                      }
+                    >
+                      {withdrawal.status === "COMPLETED" ? "Completed" : "Pending"}
+                    </Badge>
+                  </div>
                 </TableCell>
                 <TableCell>
                   <DropdownMenu>
@@ -124,14 +146,33 @@ export function WithdrawalsTable({ withdrawals, accounts }: { withdrawals: Withd
                         <span className="sr-only">Open menu</span>
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => setEditingWithdrawal(withdrawal)}>
+                    <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuItem onClick={() => setEditingWithdrawal(withdrawal)} className="cursor-pointer">
                         <Pencil className="mr-2 h-4 w-4" />
-                        Edit
+                        Edit Details
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => {
+                          const updatedWithdrawal = { ...withdrawal, status: withdrawal.status === "PENDING" ? "COMPLETED" : "PENDING" as "PENDING" | "COMPLETED" }
+                          setEditingWithdrawal(updatedWithdrawal)
+                        }}
+                        className="cursor-pointer"
+                      >
+                        {withdrawal.status === "PENDING" ? (
+                          <>
+                            <div className="mr-2 h-4 w-4 rounded-full bg-green-500"></div>
+                            Mark as Completed
+                          </>
+                        ) : (
+                          <>
+                            <div className="mr-2 h-4 w-4 rounded-full bg-orange-500"></div>
+                            Mark as Pending
+                          </>
+                        )}
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => setDeletingWithdrawal(withdrawal)}
-                        className="text-destructive"
+                        className="text-destructive cursor-pointer"
                       >
                         <Trash2 className="mr-2 h-4 w-4" />
                         Delete
@@ -180,15 +221,19 @@ export function WithdrawalsTable({ withdrawals, accounts }: { withdrawals: Withd
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-amount">Amount ($)</Label>
+                <Label htmlFor="edit-amount">Amount (Points)</Label>
                 <Input
                   id="edit-amount"
                   name="amount"
                   type="number"
-                  step="0.01"
-                  defaultValue={editingWithdrawal?.amount}
+                  step="1"
+                  defaultValue={editingWithdrawal ? editingWithdrawal.amount * 100 : 0}
                   required
+                  placeholder="Enter points (e.g., 1500)"
                 />
+                <p className="text-xs text-muted-foreground">
+                  Dollar equivalent: ${editingWithdrawal ? (editingWithdrawal.amount).toFixed(2) : '0.00'} (100 points = $1)
+                </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-status">Status</Label>
@@ -197,8 +242,18 @@ export function WithdrawalsTable({ withdrawals, accounts }: { withdrawals: Withd
                     <SelectValue placeholder="Select status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="PENDING">Pending</SelectItem>
-                    <SelectItem value="COMPLETED">Completed</SelectItem>
+                    <SelectItem value="PENDING">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-orange-500"></div>
+                        Pending
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="COMPLETED">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                        Completed
+                      </div>
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -221,7 +276,7 @@ export function WithdrawalsTable({ withdrawals, accounts }: { withdrawals: Withd
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Withdrawal</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this ${deletingWithdrawal?.amount.toFixed(2)} withdrawal?
+              Are you sure you want to delete this {deletingWithdrawal ? (deletingWithdrawal.amount * 100).toLocaleString() : 0} points (${deletingWithdrawal?.amount.toFixed(2)}) withdrawal?
               This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>

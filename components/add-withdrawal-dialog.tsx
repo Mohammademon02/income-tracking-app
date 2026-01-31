@@ -100,15 +100,18 @@ export function AddWithdrawalDialog({ accounts }: { accounts: Account[] }) {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="amount">Amount ($)</Label>
+              <Label htmlFor="amount">Amount (Points)</Label>
               <Input
                 id="amount"
                 name="amount"
                 type="number"
-                step="0.01"
-                placeholder="e.g., 25.00"
+                step="1"
+                placeholder="e.g., 2500"
                 required
               />
+              <p className="text-xs text-muted-foreground">
+                100 points = $1.00
+              </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
@@ -117,8 +120,18 @@ export function AddWithdrawalDialog({ accounts }: { accounts: Account[] }) {
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="PENDING">Pending</SelectItem>
-                  <SelectItem value="COMPLETED">Completed</SelectItem>
+                  <SelectItem value="PENDING">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-orange-500"></div>
+                      Pending
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="COMPLETED">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                      Completed
+                    </div>
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
