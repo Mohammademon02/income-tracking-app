@@ -26,9 +26,32 @@ export default async function DashboardPage() {
   const recentEntries = entries.slice(0, 5)
   const recentWithdrawals = withdrawals.slice(0, 5)
 
-  // Calculate trends (mock data for demonstration)
-  const thisMonthEntries = entries.filter(e => new Date(e.date).getMonth() === new Date().getMonth()).length
-  const lastMonthEntries = Math.floor(thisMonthEntries * 0.8) // Mock previous month data
+  // Calculate trends and monthly data
+  const currentMonth = new Date().getMonth()
+  const currentYear = new Date().getFullYear()
+
+  const thisMonthEntries = entries.filter(e => {
+    const entryDate = new Date(e.date)
+    return entryDate.getMonth() === currentMonth && entryDate.getFullYear() === currentYear
+  })
+
+  const thisMonthWithdrawals = withdrawals.filter(w => {
+    const withdrawalDate = new Date(w.date)
+    return withdrawalDate.getMonth() === currentMonth &&
+      withdrawalDate.getFullYear() === currentYear &&
+      w.status === "COMPLETED"
+  })
+
+  const thisMonthIncome = thisMonthEntries.reduce((sum, entry) => sum + entry.points, 0)
+  const thisMonthCompletedWithdrawals = thisMonthWithdrawals.reduce((sum, withdrawal) => sum + withdrawal.amount, 0)
+  const lastMonthEntries = Math.floor(thisMonthEntries.length * 0.8) // Mock previous month data
+
+  // Get current month name
+  const currentMonthName = new Date().toLocaleDateString('en-US', { month: 'long' })
+
+  // Convert points to dollars (100 points = $1)
+  const totalWithdrawalsInDollars = (totalCompleted / 100).toFixed(2)
+  const thisMonthWithdrawalsInDollars = (thisMonthCompletedWithdrawals / 100).toFixed(2)
 
   return (
     <div className="p-6 space-y-8 bg-gradient-to-br from-slate-50/50 to-blue-50/30 min-h-screen">
@@ -66,7 +89,7 @@ export default async function DashboardPage() {
         <Card className="relative overflow-hidden bg-gradient-to-br from-green-500 to-green-600 text-white border-0 shadow-lg shadow-green-200/50 transform transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-green-300/60 cursor-pointer">
           <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10 transition-all duration-500 hover:bg-white/20"></div>
           <CardHeader className="flex flex-row items-center justify-between pb-2 relative z-10">
-            <CardTitle className="text-sm font-medium text-green-100">Completed</CardTitle>
+            <CardTitle className="text-sm font-medium text-green-100">Completed Withdrawals</CardTitle>
             <DollarSign className="h-5 w-5 text-green-200" />
           </CardHeader>
           <CardContent className="relative z-10">
@@ -78,30 +101,32 @@ export default async function DashboardPage() {
                   style={{ width: `${completionRate}%` }}
                 ></div>
               </div>
-              <span className="text-sm">{completionRate.toFixed(0)}%</span>
+              <span className="text-sm">{completionRate.toFixed(0)}% of total</span>
             </div>
+            <p className="text-xs text-green-200 mt-1">Successfully withdrawn from accounts</p>
           </CardContent>
         </Card>
 
         <Card className="relative overflow-hidden bg-gradient-to-br from-orange-500 to-orange-600 text-white border-0 shadow-lg shadow-orange-200/50 transform transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-orange-300/60 cursor-pointer">
           <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10 transition-all duration-500 hover:bg-white/20"></div>
           <CardHeader className="flex flex-row items-center justify-between pb-2 relative z-10">
-            <CardTitle className="text-sm font-medium text-orange-100">Pending</CardTitle>
+            <CardTitle className="text-sm font-medium text-orange-100">Pending Withdrawals</CardTitle>
             <Clock className="h-5 w-5 text-orange-200" />
           </CardHeader>
           <CardContent className="relative z-10">
             <div className="text-3xl font-bold">{totalPending.toLocaleString()} <span className="text-lg text-orange-200">pts</span></div>
             <div className="flex items-center mt-2 text-orange-100">
               <Activity className="w-4 h-4 mr-1" />
-              <span className="text-sm">Processing...</span>
+              <span className="text-sm">Awaiting completion</span>
             </div>
+            <p className="text-xs text-orange-200 mt-1">Withdrawal requests in progress</p>
           </CardContent>
         </Card>
 
         <Card className="relative overflow-hidden bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0 shadow-lg shadow-purple-200/50 transform transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-purple-300/60 cursor-pointer">
           <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10 transition-all duration-500 hover:bg-white/20"></div>
           <CardHeader className="flex flex-row items-center justify-between pb-2 relative z-10">
-            <CardTitle className="text-sm font-medium text-purple-100">Available</CardTitle>
+            <CardTitle className="text-sm font-medium text-purple-100">Available Balance</CardTitle>
             <Wallet className="h-5 w-5 text-purple-200" />
           </CardHeader>
           <CardContent className="relative z-10">
@@ -110,6 +135,7 @@ export default async function DashboardPage() {
               <Target className="w-4 h-4 mr-1" />
               <span className="text-sm">Ready to withdraw</span>
             </div>
+            <p className="text-xs text-purple-200 mt-1">Current balance across all accounts</p>
           </CardContent>
         </Card>
       </div>
@@ -191,21 +217,33 @@ export default async function DashboardPage() {
             </div>
 
             <div className="text-center p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl transition-all duration-300 hover:from-green-100 hover:to-emerald-100 hover:scale-105 cursor-pointer transform">
-              <div className="text-2xl font-bold text-green-600 transition-colors duration-300 hover:text-green-700">{totalEarnings.toLocaleString()} <span className="text-sm text-green-500">pts</span></div>
-              <p className="text-sm text-green-700">Total Earnings</p>
+              <div className="text-2xl font-bold text-green-600 transition-colors duration-300 hover:text-green-700">${totalWithdrawalsInDollars}</div>
+              <p className="text-sm text-green-700">Total Withdrawals</p>
+              <p className="text-xs text-green-500">{totalCompleted.toLocaleString()} pts</p>
+            </div>
+
+            <div className="text-center p-4 bg-gradient-to-r from-purple-50 to-violet-50 rounded-xl transition-all duration-300 hover:from-purple-100 hover:to-violet-100 hover:scale-105 cursor-pointer transform">
+              <div className="text-2xl font-bold text-purple-600 transition-colors duration-300 hover:text-purple-700">{thisMonthIncome.toLocaleString()} <span className="text-sm text-purple-500">pts</span></div>
+              <p className="text-sm text-purple-700">{currentMonthName} Income</p>
+            </div>
+
+            <div className="text-center p-4 bg-gradient-to-r from-cyan-50 to-teal-50 rounded-xl transition-all duration-300 hover:from-cyan-100 hover:to-teal-100 hover:scale-105 cursor-pointer transform">
+              <div className="text-2xl font-bold text-cyan-600 transition-colors duration-300 hover:text-cyan-700">${thisMonthWithdrawalsInDollars}</div>
+              <p className="text-sm text-cyan-700">{currentMonthName} Withdrawals</p>
+              <p className="text-xs text-cyan-500">{thisMonthCompletedWithdrawals.toLocaleString()} pts</p>
             </div>
 
             <div className="text-center p-4 bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl transition-all duration-300 hover:from-orange-100 hover:to-amber-100 hover:scale-105 cursor-pointer transform">
               <div className="flex items-center justify-center gap-2">
-                <span className="text-2xl font-bold text-orange-600">{thisMonthEntries}</span>
+                <span className="text-2xl font-bold text-orange-600">{thisMonthEntries.length}</span>
                 {lastMonthEntries > 0 && (
                   <div className="flex items-center text-green-600">
                     <ArrowUpRight className="w-4 h-4" />
-                    <span className="text-sm">+{Math.round(((thisMonthEntries - lastMonthEntries) / lastMonthEntries) * 100)}%</span>
+                    <span className="text-sm">+{Math.round(((thisMonthEntries.length - lastMonthEntries) / lastMonthEntries) * 100)}%</span>
                   </div>
                 )}
               </div>
-              <p className="text-sm text-orange-700">This Month's Entries</p>
+              <p className="text-sm text-orange-700">{currentMonthName} Entries</p>
             </div>
           </CardContent>
         </Card>
