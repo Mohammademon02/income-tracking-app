@@ -44,7 +44,7 @@ import {
 } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { MoreHorizontal, Pencil, Trash2, Wallet } from "lucide-react"
+import { MoreHorizontal, Pencil, Trash2, Wallet, Clock } from "lucide-react"
 import { updateWithdrawal, deleteWithdrawal } from "@/app/actions/withdrawals"
 
 type Withdrawal = {
@@ -142,60 +142,77 @@ export function WithdrawalsTable({ withdrawals, accounts }: { withdrawals: Withd
                 </TableCell>
                 <TableCell>
                   {withdrawal.completedAt ? (
-                    <div className="text-sm">
-                      <div className="font-medium text-green-600">
-                        {new Date(withdrawal.completedAt).toLocaleDateString('en-GB', {
-                          day: 'numeric',
-                          month: 'short',
-                          year: 'numeric'
-                        })}
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                        <span className="font-semibold text-green-700">
+                          {new Date(withdrawal.completedAt).toLocaleDateString('en-GB', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric'
+                          })}
+                        </span>
                       </div>
-                      <div className="text-xs text-muted-foreground">
-                        {new Date(withdrawal.completedAt).toLocaleTimeString('en-GB', {
+                      <div className="text-xs text-slate-500 ml-4">
+                        at {new Date(withdrawal.completedAt).toLocaleTimeString('en-GB', {
                           hour: '2-digit',
                           minute: '2-digit'
                         })}
                       </div>
                     </div>
                   ) : withdrawal.status === "COMPLETED" ? (
-                    <div className="text-sm">
-                      <div className="font-medium text-green-600">
-                        {new Date(withdrawal.date).toLocaleDateString('en-GB', {
-                          day: 'numeric',
-                          month: 'short',
-                          year: 'numeric'
-                        })}
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <span className="font-semibold text-green-700">
+                          {new Date(withdrawal.date).toLocaleDateString('en-GB', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric'
+                          })}
+                        </span>
                       </div>
-                      <div className="text-xs text-muted-foreground">
-                        (Estimated)
+                      <div className="text-xs text-slate-400 ml-4 italic">
+                        (Same day completion)
                       </div>
                     </div>
                   ) : (
-                    <span className="text-muted-foreground text-sm">-</span>
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-orange-400 rounded-full animate-pulse"></div>
+                      <span className="text-slate-400 text-sm">Pending...</span>
+                    </div>
                   )}
                 </TableCell>
                 <TableCell>
                   {withdrawal.completedAt ? (
-                    <div className="text-sm">
-                      <div className="font-medium text-blue-600">
-                        {Math.ceil((new Date(withdrawal.completedAt).getTime() - new Date(withdrawal.date).getTime()) / (1000 * 60 * 60 * 24))} days
-                      </div>
-                      <div className={`text-xs font-medium ${Math.ceil((new Date(withdrawal.completedAt).getTime() - new Date(withdrawal.date).getTime()) / (1000 * 60 * 60 * 24)) <= 10 ? 'text-green-600' :
-                        Math.ceil((new Date(withdrawal.completedAt).getTime() - new Date(withdrawal.date).getTime()) / (1000 * 60 * 60 * 24)) <= 20 ? 'text-blue-600' :
-                          Math.ceil((new Date(withdrawal.completedAt).getTime() - new Date(withdrawal.date).getTime()) / (1000 * 60 * 60 * 24)) <= 30 ? 'text-orange-600' : 'text-red-600'
-                        }`}>
-                        {Math.ceil((new Date(withdrawal.completedAt).getTime() - new Date(withdrawal.date).getTime()) / (1000 * 60 * 60 * 24)) <= 10 ? 'Fast' :
-                          Math.ceil((new Date(withdrawal.completedAt).getTime() - new Date(withdrawal.date).getTime()) / (1000 * 60 * 60 * 24)) <= 20 ? 'Normal' :
-                            Math.ceil((new Date(withdrawal.completedAt).getTime() - new Date(withdrawal.date).getTime()) / (1000 * 60 * 60 * 24)) <= 30 ? 'Slow' : 'Very Slow'}
-                      </div>
+                    <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                      Math.ceil((new Date(withdrawal.completedAt).getTime() - new Date(withdrawal.date).getTime()) / (1000 * 60 * 60 * 24)) <= 7 
+                        ? 'bg-green-100 text-green-700 border border-green-200' :
+                      Math.ceil((new Date(withdrawal.completedAt).getTime() - new Date(withdrawal.date).getTime()) / (1000 * 60 * 60 * 24)) <= 15 
+                        ? 'bg-blue-100 text-blue-700 border border-blue-200' :
+                      Math.ceil((new Date(withdrawal.completedAt).getTime() - new Date(withdrawal.date).getTime()) / (1000 * 60 * 60 * 24)) <= 25 
+                        ? 'bg-orange-100 text-orange-700 border border-orange-200' : 
+                        'bg-red-100 text-red-700 border border-red-200'
+                    }`}>
+                      <Clock className="w-3 h-3" />
+                      {Math.ceil((new Date(withdrawal.completedAt).getTime() - new Date(withdrawal.date).getTime()) / (1000 * 60 * 60 * 24))} days
+                      <span className="ml-1">
+                        {Math.ceil((new Date(withdrawal.completedAt).getTime() - new Date(withdrawal.date).getTime()) / (1000 * 60 * 60 * 24)) <= 7 ? '⚡ Fast' :
+                         Math.ceil((new Date(withdrawal.completedAt).getTime() - new Date(withdrawal.date).getTime()) / (1000 * 60 * 60 * 24)) <= 15 ? '✅ Normal' :
+                         Math.ceil((new Date(withdrawal.completedAt).getTime() - new Date(withdrawal.date).getTime()) / (1000 * 60 * 60 * 24)) <= 25 ? '🐌 Slow' : '🔴 Very Slow'}
+                      </span>
                     </div>
                   ) : withdrawal.status === "COMPLETED" ? (
-                    <div className="text-sm">
-                      <div className="font-medium text-blue-600">0 days</div>
-                      <div className="text-xs text-green-600">Instant</div>
+                    <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 border border-green-200">
+                      <Clock className="w-3 h-3" />
+                      0 days
+                      <span className="ml-1">⚡ Fast</span>
                     </div>
                   ) : (
-                    <span className="text-muted-foreground text-sm">-</span>
+                    <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-slate-100 text-slate-500 border border-slate-200">
+                      <Clock className="w-3 h-3" />
+                      <span>Processing</span>
+                    </div>
                   )}
                 </TableCell>
                 <TableCell>

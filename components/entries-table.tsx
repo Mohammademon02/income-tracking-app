@@ -114,17 +114,27 @@ export function EntriesTable({ entries, accounts }: { entries: Entry[]; accounts
                 })}</TableCell>
                 <TableCell>
                   <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold text-sm ${
-                      index % 6 === 0 ? 'bg-gradient-to-r from-blue-500 to-blue-600' :
-                      index % 6 === 1 ? 'bg-gradient-to-r from-green-500 to-green-600' :
-                      index % 6 === 2 ? 'bg-gradient-to-r from-orange-500 to-orange-600' :
-                      index % 6 === 3 ? 'bg-gradient-to-r from-purple-500 to-purple-600' :
-                      index % 6 === 4 ? 'bg-gradient-to-r from-pink-500 to-pink-600' :
-                      'bg-gradient-to-r from-cyan-500 to-cyan-600'
-                    }`}>
-                      {entry.accountName.charAt(0).toUpperCase()}
+                    <div className="relative">
+                      <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-md ring-1 ring-white/30 ${
+                        // Use account name hash for consistent colors
+                        entry.accountName.charAt(0).charCodeAt(0) % 8 === 0 ? 'bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600' :
+                        entry.accountName.charAt(0).charCodeAt(0) % 8 === 1 ? 'bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600' :
+                        entry.accountName.charAt(0).charCodeAt(0) % 8 === 2 ? 'bg-gradient-to-br from-orange-500 via-red-500 to-pink-600' :
+                        entry.accountName.charAt(0).charCodeAt(0) % 8 === 3 ? 'bg-gradient-to-br from-violet-500 via-purple-500 to-indigo-600' :
+                        entry.accountName.charAt(0).charCodeAt(0) % 8 === 4 ? 'bg-gradient-to-br from-rose-500 via-pink-500 to-red-600' :
+                        entry.accountName.charAt(0).charCodeAt(0) % 8 === 5 ? 'bg-gradient-to-br from-cyan-500 via-blue-500 to-indigo-600' :
+                        entry.accountName.charAt(0).charCodeAt(0) % 8 === 6 ? 'bg-gradient-to-br from-amber-500 via-orange-500 to-red-600' :
+                        'bg-gradient-to-br from-green-500 via-emerald-500 to-teal-600'
+                      }`}>
+                        {entry.accountName.charAt(0).toUpperCase()}
+                      </div>
+                      {/* Entry type indicator */}
+                      <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full border border-white shadow-sm"></div>
                     </div>
-                    <span className="font-medium">{entry.accountName}</span>
+                    <div className="flex flex-col">
+                      <span className="font-semibold text-slate-800">{entry.accountName}</span>
+                      <span className="text-xs text-slate-500">Survey Entry</span>
+                    </div>
                   </div>
                 </TableCell>
                 <TableCell className="text-right font-medium">

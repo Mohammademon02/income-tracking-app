@@ -102,17 +102,54 @@ export function AccountsTable({ accounts }: { accounts: Account[] }) {
               <TableRow key={account.id} className="hover:bg-blue-50/50 transition-colors duration-200">
                 <TableCell className="font-medium">
                   <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold text-sm ${
-                      index % 6 === 0 ? 'bg-gradient-to-r from-blue-500 to-blue-600' :
-                      index % 6 === 1 ? 'bg-gradient-to-r from-green-500 to-green-600' :
-                      index % 6 === 2 ? 'bg-gradient-to-r from-orange-500 to-orange-600' :
-                      index % 6 === 3 ? 'bg-gradient-to-r from-purple-500 to-purple-600' :
-                      index % 6 === 4 ? 'bg-gradient-to-r from-pink-500 to-pink-600' :
-                      'bg-gradient-to-r from-cyan-500 to-cyan-600'
-                    }`}>
-                      {account.name.charAt(0).toUpperCase()}
+                    <div className="relative">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg ring-2 ring-white/20 ${
+                        // High performers (1000+ points) get premium gradients
+                        account.totalPoints >= 1000 ? (
+                          index % 4 === 0 ? 'bg-gradient-to-br from-amber-400 via-orange-500 to-red-500' :
+                          index % 4 === 1 ? 'bg-gradient-to-br from-emerald-400 via-teal-500 to-cyan-600' :
+                          index % 4 === 2 ? 'bg-gradient-to-br from-violet-400 via-purple-500 to-indigo-600' :
+                          'bg-gradient-to-br from-pink-400 via-rose-500 to-red-500'
+                        ) : 
+                        // Medium performers (500-999 points) get vibrant gradients
+                        account.totalPoints >= 500 ? (
+                          index % 5 === 0 ? 'bg-gradient-to-br from-blue-500 to-indigo-600' :
+                          index % 5 === 1 ? 'bg-gradient-to-br from-green-500 to-emerald-600' :
+                          index % 5 === 2 ? 'bg-gradient-to-br from-orange-500 to-red-500' :
+                          index % 5 === 3 ? 'bg-gradient-to-br from-purple-500 to-pink-600' :
+                          'bg-gradient-to-br from-cyan-500 to-blue-600'
+                        ) :
+                        // New accounts get softer gradients
+                        (
+                          index % 6 === 0 ? 'bg-gradient-to-br from-slate-400 to-slate-600' :
+                          index % 6 === 1 ? 'bg-gradient-to-br from-gray-400 to-gray-600' :
+                          index % 6 === 2 ? 'bg-gradient-to-br from-zinc-400 to-zinc-600' :
+                          index % 6 === 3 ? 'bg-gradient-to-br from-stone-400 to-stone-600' :
+                          index % 6 === 4 ? 'bg-gradient-to-br from-neutral-400 to-neutral-600' :
+                          'bg-gradient-to-br from-slate-500 to-gray-600'
+                        )
+                      }`}>
+                        {account.name.charAt(0).toUpperCase()}
+                      </div>
+                      {/* Performance indicator dot */}
+                      {account.totalPoints >= 1000 && (
+                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-yellow-400 to-amber-500 rounded-full border-2 border-white shadow-sm flex items-center justify-center">
+                          <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
+                        </div>
+                      )}
+                      {account.totalPoints >= 500 && account.totalPoints < 1000 && (
+                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full border-2 border-white shadow-sm"></div>
+                      )}
                     </div>
-                    <span>{account.name}</span>
+                    <div className="flex flex-col">
+                      <span className="font-semibold text-slate-800">{account.name}</span>
+                      <span className="text-xs text-slate-500">
+                        {account.totalPoints >= 1000 ? '🏆 Top Performer' :
+                         account.totalPoints >= 500 ? '⭐ Active' :
+                         account.totalPoints >= 100 ? '📈 Growing' :
+                         '🌱 New Account'}
+                      </span>
+                    </div>
                   </div>
                 </TableCell>
                 <TableCell className="text-right">

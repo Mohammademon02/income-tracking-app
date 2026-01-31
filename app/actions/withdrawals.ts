@@ -19,7 +19,7 @@ export async function getWithdrawals(accountId?: string) {
     date: withdrawal.date,
     amount: withdrawal.amount,
     status: withdrawal.status,
-    completedAt: (withdrawal as any).completedAt || null,
+    completedAt: withdrawal.completedAt || null,
     accountId: withdrawal.accountId,
     accountName: withdrawal.account.name,
   }))
@@ -71,15 +71,29 @@ export async function updateWithdrawal(id: string, formData: FormData) {
   // Convert points to dollars (100 points = $1)
   const dollarAmount = pointsAmount / 100
 
-  // For now, just update basic fields until database migration is complete
+  // Get current withdrawal to check if status is changing
+  const currentWithdrawal = await prisma.withdrawal.findUnique({
+    where: { id }
+  })
+
+  const updateData: any = {
+    accountId,
+    date: new Date(date),
+    amount: dollarAmount,
+    status,
+  }
+
+  // If status is changing to COMPLETED, set completedAt to current time
+  if (status === "COMPLETED" && currentWithdrawal?.status !== "COMPLETED") {
+    updateData.completedAt = new Date()
+  } else if (status === "PENDING") {
+    // If status is changing to PENDING, clear completedAt
+    updateData.completedAt = null
+  }
+
   await prisma.withdrawal.update({
     where: { id },
-    data: {
-      accountId,
-      date: new Date(date),
-      amount: dollarAmount,
-      status,
-    },
+    data: updateData,
   })
 
   revalidatePath("/dashboard")

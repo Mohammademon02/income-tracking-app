@@ -169,25 +169,34 @@ export default async function DashboardPage() {
                   const progressValue = totalPoints > 0 ? (account.totalPoints / totalPoints) * 100 : 0
                   const isWithdrawalReady = account.currentBalance >= 1000
                   return (
-                    <div key={account.id} className={`relative group transition-all duration-300 hover:bg-slate-50/50 rounded-lg p-2 -m-2 ${
-                      account.currentBalance >= 1000 ? 'bg-gradient-to-r from-green-50/30 to-emerald-50/30 border border-green-200/50 shadow-sm' : ''
-                    }`}>
+                    <div key={account.id} className={`relative group transition-all duration-300 hover:bg-slate-50/50 rounded-lg p-2 -m-2 ${account.currentBalance >= 1000 ? 'bg-gradient-to-r from-green-50/30 to-emerald-50/30 border border-green-200/50 shadow-sm' : ''
+                      }`}>
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-3">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold text-sm relative ${
-                            account.currentBalance >= 1000 ? 'bg-gradient-to-r from-green-500 to-emerald-600 shadow-lg shadow-green-200/50' :
-                            index % 6 === 0 ? 'bg-gradient-to-r from-blue-500 to-blue-600' :
-                            index % 6 === 1 ? 'bg-gradient-to-r from-green-500 to-green-600' :
-                            index % 6 === 2 ? 'bg-gradient-to-r from-orange-500 to-orange-600' :
-                            index % 6 === 3 ? 'bg-gradient-to-r from-purple-500 to-purple-600' :
-                            index % 6 === 4 ? 'bg-gradient-to-r from-pink-500 to-pink-600' :
-                            'bg-gradient-to-r from-cyan-500 to-cyan-600'
-                          }`}>
-                            {account.name.charAt(0).toUpperCase()}
+                          <div className="relative">
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg ring-2 ring-white/20 ${
+                              // Premium styling for high balance accounts
+                              account.currentBalance >= 1000 ? 'bg-gradient-to-br from-amber-400 via-orange-500 to-red-500 shadow-xl shadow-orange-200/50' :
+                                account.currentBalance >= 500 ? 'bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600 shadow-lg shadow-emerald-200/50' :
+                                  // Regular styling based on index
+                                  index % 7 === 0 ? 'bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600' :
+                                    index % 7 === 1 ? 'bg-gradient-to-br from-green-500 via-emerald-500 to-teal-600' :
+                                      index % 7 === 2 ? 'bg-gradient-to-br from-orange-500 via-red-500 to-pink-600' :
+                                        index % 7 === 3 ? 'bg-gradient-to-br from-purple-500 via-violet-500 to-indigo-600' :
+                                          index % 7 === 4 ? 'bg-gradient-to-br from-pink-500 via-rose-500 to-red-600' :
+                                            index % 7 === 5 ? 'bg-gradient-to-br from-cyan-500 via-blue-500 to-indigo-600' :
+                                              'bg-gradient-to-br from-slate-500 via-gray-500 to-zinc-600'
+                              }`}>
+                              {account.name.charAt(0).toUpperCase()}
+                            </div>
+                            {/* Performance badges */}
                             {account.currentBalance >= 1000 && (
-                              <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full border-2 border-white animate-pulse">
-                                <div className="w-1 h-1 bg-yellow-600 rounded-full mx-auto mt-0.5"></div>
+                              <div className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-yellow-400 to-amber-500 rounded-full border-2 border-white shadow-md flex items-center justify-center animate-pulse">
+                                <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
                               </div>
+                            )}
+                            {account.currentBalance >= 500 && account.currentBalance < 1000 && (
+                              <div className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full border-2 border-white shadow-sm"></div>
                             )}
                           </div>
                           <div>
@@ -202,7 +211,7 @@ export default async function DashboardPage() {
                             {account.currentBalance.toLocaleString()} <span className="text-sm text-slate-500">pts</span>
                           </p>
                           <p className="text-sm text-slate-400">${(account.currentBalance / 100).toFixed(2)}</p>
-                          
+
                           <div className="flex flex-col gap-2 mt-2">
                             {isWithdrawalReady && (
                               <div className="inline-flex items-center gap-2 px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium self-end">
@@ -221,12 +230,11 @@ export default async function DashboardPage() {
                       </div>
                       <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
                         <div
-                          className={`h-2 rounded-full transition-all duration-700 ease-out group-hover:animate-pulse ${
-                            account.currentBalance >= 1000 ? 'bg-gradient-to-r from-green-500 to-emerald-500' :
+                          className={`h-2 rounded-full transition-all duration-700 ease-out group-hover:animate-pulse ${account.currentBalance >= 1000 ? 'bg-gradient-to-r from-green-500 to-emerald-500' :
                             index % 4 === 0 ? 'bg-blue-500' :
-                            index % 4 === 1 ? 'bg-green-500' :
-                            index % 4 === 2 ? 'bg-orange-500' : 'bg-purple-500'
-                          }`}
+                              index % 4 === 1 ? 'bg-green-500' :
+                                index % 4 === 2 ? 'bg-orange-500' : 'bg-purple-500'
+                            }`}
                           style={{ width: `${progressValue}%` }}
                         ></div>
                       </div>
@@ -306,15 +314,19 @@ export default async function DashboardPage() {
                 {recentEntries.map((entry) => (
                   <div key={entry.id} className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-blue-50/50 to-indigo-50/50 border border-blue-100/50 transition-all duration-300 hover:from-blue-100/70 hover:to-indigo-100/70 hover:border-blue-200/70 hover:shadow-md cursor-pointer transform hover:scale-[1.02]">
                     <div className="flex items-center gap-3">
-                      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-white font-semibold text-xs ${
-                        entry.accountName.charAt(0).charCodeAt(0) % 6 === 0 ? 'bg-gradient-to-r from-blue-500 to-blue-600' :
-                        entry.accountName.charAt(0).charCodeAt(0) % 6 === 1 ? 'bg-gradient-to-r from-green-500 to-green-600' :
-                        entry.accountName.charAt(0).charCodeAt(0) % 6 === 2 ? 'bg-gradient-to-r from-orange-500 to-orange-600' :
-                        entry.accountName.charAt(0).charCodeAt(0) % 6 === 3 ? 'bg-gradient-to-r from-purple-500 to-purple-600' :
-                        entry.accountName.charAt(0).charCodeAt(0) % 6 === 4 ? 'bg-gradient-to-r from-pink-500 to-pink-600' :
-                        'bg-gradient-to-r from-cyan-500 to-cyan-600'
-                      }`}>
-                        {entry.accountName.charAt(0).toUpperCase()}
+                      <div className="relative">
+                        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white font-bold text-xs shadow-md ring-1 ring-white/40 ${entry.accountName.charAt(0).charCodeAt(0) % 8 === 0 ? 'bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600' :
+                          entry.accountName.charAt(0).charCodeAt(0) % 8 === 1 ? 'bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600' :
+                            entry.accountName.charAt(0).charCodeAt(0) % 8 === 2 ? 'bg-gradient-to-br from-orange-500 via-red-500 to-pink-600' :
+                              entry.accountName.charAt(0).charCodeAt(0) % 8 === 3 ? 'bg-gradient-to-br from-violet-500 via-purple-500 to-indigo-600' :
+                                entry.accountName.charAt(0).charCodeAt(0) % 8 === 4 ? 'bg-gradient-to-br from-rose-500 via-pink-500 to-red-600' :
+                                  entry.accountName.charAt(0).charCodeAt(0) % 8 === 5 ? 'bg-gradient-to-br from-cyan-500 via-blue-500 to-indigo-600' :
+                                    entry.accountName.charAt(0).charCodeAt(0) % 8 === 6 ? 'bg-gradient-to-br from-amber-500 via-orange-500 to-red-600' :
+                                      'bg-gradient-to-br from-green-500 via-emerald-500 to-teal-600'
+                          }`}>
+                          {entry.accountName.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full border border-white shadow-sm"></div>
                       </div>
                       <div>
                         <p className="font-medium text-slate-800">{entry.accountName}</p>
@@ -367,41 +379,81 @@ export default async function DashboardPage() {
                     : "bg-gradient-to-r from-orange-50/50 to-amber-50/50 border-orange-100/50 hover:from-orange-100/70 hover:to-amber-100/70 hover:border-orange-200/70"
                     }`}>
                     <div className="flex items-center gap-3">
-                      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-white font-semibold text-xs ${
-                        withdrawal.accountName.charAt(0).charCodeAt(0) % 6 === 0 ? 'bg-gradient-to-r from-blue-500 to-blue-600' :
-                        withdrawal.accountName.charAt(0).charCodeAt(0) % 6 === 1 ? 'bg-gradient-to-r from-green-500 to-green-600' :
-                        withdrawal.accountName.charAt(0).charCodeAt(0) % 6 === 2 ? 'bg-gradient-to-r from-orange-500 to-orange-600' :
-                        withdrawal.accountName.charAt(0).charCodeAt(0) % 6 === 3 ? 'bg-gradient-to-r from-purple-500 to-purple-600' :
-                        withdrawal.accountName.charAt(0).charCodeAt(0) % 6 === 4 ? 'bg-gradient-to-r from-pink-500 to-pink-600' :
-                        'bg-gradient-to-r from-cyan-500 to-cyan-600'
-                      }`}>
-                        {withdrawal.accountName.charAt(0).toUpperCase()}
+                      <div className="relative">
+                        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white font-bold text-xs shadow-md ring-1 ring-white/40 ${withdrawal.accountName.charAt(0).charCodeAt(0) % 8 === 0 ? 'bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-600' :
+                          withdrawal.accountName.charAt(0).charCodeAt(0) % 8 === 1 ? 'bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600' :
+                            withdrawal.accountName.charAt(0).charCodeAt(0) % 8 === 2 ? 'bg-gradient-to-br from-orange-500 via-red-500 to-pink-600' :
+                              withdrawal.accountName.charAt(0).charCodeAt(0) % 8 === 3 ? 'bg-gradient-to-br from-violet-500 via-purple-500 to-indigo-600' :
+                                withdrawal.accountName.charAt(0).charCodeAt(0) % 8 === 4 ? 'bg-gradient-to-br from-rose-500 via-pink-500 to-red-600' :
+                                  withdrawal.accountName.charAt(0).charCodeAt(0) % 8 === 5 ? 'bg-gradient-to-br from-cyan-500 via-blue-500 to-indigo-600' :
+                                    withdrawal.accountName.charAt(0).charCodeAt(0) % 8 === 6 ? 'bg-gradient-to-br from-amber-500 via-orange-500 to-red-600' :
+                                      'bg-gradient-to-br from-green-500 via-emerald-500 to-teal-600'
+                          }`}>
+                          {withdrawal.accountName.charAt(0).toUpperCase()}
+                        </div>
+                        {/* Status indicator */}
+                        <div className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border border-white shadow-sm ${withdrawal.status === 'COMPLETED'
+                          ? 'bg-gradient-to-r from-green-400 to-emerald-500'
+                          : 'bg-gradient-to-r from-orange-400 to-amber-500'
+                          }`}></div>
                       </div>
                       <div>
                         <p className="font-medium text-slate-800">{withdrawal.accountName}</p>
-                        <p className="text-sm text-slate-500">
-                          {new Date(withdrawal.date).toLocaleDateString('en-GB', {
+                        <div className="flex items-center gap-2 text-sm text-slate-500">
+                          <span>Requested: {new Date(withdrawal.date).toLocaleDateString('en-GB', {
                             day: 'numeric',
                             month: 'short',
                             year: 'numeric'
-                          })}
-                        </p>
+                          })}</span>
+                          {withdrawal.status === "COMPLETED" && withdrawal.completedAt && (
+                            <>
+                              <span className="text-slate-300">•</span>
+                              <span className="text-green-600 font-medium">
+                                Completed: {new Date(withdrawal.completedAt).toLocaleDateString('en-GB', {
+                                  day: 'numeric',
+                                  month: 'short',
+                                  year: 'numeric'
+                                })}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                        {withdrawal.status === "COMPLETED" && withdrawal.completedAt && (
+                          <div className="flex items-center gap-2 mt-1">
+                            <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${Math.ceil((new Date(withdrawal.completedAt).getTime() - new Date(withdrawal.date).getTime()) / (1000 * 60 * 60 * 24)) <= 7
+                                ? 'bg-green-100 text-green-700 border border-green-200' :
+                                Math.ceil((new Date(withdrawal.completedAt).getTime() - new Date(withdrawal.date).getTime()) / (1000 * 60 * 60 * 24)) <= 15
+                                  ? 'bg-blue-100 text-blue-700 border border-blue-200' :
+                                  Math.ceil((new Date(withdrawal.completedAt).getTime() - new Date(withdrawal.date).getTime()) / (1000 * 60 * 60 * 24)) <= 25
+                                    ? 'bg-orange-100 text-orange-700 border border-orange-200' :
+                                    'bg-red-100 text-red-700 border border-red-200'
+                              }`}>
+                              <Clock className="w-3 h-3" />
+                              {Math.ceil((new Date(withdrawal.completedAt).getTime() - new Date(withdrawal.date).getTime()) / (1000 * 60 * 60 * 24))} days
+                              <span className="ml-1">
+                                {Math.ceil((new Date(withdrawal.completedAt).getTime() - new Date(withdrawal.date).getTime()) / (1000 * 60 * 60 * 24)) <= 7 ? '⚡ Fast' :
+                                  Math.ceil((new Date(withdrawal.completedAt).getTime() - new Date(withdrawal.date).getTime()) / (1000 * 60 * 60 * 24)) <= 15 ? '✅ Normal' :
+                                    Math.ceil((new Date(withdrawal.completedAt).getTime() - new Date(withdrawal.date).getTime()) / (1000 * 60 * 60 * 24)) <= 25 ? '🐌 Slow' : '🔴 Very Slow'}
+                              </span>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
                       <div className="text-right">
-                        <span className={`font-bold ${withdrawal.status === "COMPLETED" ? "text-green-600" : "text-orange-600"
-                          }`}>{(withdrawal.amount * 100).toLocaleString()}</span>
-                        <span className="text-xs opacity-70 ml-1">pts</span>
-                        <div className={`text-xs ${withdrawal.status === "COMPLETED" ? "text-green-500" : "text-orange-500"}`}>
+                        <div className={withdrawal.status === "COMPLETED" ? "font-bold text-green-600" : "font-bold text-orange-600"}>
+                          {(withdrawal.amount * 100).toLocaleString()} pts
+                        </div>
+                        <div className={withdrawal.status === "COMPLETED" ? "text-xs text-green-500" : "text-xs text-orange-500"}>
                           ${withdrawal.amount.toFixed(2)}
                         </div>
                       </div>
                       <Badge
                         variant="secondary"
                         className={withdrawal.status === "COMPLETED"
-                          ? "bg-green-100 text-green-700 border-green-200 hover:bg-green-100"
-                          : "bg-orange-100 text-orange-700 border-orange-200 hover:bg-orange-100"
+                          ? "bg-green-100 text-green-700 border-green-200"
+                          : "bg-orange-100 text-orange-700 border-orange-200"
                         }
                       >
                         {withdrawal.status === "COMPLETED" ? "Completed" : "Pending"}
