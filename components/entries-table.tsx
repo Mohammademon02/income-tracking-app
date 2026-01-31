@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import {
   Table,
   TableBody,
@@ -43,7 +43,9 @@ import {
 } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { MoreHorizontal, Pencil, Trash2, Plus } from "lucide-react"
+import { Card } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { MoreHorizontal, Pencil, Trash2, Plus, Filter, X, Calendar, Hash } from "lucide-react"
 import { updateEntry, deleteEntry } from "@/app/actions/entries"
 
 type Entry = {
@@ -63,6 +65,59 @@ export function EntriesTable({ entries, accounts }: { entries: Entry[]; accounts
   const [editingEntry, setEditingEntry] = useState<Entry | null>(null)
   const [deletingEntry, setDeletingEntry] = useState<Entry | null>(null)
   const [loading, setLoading] = useState(false)
+  
+  // Filter states
+  const [accountFilter, setAccountFilter] = useState<string>("all")
+  const [dateFromFilter, setDateFromFilter] = useState<string>("")
+  const [dateToFilter, setDateToFilter] = useState<string>("")
+  const [minPointsFilter, setMinPointsFilter] = useState<string>("")
+  const [maxPointsFilter, setMaxPointsFilter] = useState<string>("")
+
+  // Filter entries based on current filters
+  const filteredEntries = useMemo(() => {
+    return entries.filter(entry => {
+      // Account filter
+      if (accountFilter !== "all" && entry.accountId !== accountFilter) {
+        return false
+      }
+
+      // Date range filter
+      const entryDate = new Date(entry.date)
+      if (dateFromFilter) {
+        const fromDate = new Date(dateFromFilter)
+        if (entryDate < fromDate) return false
+      }
+      if (dateToFilter) {
+        const toDate = new Date(dateToFilter)
+        if (entryDate > toDate) return false
+      }
+
+      // Points range filter
+      if (minPointsFilter) {
+        const minPoints = parseInt(minPointsFilter)
+        if (entry.points < minPoints) return false
+      }
+      if (maxPointsFilter) {
+        const maxPoints = parseInt(maxPointsFilter)
+        if (entry.points > maxPoints) return false
+      }
+
+      return true
+    })
+  }, [entries, accountFilter, dateFromFilter, dateToFilter, minPointsFilter, maxPointsFilter])
+
+  // Clear all filters
+  const clearFilters = () => {
+    setAccountFilter("all")
+    setDateFromFilter("")
+    setDateToFilter("")
+    setMinPointsFilter("")
+    setMaxPointsFilter("")
+  }
+
+  // Check if any filters are active
+  const hasActiveFilters = accountFilter !== "all" || 
+    dateFromFilter || dateToFilter || minPointsFilter || maxPointsFilter
 
   async function handleUpdate(formData: FormData) {
     if (!editingEntry) return
@@ -94,6 +149,108 @@ export function EntriesTable({ entries, accounts }: { entries: Entry[]; accounts
 
   return (
     <>
+      {/* Modern Filter Bar */}
+      <div className="mb-8">
+        <div className="bg-white border border-slate-200 rounded-xl shadow-sm">
+          <div className="px-6 py-4 border-b border-slate-100">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 bg-slate-100 rounded-lg">
+                    <Filter className="h-4 w-4 text-slate-600" />
+                  </div>
+                  <span className="font-semibold text-slate-800">Filters</span>
+                </div>
+                {hasActiveFilters && (
+                  <div className="flex items-center gap-2">
+                    <Badge className="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-50">
+                      {filteredEntries.length} of {entries.length} results
+                    </Badge>
+                  </div>
+                )}
+              </div>
+              {hasActiveFilters && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearFilters}
+                  className="text-slate-500 hover:text-slate-700 hover:bg-slate-50"
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  Clear filters
+                </Button>
+              )}
+            </div>
+          </div>
+          
+          <div className="px-6 py-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {/* Account Filter */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-slate-700">Account</Label>
+                <Select value={accountFilter} onValueChange={setAccountFilter}>
+                  <SelectTrigger className="h-10 bg-slate-50 border-slate-200 hover:bg-white transition-colors">
+                    <SelectValue placeholder="All accounts" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All accounts</SelectItem>
+                    {accounts.map((account) => (
+                      <SelectItem key={account.id} value={account.id}>
+                        {account.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Date Range */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-slate-700">Date Range</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="date"
+                    value={dateFromFilter}
+                    onChange={(e) => setDateFromFilter(e.target.value)}
+                    className="h-10 bg-slate-50 border-slate-200 hover:bg-white transition-colors flex-1"
+                  />
+                  <span className="text-slate-400 text-sm px-1">to</span>
+                  <Input
+                    type="date"
+                    value={dateToFilter}
+                    onChange={(e) => setDateToFilter(e.target.value)}
+                    className="h-10 bg-slate-50 border-slate-200 hover:bg-white transition-colors flex-1"
+                  />
+                </div>
+              </div>
+
+              {/* Points Range */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-slate-700">Points Range</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    step="1"
+                    value={minPointsFilter}
+                    onChange={(e) => setMinPointsFilter(e.target.value)}
+                    placeholder="Min"
+                    className="h-10 bg-slate-50 border-slate-200 hover:bg-white transition-colors flex-1"
+                  />
+                  <span className="text-slate-400 text-sm px-1">-</span>
+                  <Input
+                    type="number"
+                    step="1"
+                    value={maxPointsFilter}
+                    onChange={(e) => setMaxPointsFilter(e.target.value)}
+                    placeholder="Max"
+                    className="h-10 bg-slate-50 border-slate-200 hover:bg-white transition-colors flex-1"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="rounded-lg overflow-hidden">
         <Table>
           <TableHeader>
@@ -105,7 +262,7 @@ export function EntriesTable({ entries, accounts }: { entries: Entry[]; accounts
             </TableRow>
           </TableHeader>
           <TableBody>
-            {entries.map((entry, index) => (
+            {filteredEntries.map((entry) => (
               <TableRow key={entry.id} className="hover:bg-blue-50/50 transition-colors duration-200">
                 <TableCell>{new Date(entry.date).toLocaleDateString('en-GB', { 
                   day: 'numeric', 

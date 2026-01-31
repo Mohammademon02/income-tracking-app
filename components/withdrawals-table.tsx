@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import {
   Table,
   TableBody,
@@ -44,7 +44,8 @@ import {
 } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { MoreHorizontal, Pencil, Trash2, Wallet, Clock } from "lucide-react"
+import { Card } from "@/components/ui/card"
+import { MoreHorizontal, Pencil, Trash2, Wallet, Clock, Filter, X, Calendar, DollarSign } from "lucide-react"
 import { updateWithdrawal, deleteWithdrawal } from "@/app/actions/withdrawals"
 
 type Withdrawal = {
@@ -67,6 +68,14 @@ export function WithdrawalsTable({ withdrawals, accounts }: { withdrawals: Withd
   const [deletingWithdrawal, setDeletingWithdrawal] = useState<Withdrawal | null>(null)
   const [loading, setLoading] = useState(false)
 
+  // Filter states
+  const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [accountFilter, setAccountFilter] = useState<string>("all")
+  const [dateFromFilter, setDateFromFilter] = useState<string>("")
+  const [dateToFilter, setDateToFilter] = useState<string>("")
+  const [minAmountFilter, setMinAmountFilter] = useState<string>("")
+  const [maxAmountFilter, setMaxAmountFilter] = useState<string>("")
+
   // Calculate current month's approved withdrawals based on completion date
   const currentDate = new Date()
   const currentMonth = currentDate.getMonth()
@@ -85,6 +94,58 @@ export function WithdrawalsTable({ withdrawals, accounts }: { withdrawals: Withd
 
   const monthNames = ["January", "February", "March", "April", "May", "June",
     "July", "August", "September", "October", "November", "December"]
+
+  // Filter withdrawals based on current filters
+  const filteredWithdrawals = useMemo(() => {
+    return withdrawals.filter(withdrawal => {
+      // Status filter
+      if (statusFilter !== "all" && withdrawal.status !== statusFilter) {
+        return false
+      }
+
+      // Account filter
+      if (accountFilter !== "all" && withdrawal.accountId !== accountFilter) {
+        return false
+      }
+
+      // Date range filter
+      const withdrawalDate = new Date(withdrawal.date)
+      if (dateFromFilter) {
+        const fromDate = new Date(dateFromFilter)
+        if (withdrawalDate < fromDate) return false
+      }
+      if (dateToFilter) {
+        const toDate = new Date(dateToFilter)
+        if (withdrawalDate > toDate) return false
+      }
+
+      // Amount range filter
+      if (minAmountFilter) {
+        const minAmount = parseFloat(minAmountFilter)
+        if (withdrawal.amount < minAmount) return false
+      }
+      if (maxAmountFilter) {
+        const maxAmount = parseFloat(maxAmountFilter)
+        if (withdrawal.amount > maxAmount) return false
+      }
+
+      return true
+    })
+  }, [withdrawals, statusFilter, accountFilter, dateFromFilter, dateToFilter, minAmountFilter, maxAmountFilter])
+
+  // Clear all filters
+  const clearFilters = () => {
+    setStatusFilter("all")
+    setAccountFilter("all")
+    setDateFromFilter("")
+    setDateToFilter("")
+    setMinAmountFilter("")
+    setMaxAmountFilter("")
+  }
+
+  // Check if any filters are active
+  const hasActiveFilters = statusFilter !== "all" || accountFilter !== "all" ||
+    dateFromFilter || dateToFilter || minAmountFilter || maxAmountFilter
 
   async function handleUpdate(formData: FormData) {
     if (!editingWithdrawal) return
@@ -133,6 +194,133 @@ export function WithdrawalsTable({ withdrawals, accounts }: { withdrawals: Withd
         </div>
       </div>
 
+      {/* Modern Filter Bar */}
+      <div className="mb-8">
+        <div className="bg-white border border-slate-200 rounded-xl shadow-sm">
+          <div className="px-6 py-4 border-b border-slate-100">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 bg-slate-100 rounded-lg">
+                    <Filter className="h-4 w-4 text-slate-600" />
+                  </div>
+                  <span className="font-semibold text-slate-800">Filters</span>
+                </div>
+                {hasActiveFilters && (
+                  <div className="flex items-center gap-2">
+                    <Badge className="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-50">
+                      {filteredWithdrawals.length} of {withdrawals.length} results
+                    </Badge>
+                  </div>
+                )}
+              </div>
+              {hasActiveFilters && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearFilters}
+                  className="text-slate-500 hover:text-slate-700 hover:bg-slate-50"
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  Clear filters
+                </Button>
+              )}
+            </div>
+          </div>
+
+          <div className="px-6 py-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {/* Status Filter */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-slate-700">Status</Label>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="h-10 bg-slate-50 border-slate-200 hover:bg-white transition-colors">
+                    <SelectValue placeholder="All statuses" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All statuses</SelectItem>
+                    <SelectItem value="PENDING">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-orange-500"></div>
+                        Pending
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="COMPLETED">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                        Completed
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Account Filter */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-slate-700">Account</Label>
+                <Select value={accountFilter} onValueChange={setAccountFilter}>
+                  <SelectTrigger className="h-10 bg-slate-50 border-slate-200 hover:bg-white transition-colors">
+                    <SelectValue placeholder="All accounts" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All accounts</SelectItem>
+                    {accounts.map((account) => (
+                      <SelectItem key={account.id} value={account.id}>
+                        {account.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Date Range */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-slate-700">Date Range</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="date"
+                    value={dateFromFilter}
+                    onChange={(e) => setDateFromFilter(e.target.value)}
+                    className="h-10 bg-slate-50 border-slate-200 hover:bg-white transition-colors flex-1"
+                  />
+                  <span className="text-slate-400 text-sm px-1">to</span>
+                  <Input
+                    type="date"
+                    value={dateToFilter}
+                    onChange={(e) => setDateToFilter(e.target.value)}
+                    className="h-10 bg-slate-50 border-slate-200 hover:bg-white transition-colors flex-1"
+                  />
+                </div>
+              </div>
+
+              {/* Amount Range */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-slate-700">Amount Range ($)</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={minAmountFilter}
+                    onChange={(e) => setMinAmountFilter(e.target.value)}
+                    placeholder="Min"
+                    className="h-10 bg-slate-50 border-slate-200 hover:bg-white transition-colors flex-1"
+                  />
+                  <span className="text-slate-400 text-sm px-1">-</span>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={maxAmountFilter}
+                    onChange={(e) => setMaxAmountFilter(e.target.value)}
+                    placeholder="Max"
+                    className="h-10 bg-slate-50 border-slate-200 hover:bg-white transition-colors flex-1"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="rounded-lg overflow-hidden">
         <Table>
           <TableHeader>
@@ -147,7 +335,7 @@ export function WithdrawalsTable({ withdrawals, accounts }: { withdrawals: Withd
             </TableRow>
           </TableHeader>
           <TableBody>
-            {withdrawals.map((withdrawal) => (
+            {filteredWithdrawals.map((withdrawal) => (
               <TableRow key={withdrawal.id}>
                 <TableCell>{new Date(withdrawal.date).toLocaleDateString('en-GB', {
                   day: 'numeric',
