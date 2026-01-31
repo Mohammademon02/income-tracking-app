@@ -52,6 +52,7 @@ type Withdrawal = {
   date: Date
   amount: number
   status: "PENDING" | "COMPLETED"
+  completedAt: Date | null
   accountId: string
   accountName: string
 }
@@ -100,20 +101,22 @@ export function WithdrawalsTable({ withdrawals, accounts }: { withdrawals: Withd
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Date</TableHead>
+              <TableHead>Request Date</TableHead>
               <TableHead>Account</TableHead>
               <TableHead className="text-right">Amount</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Completed Date</TableHead>
+              <TableHead>Processing Time</TableHead>
               <TableHead className="w-[50px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {withdrawals.map((withdrawal) => (
               <TableRow key={withdrawal.id}>
-                <TableCell>{new Date(withdrawal.date).toLocaleDateString('en-GB', { 
-                  day: 'numeric', 
-                  month: 'short', 
-                  year: 'numeric' 
+                <TableCell>{new Date(withdrawal.date).toLocaleDateString('en-GB', {
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric'
                 })}</TableCell>
                 <TableCell>{withdrawal.accountName}</TableCell>
                 <TableCell className="text-right font-medium">
@@ -124,19 +127,76 @@ export function WithdrawalsTable({ withdrawals, accounts }: { withdrawals: Withd
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${
-                      withdrawal.status === "COMPLETED" ? "bg-green-500" : "bg-orange-500"
-                    }`}></div>
-                    <Badge 
+                    <div className={`w-2 h-2 rounded-full ${withdrawal.status === "COMPLETED" ? "bg-green-500" : "bg-orange-500"
+                      }`}></div>
+                    <Badge
                       variant="secondary"
-                      className={withdrawal.status === "COMPLETED" 
-                        ? "bg-green-100 text-green-700 border-green-200 hover:bg-green-100" 
+                      className={withdrawal.status === "COMPLETED"
+                        ? "bg-green-100 text-green-700 border-green-200 hover:bg-green-100"
                         : "bg-orange-100 text-orange-700 border-orange-200 hover:bg-orange-100"
                       }
                     >
                       {withdrawal.status === "COMPLETED" ? "Completed" : "Pending"}
                     </Badge>
                   </div>
+                </TableCell>
+                <TableCell>
+                  {withdrawal.completedAt ? (
+                    <div className="text-sm">
+                      <div className="font-medium text-green-600">
+                        {new Date(withdrawal.completedAt).toLocaleDateString('en-GB', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric'
+                        })}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {new Date(withdrawal.completedAt).toLocaleTimeString('en-GB', {
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </div>
+                    </div>
+                  ) : withdrawal.status === "COMPLETED" ? (
+                    <div className="text-sm">
+                      <div className="font-medium text-green-600">
+                        {new Date(withdrawal.date).toLocaleDateString('en-GB', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric'
+                        })}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        (Estimated)
+                      </div>
+                    </div>
+                  ) : (
+                    <span className="text-muted-foreground text-sm">-</span>
+                  )}
+                </TableCell>
+                <TableCell>
+                  {withdrawal.completedAt ? (
+                    <div className="text-sm">
+                      <div className="font-medium text-blue-600">
+                        {Math.ceil((new Date(withdrawal.completedAt).getTime() - new Date(withdrawal.date).getTime()) / (1000 * 60 * 60 * 24))} days
+                      </div>
+                      <div className={`text-xs font-medium ${Math.ceil((new Date(withdrawal.completedAt).getTime() - new Date(withdrawal.date).getTime()) / (1000 * 60 * 60 * 24)) <= 10 ? 'text-green-600' :
+                        Math.ceil((new Date(withdrawal.completedAt).getTime() - new Date(withdrawal.date).getTime()) / (1000 * 60 * 60 * 24)) <= 20 ? 'text-blue-600' :
+                          Math.ceil((new Date(withdrawal.completedAt).getTime() - new Date(withdrawal.date).getTime()) / (1000 * 60 * 60 * 24)) <= 30 ? 'text-orange-600' : 'text-red-600'
+                        }`}>
+                        {Math.ceil((new Date(withdrawal.completedAt).getTime() - new Date(withdrawal.date).getTime()) / (1000 * 60 * 60 * 24)) <= 10 ? 'Fast' :
+                          Math.ceil((new Date(withdrawal.completedAt).getTime() - new Date(withdrawal.date).getTime()) / (1000 * 60 * 60 * 24)) <= 20 ? 'Normal' :
+                            Math.ceil((new Date(withdrawal.completedAt).getTime() - new Date(withdrawal.date).getTime()) / (1000 * 60 * 60 * 24)) <= 30 ? 'Slow' : 'Very Slow'}
+                      </div>
+                    </div>
+                  ) : withdrawal.status === "COMPLETED" ? (
+                    <div className="text-sm">
+                      <div className="font-medium text-blue-600">0 days</div>
+                      <div className="text-xs text-green-600">Instant</div>
+                    </div>
+                  ) : (
+                    <span className="text-muted-foreground text-sm">-</span>
+                  )}
                 </TableCell>
                 <TableCell>
                   <DropdownMenu>

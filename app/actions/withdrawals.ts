@@ -19,6 +19,7 @@ export async function getWithdrawals(accountId?: string) {
     date: withdrawal.date,
     amount: withdrawal.amount,
     status: withdrawal.status,
+    completedAt: (withdrawal as any).completedAt || null,
     accountId: withdrawal.accountId,
     accountName: withdrawal.account.name,
   }))
@@ -70,6 +71,7 @@ export async function updateWithdrawal(id: string, formData: FormData) {
   // Convert points to dollars (100 points = $1)
   const dollarAmount = pointsAmount / 100
 
+  // For now, just update basic fields until database migration is complete
   await prisma.withdrawal.update({
     where: { id },
     data: {

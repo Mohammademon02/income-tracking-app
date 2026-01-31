@@ -32,14 +32,15 @@ model DailyEntry {
 }
 
 model Withdrawal {
-  id        String           @id @default(auto()) @map("_id") @db.ObjectId
-  date      DateTime
-  amount    Float
-  status    WithdrawalStatus @default(PENDING)
-  accountId String           @db.ObjectId
-  account   Account          @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  createdAt DateTime         @default(now())
-  updatedAt DateTime         @updatedAt
+  id          String           @id @default(auto()) @map("_id") @db.ObjectId
+  date        DateTime         // Request date
+  amount      Float
+  status      WithdrawalStatus @default(PENDING)
+  completedAt DateTime?        // Completion date (nullable)
+  accountId   String           @db.ObjectId
+  account     Account          @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
 
   @@map("withdrawals")
 }
