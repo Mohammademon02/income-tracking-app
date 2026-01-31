@@ -67,6 +67,25 @@ export function WithdrawalsTable({ withdrawals, accounts }: { withdrawals: Withd
   const [deletingWithdrawal, setDeletingWithdrawal] = useState<Withdrawal | null>(null)
   const [loading, setLoading] = useState(false)
 
+  // Calculate current month's approved withdrawals based on completion date
+  const currentDate = new Date()
+  const currentMonth = currentDate.getMonth()
+  const currentYear = currentDate.getFullYear()
+
+  const currentMonthApprovedWithdrawals = withdrawals.filter(withdrawal => {
+    if (withdrawal.status !== "COMPLETED" || !withdrawal.completedAt) return false
+
+    const completionDate = new Date(withdrawal.completedAt)
+    return completionDate.getMonth() === currentMonth &&
+      completionDate.getFullYear() === currentYear
+  })
+
+  const totalApprovedAmount = currentMonthApprovedWithdrawals.reduce((sum, withdrawal) => sum + withdrawal.amount, 0)
+  const totalApprovedPoints = totalApprovedAmount * 100
+
+  const monthNames = ["January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"]
+
   async function handleUpdate(formData: FormData) {
     if (!editingWithdrawal) return
     setLoading(true)
@@ -97,6 +116,23 @@ export function WithdrawalsTable({ withdrawals, accounts }: { withdrawals: Withd
 
   return (
     <>
+      {/* Monthly Summary Card */}
+      <div className="mb-6">
+        <div className="bg-gradient-to-br from-teal-50 to-cyan-50 border border-teal-200 rounded-xl p-6 shadow-sm">
+          <div className="text-center">
+            <div className="text-3xl font-bold text-teal-700 mb-2">
+              ${totalApprovedAmount.toFixed(2)}
+            </div>
+            <div className="text-teal-600 font-medium mb-1">
+              {monthNames[currentMonth]} Withdrawals
+            </div>
+            <div className="text-sm text-teal-500">
+              {totalApprovedPoints.toLocaleString()} pts
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="rounded-lg overflow-hidden">
         <Table>
           <TableHeader>

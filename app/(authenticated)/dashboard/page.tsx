@@ -36,10 +36,11 @@ export default async function DashboardPage() {
   })
 
   const thisMonthWithdrawals = withdrawals.filter(w => {
-    const withdrawalDate = new Date(w.date)
-    return withdrawalDate.getMonth() === currentMonth &&
-      withdrawalDate.getFullYear() === currentYear &&
-      w.status === "COMPLETED"
+    if (w.status !== "COMPLETED" || !w.completedAt) return false
+    
+    const completionDate = new Date(w.completedAt)
+    return completionDate.getMonth() === currentMonth &&
+      completionDate.getFullYear() === currentYear
   })
 
   const thisMonthIncome = thisMonthEntries.reduce((sum, entry) => sum + entry.points, 0)
