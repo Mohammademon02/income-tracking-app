@@ -1,0 +1,50 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  entries     DailyEntry[]
+  withdrawals Withdrawal[]
+
+  @@map("accounts")
+}
+
+model DailyEntry {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  date      DateTime
+  points    Float
+  accountId String   @db.ObjectId
+  account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("daily_entries")
+}
+
+model Withdrawal {
+  id        String           @id @default(auto()) @map("_id") @db.ObjectId
+  date      DateTime
+  amount    Float
+  status    WithdrawalStatus @default(PENDING)
+  accountId String           @db.ObjectId
+  account   Account          @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  @@map("withdrawals")
+}
+
+enum WithdrawalStatus {
+  PENDING
+  COMPLETED
+}
