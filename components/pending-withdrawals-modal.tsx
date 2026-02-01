@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { X, Clock, Wallet, Calendar, DollarSign, TrendingUp } from "lucide-react"
 import { getAvatarGradient } from "@/lib/avatar-utils"
+import { WithdrawalDetailsModal } from "@/components/withdrawal-details-modal"
 
 interface PendingWithdrawal {
   id: string
@@ -12,7 +13,7 @@ interface PendingWithdrawal {
   accountName: string
   accountColor: string
   amount: number
-  date: string
+  date: Date | string
   status: string
 }
 
@@ -20,10 +21,12 @@ interface PendingWithdrawalsModalProps {
   isOpen: boolean
   onClose: () => void
   withdrawals: PendingWithdrawal[]
+  allWithdrawals?: any[] // All withdrawals for first withdrawal detection
 }
 
-export function PendingWithdrawalsModal({ isOpen, onClose, withdrawals }: PendingWithdrawalsModalProps) {
+export function PendingWithdrawalsModal({ isOpen, onClose, withdrawals, allWithdrawals = [] }: PendingWithdrawalsModalProps) {
   const [isVisible, setIsVisible] = useState(false)
+  const [selectedWithdrawal, setSelectedWithdrawal] = useState<PendingWithdrawal | null>(null)
 
   useEffect(() => {
     if (isOpen) {
@@ -56,12 +59,55 @@ export function PendingWithdrawalsModal({ isOpen, onClose, withdrawals }: Pendin
     return acc
   }, {} as Record<string, any>)
 
-  const getDaysAgo = (dateString: string) => {
+  const getDaysAgo = (dateString: Date | string) => {
     const requestDate = new Date(dateString)
     const today = new Date()
-    const diffTime = today.getTime() - requestDate.getTime()
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-    return diffDays
+    
+    // Calculate business days (US-based)
+    let businessDays = 0
+    const current = new Date(requestDate)
+    
+    // US Federal Holidays (comprehensive list)
+    const getUSHolidays = (year: number) => [
+      new Date(year, 0, 1),   // New Year's Day - January 1
+      // Martin Luther King Jr. Day - 3rd Monday in January
+      new Date(year, 0, (3 - 1) * 7 + 1 + (1 - new Date(year, 0, 1).getDay() + 7) % 7),
+      // Presidents' Day - 3rd Monday in February  
+      new Date(year, 1, (3 - 1) * 7 + 1 + (1 - new Date(year, 1, 1).getDay() + 7) % 7),
+      // Memorial Day - Last Monday in May
+      new Date(year, 4, 31 - (new Date(year, 4, 31).getDay() + 6) % 7),
+      new Date(year, 5, 19), // Juneteenth - June 19 (federal holiday since 2021)
+      new Date(year, 6, 4),   // Independence Day - July 4
+      // Labor Day - 1st Monday in September
+      new Date(year, 8, 1 + (1 - new Date(year, 8, 1).getDay() + 7) % 7),
+      // Columbus Day - 2nd Monday in October
+      new Date(year, 9, (2 - 1) * 7 + 1 + (1 - new Date(year, 9, 1).getDay() + 7) % 7),
+      new Date(year, 10, 11), // Veterans Day - November 11
+      // Thanksgiving - 4th Thursday in November
+      new Date(year, 10, (4 - 1) * 7 + 1 + (4 - new Date(year, 10, 1).getDay() + 7) % 7),
+      new Date(year, 11, 25), // Christmas Day - December 25
+    ]
+    
+    const holidays = [
+      ...getUSHolidays(requestDate.getFullYear()),
+      ...getUSHolidays(today.getFullYear())
+    ]
+    
+    while (current <= today) {
+      const dayOfWeek = current.getDay()
+      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6 // Sunday = 0, Saturday = 6
+      const isHoliday = holidays.some(holiday => 
+        holiday.toDateString() === current.toDateString()
+      )
+      
+      if (!isWeekend && !isHoliday) {
+        businessDays++
+      }
+      
+      current.setDate(current.getDate() + 1)
+    }
+    
+    return businessDays
   }
 
   const getWaitingTimeColor = (days: number) => {
@@ -76,6 +122,30 @@ export function PendingWithdrawalsModal({ isOpen, onClose, withdrawals }: Pendin
     if (days <= 15) return '⏳ Waiting'
     if (days <= 25) return '⚠️ Delayed'
     return '🚨 Very Delayed'
+  }
+
+  // Helper function to check if this is the first withdrawal for an account
+  const isFirstWithdrawal = (withdrawal: PendingWithdrawal) => {
+    // Use allWithdrawals if available, otherwise fall back to withdrawals
+    const withdrawalsToCheck = allWithdrawals.length > 0 ? allWithdrawals : withdrawals
+    
+    // Get all withdrawals for this account
+    const accountWithdrawals = withdrawalsToCheck.filter(w => w.accountId === withdrawal.accountId)
+    
+    // If only one withdrawal for this account, it's the first
+    if (accountWithdrawals.length === 1) {
+      return true
+    }
+    
+    // Sort by date (earliest first)
+    const sortedWithdrawals = accountWithdrawals.sort((a, b) => {
+      const dateA = new Date(a.date).getTime()
+      const dateB = new Date(b.date).getTime()
+      return dateA - dateB
+    })
+    
+    // Check if this withdrawal is the first one
+    return sortedWithdrawals[0].id === withdrawal.id
   }
 
   return (
@@ -176,7 +246,11 @@ export function PendingWithdrawalsModal({ isOpen, onClose, withdrawals }: Pendin
                         .map((withdrawal: any) => {
                         const daysAgo = getDaysAgo(withdrawal.date)
                         return (
-                          <div key={withdrawal.id} className="flex items-center justify-between p-3 bg-gradient-to-r from-slate-50/50 to-orange-50/50 rounded-lg border border-slate-100 hover:from-slate-100/70 hover:to-orange-100/70 transition-all duration-200">
+                          <div 
+                            key={withdrawal.id} 
+                            className="flex items-center justify-between p-3 bg-gradient-to-r from-slate-50/50 to-orange-50/50 rounded-lg border border-slate-100 hover:from-slate-100/70 hover:to-orange-100/70 transition-all duration-200 cursor-pointer"
+                            onClick={() => setSelectedWithdrawal(withdrawal)}
+                          >
                             <div className="flex items-center gap-3">
                               <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
                               <div>
@@ -198,7 +272,7 @@ export function PendingWithdrawalsModal({ isOpen, onClose, withdrawals }: Pendin
                                   <span className="text-slate-300">•</span>
                                   <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${getWaitingTimeColor(daysAgo)}`}>
                                     <Clock className="w-3 h-3" />
-                                    {daysAgo} days ago
+                                    {daysAgo} business days ago
                                     <span className="ml-1">
                                       {getWaitingTimeLabel(daysAgo)}
                                     </span>
@@ -226,15 +300,15 @@ export function PendingWithdrawalsModal({ isOpen, onClose, withdrawals }: Pendin
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                <span>Recent (≤7 days)</span>
+                <span>Recent (≤7 business days)</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                <span>Waiting (8-15 days)</span>
+                <span>Waiting (8-15 business days)</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                <span>Delayed (&gt;15 days)</span>
+                <span>Delayed (&gt;15 business days)</span>
               </div>
             </div>
             <button
@@ -246,6 +320,19 @@ export function PendingWithdrawalsModal({ isOpen, onClose, withdrawals }: Pendin
           </div>
         </div>
       </div>
+
+      {/* Withdrawal Details Modal */}
+      <WithdrawalDetailsModal
+        isOpen={!!selectedWithdrawal}
+        onClose={() => setSelectedWithdrawal(null)}
+        withdrawal={selectedWithdrawal ? {
+          ...selectedWithdrawal,
+          status: selectedWithdrawal.status as "PENDING" | "COMPLETED",
+          completedAt: null,
+          date: selectedWithdrawal.date
+        } : null}
+        isFirstWithdrawal={selectedWithdrawal ? isFirstWithdrawal(selectedWithdrawal) : false}
+      />
     </div>
   )
 }

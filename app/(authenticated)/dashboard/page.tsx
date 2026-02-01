@@ -139,6 +139,7 @@ export default async function DashboardPage() {
         <PendingWithdrawalsCard 
           pendingWithdrawals={pendingWithdrawals}
           totalPending={totalPending}
+          allWithdrawals={withdrawals}
         />
 
         <Card className="relative overflow-hidden bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0 shadow-lg shadow-purple-200/50 transform transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-purple-300/60 cursor-pointer">

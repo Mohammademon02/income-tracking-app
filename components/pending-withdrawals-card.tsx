@@ -11,16 +11,17 @@ interface PendingWithdrawal {
     accountName: string
     accountColor: string
     amount: number
-    date: string
+    date: Date | string
     status: string
 }
 
 interface PendingWithdrawalsCardProps {
     pendingWithdrawals: PendingWithdrawal[]
     totalPending: number
+    allWithdrawals?: any[] // All withdrawals for first withdrawal detection
 }
 
-export function PendingWithdrawalsCard({ pendingWithdrawals, totalPending }: PendingWithdrawalsCardProps) {
+export function PendingWithdrawalsCard({ pendingWithdrawals, totalPending, allWithdrawals = [] }: PendingWithdrawalsCardProps) {
     const [isPendingModalOpen, setIsPendingModalOpen] = useState(false)
 
     return (
@@ -49,6 +50,7 @@ export function PendingWithdrawalsCard({ pendingWithdrawals, totalPending }: Pen
                 isOpen={isPendingModalOpen}
                 onClose={() => setIsPendingModalOpen(false)}
                 withdrawals={pendingWithdrawals}
+                allWithdrawals={allWithdrawals}
             />
         </>
     )

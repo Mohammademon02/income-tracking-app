@@ -46,8 +46,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card } from "@/components/ui/card"
 import { getAvatarGradient } from "@/lib/avatar-utils"
-import { MoreHorizontal, Pencil, Trash2, Wallet, Clock, Filter, X, Calendar, DollarSign } from "lucide-react"
+import { MoreHorizontal, Pencil, Trash2, Wallet, Clock, Filter, X, Calendar, DollarSign, Eye } from "lucide-react"
 import { updateWithdrawal, deleteWithdrawal } from "@/app/actions/withdrawals"
+import { WithdrawalDetailsModal } from "@/components/withdrawal-details-modal"
 
 type Withdrawal = {
   id: string
@@ -69,6 +70,7 @@ type Account = {
 export function WithdrawalsTable({ withdrawals, accounts }: { withdrawals: Withdrawal[]; accounts: Account[] }) {
   const [editingWithdrawal, setEditingWithdrawal] = useState<Withdrawal | null>(null)
   const [deletingWithdrawal, setDeletingWithdrawal] = useState<Withdrawal | null>(null)
+  const [selectedWithdrawal, setSelectedWithdrawal] = useState<Withdrawal | null>(null)
   const [loading, setLoading] = useState(false)
 
   // Filter states
@@ -149,6 +151,27 @@ export function WithdrawalsTable({ withdrawals, accounts }: { withdrawals: Withd
   // Check if any filters are active
   const hasActiveFilters = statusFilter !== "all" || accountFilter !== "all" ||
     dateFromFilter || dateToFilter || minAmountFilter || maxAmountFilter
+
+  // Helper function to check if this is the first withdrawal for an account
+  const isFirstWithdrawal = (withdrawal: Withdrawal) => {
+    // Get all withdrawals for this account
+    const accountWithdrawals = withdrawals.filter(w => w.accountId === withdrawal.accountId)
+    
+    // If only one withdrawal for this account, it's the first
+    if (accountWithdrawals.length === 1) {
+      return true
+    }
+    
+    // Sort by date (earliest first)
+    const sortedWithdrawals = accountWithdrawals.sort((a, b) => {
+      const dateA = new Date(a.date).getTime()
+      const dateB = new Date(b.date).getTime()
+      return dateA - dateB
+    })
+    
+    // Check if this withdrawal is the first one
+    return sortedWithdrawals[0].id === withdrawal.id
+  }
 
   async function handleUpdate(formData: FormData) {
     if (!editingWithdrawal) return
@@ -334,12 +357,20 @@ export function WithdrawalsTable({ withdrawals, accounts }: { withdrawals: Withd
               <TableHead>Status</TableHead>
               <TableHead>Approved Date</TableHead>
               <TableHead>Processing Time</TableHead>
-              <TableHead className="w-[50px]"></TableHead>
+              <TableHead className="w-[50px]">
+                <div className="flex items-center gap-1">
+                  <span className="text-xs text-slate-500">Click row for details</span>
+                </div>
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredWithdrawals.map((withdrawal) => (
-              <TableRow key={withdrawal.id}>
+              <TableRow 
+                key={withdrawal.id}
+                className="cursor-pointer hover:bg-slate-50 transition-colors group"
+                onClick={() => setSelectedWithdrawal(withdrawal)}
+              >
                 <TableCell>{new Date(withdrawal.date).toLocaleDateString('en-GB', {
                   day: 'numeric',
                   month: 'short',
@@ -359,7 +390,7 @@ export function WithdrawalsTable({ withdrawals, accounts }: { withdrawals: Withd
                       }`}></div>
                     </div>
                     <div className="flex flex-col">
-                      <span className="font-semibold text-slate-800">{withdrawal.accountName}</span>
+                      <span className="font-semibold text-slate-800 group-hover:text-blue-600 transition-colors">{withdrawal.accountName}</span>
                       <span className="text-xs text-slate-500">Survey Platform</span>
                     </div>
                   </div>
@@ -462,18 +493,29 @@ export function WithdrawalsTable({ withdrawals, accounts }: { withdrawals: Withd
                 <TableCell>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
+                      <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
                         <MoreHorizontal className="h-4 w-4" />
                         <span className="sr-only">Open menu</span>
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-48">
-                      <DropdownMenuItem onClick={() => setEditingWithdrawal(withdrawal)} className="cursor-pointer">
+                      <DropdownMenuItem onClick={(e) => {
+                        e.stopPropagation()
+                        setSelectedWithdrawal(withdrawal)
+                      }} className="cursor-pointer">
+                        <Eye className="mr-2 h-4 w-4" />
+                        View Details
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={(e) => {
+                        e.stopPropagation()
+                        setEditingWithdrawal(withdrawal)
+                      }} className="cursor-pointer">
                         <Pencil className="mr-2 h-4 w-4" />
                         Edit Details
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation()
                           const updatedWithdrawal = { ...withdrawal, status: withdrawal.status === "PENDING" ? "COMPLETED" : "PENDING" as "PENDING" | "COMPLETED" }
                           setEditingWithdrawal(updatedWithdrawal)
                         }}
@@ -492,7 +534,10 @@ export function WithdrawalsTable({ withdrawals, accounts }: { withdrawals: Withd
                         )}
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        onClick={() => setDeletingWithdrawal(withdrawal)}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setDeletingWithdrawal(withdrawal)
+                        }}
                         className="text-destructive cursor-pointer"
                       >
                         <Trash2 className="mr-2 h-4 w-4" />
@@ -625,6 +670,14 @@ export function WithdrawalsTable({ withdrawals, accounts }: { withdrawals: Withd
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Withdrawal Details Modal */}
+      <WithdrawalDetailsModal
+        isOpen={!!selectedWithdrawal}
+        onClose={() => setSelectedWithdrawal(null)}
+        withdrawal={selectedWithdrawal}
+        isFirstWithdrawal={selectedWithdrawal ? isFirstWithdrawal(selectedWithdrawal) : false}
+      />
     </>
   )
 }
