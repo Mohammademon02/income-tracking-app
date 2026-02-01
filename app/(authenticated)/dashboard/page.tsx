@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { getAvatarGradient } from "@/lib/avatar-utils"
 import { TrendingUp, Wallet, Clock, DollarSign, Target, Activity, ArrowUpRight, Calendar, Users } from "lucide-react"
 import Link from "next/link"
+import { PendingWithdrawalsCard } from "@/components/pending-withdrawals-card"
 
 export default async function DashboardPage() {
   const [accounts, entries, withdrawals] = await Promise.all([
@@ -27,6 +28,19 @@ export default async function DashboardPage() {
   // Get recent entries and withdrawals
   const recentEntries = entries.slice(0, 5)
   const recentWithdrawals = withdrawals.slice(0, 5)
+
+  // Get pending withdrawals for modal
+  const pendingWithdrawals = withdrawals
+    .filter(w => w.status === "PENDING")
+    .map(w => ({
+      id: w.id,
+      accountId: w.accountId,
+      accountName: w.accountName,
+      accountColor: w.accountColor,
+      amount: w.amount,
+      date: w.date,
+      status: w.status
+    }))
 
   // Calculate trends and monthly data
   const currentMonth = new Date().getMonth()
@@ -122,22 +136,10 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="relative overflow-hidden bg-gradient-to-br from-orange-500 to-orange-600 text-white border-0 shadow-lg shadow-orange-200/50 transform transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-orange-300/60 cursor-pointer">
-          <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10 transition-all duration-500 hover:bg-white/20"></div>
-          <CardHeader className="flex flex-row items-center justify-between pb-2 relative z-10">
-            <CardTitle className="text-sm font-medium text-orange-100">Pending Withdrawals</CardTitle>
-            <Clock className="h-5 w-5 text-orange-200" />
-          </CardHeader>
-          <CardContent className="relative z-10">
-            <div className="text-3xl font-bold">{totalPending.toLocaleString()} <span className="text-lg text-orange-200">pts</span></div>
-            <div className="text-xl font-semibold text-orange-100 mb-2">${(totalPending / 100).toFixed(2)}</div>
-            <div className="flex items-center mt-2 text-orange-100">
-              <Activity className="w-4 h-4 mr-1" />
-              <span className="text-sm">Awaiting completion</span>
-            </div>
-            <p className="text-xs text-orange-200 mt-1">Withdrawal requests in progress</p>
-          </CardContent>
-        </Card>
+        <PendingWithdrawalsCard 
+          pendingWithdrawals={pendingWithdrawals}
+          totalPending={totalPending}
+        />
 
         <Card className="relative overflow-hidden bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0 shadow-lg shadow-purple-200/50 transform transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-purple-300/60 cursor-pointer">
           <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10 transition-all duration-500 hover:bg-white/20"></div>
@@ -269,11 +271,13 @@ export default async function DashboardPage() {
               <p className="text-xs text-green-500">{totalCompleted.toLocaleString()} pts</p>
             </div>
 
-            <div className="text-center p-4 bg-gradient-to-r from-rose-50 to-pink-50 rounded-xl transition-all duration-300 hover:from-rose-100 hover:to-pink-100 hover:scale-105 cursor-pointer transform">
-              <div className="text-2xl font-bold text-rose-600 transition-colors duration-300 hover:text-rose-700">{todayTotalPoints.toLocaleString()} <span className="text-sm text-rose-500">pts</span></div>
-              <p className="text-sm text-rose-700">Today's Earnings</p>
-              <p className="text-xs text-rose-500">${(todayTotalPoints / 100).toFixed(2)}</p>
-            </div>
+            <Link href="/daily-earnings" className="block">
+              <div className="text-center p-4 bg-gradient-to-r from-rose-50 to-pink-50 rounded-xl transition-all duration-300 hover:from-rose-100 hover:to-pink-100 hover:scale-105 cursor-pointer transform">
+                <div className="text-2xl font-bold text-rose-600 transition-colors duration-300 hover:text-rose-700">{todayTotalPoints.toLocaleString()} <span className="text-sm text-rose-500">pts</span></div>
+                <p className="text-sm text-rose-700">Today's Earnings</p>
+                <p className="text-xs text-rose-500">${(todayTotalPoints / 100).toFixed(2)}</p>
+              </div>
+            </Link>
 
             <Link href="/reports" className="block">
               <div className="text-center p-4 bg-gradient-to-r from-purple-50 to-violet-50 rounded-xl transition-all duration-300 hover:from-purple-100 hover:to-violet-100 hover:scale-105 cursor-pointer transform">
