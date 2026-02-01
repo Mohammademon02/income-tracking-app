@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { getAvatarGradient } from "@/lib/avatar-utils"
 import { TrendingUp, Wallet, Clock, DollarSign, Target, Activity, ArrowUpRight, Calendar, Users } from "lucide-react"
+import Link from "next/link"
 
 export default async function DashboardPage() {
   const [accounts, entries, withdrawals] = await Promise.all([
@@ -38,7 +39,7 @@ export default async function DashboardPage() {
 
   const thisMonthWithdrawals = withdrawals.filter(w => {
     if (w.status !== "COMPLETED" || !w.completedAt) return false
-    
+
     const completionDate = new Date(w.completedAt)
     return completionDate.getMonth() === currentMonth &&
       completionDate.getFullYear() === currentYear
@@ -47,6 +48,14 @@ export default async function DashboardPage() {
   const thisMonthIncome = thisMonthEntries.reduce((sum, entry) => sum + entry.points, 0)
   const thisMonthCompletedWithdrawals = thisMonthWithdrawals.reduce((sum, withdrawal) => sum + withdrawal.amount, 0) * 100 // Convert to points
   const lastMonthEntries = Math.floor(thisMonthEntries.length * 0.8) // Mock previous month data
+
+  // Calculate today's points
+  const today = new Date()
+  const todayEntries = entries.filter(e => {
+    const entryDate = new Date(e.date)
+    return entryDate.toDateString() === today.toDateString()
+  })
+  const todayTotalPoints = todayEntries.reduce((sum, entry) => sum + entry.points, 0)
 
   // Get current month name
   const currentMonthName = new Date().toLocaleDateString('en-US', { month: 'long' })
@@ -61,13 +70,13 @@ export default async function DashboardPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
-            Dashboard
+            {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
           </h1>
           <p className="text-slate-600 mt-1">Welcome back! Here's your survey income overview</p>
         </div>
         <div className="flex items-center space-x-2 text-sm text-slate-500">
           <Calendar className="w-4 h-4" />
-          <span>{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+          <span>Dashboard</span>
         </div>
       </div>
 
@@ -260,16 +269,26 @@ export default async function DashboardPage() {
               <p className="text-xs text-green-500">{totalCompleted.toLocaleString()} pts</p>
             </div>
 
-            <div className="text-center p-4 bg-gradient-to-r from-purple-50 to-violet-50 rounded-xl transition-all duration-300 hover:from-purple-100 hover:to-violet-100 hover:scale-105 cursor-pointer transform">
-              <div className="text-2xl font-bold text-purple-600 transition-colors duration-300 hover:text-purple-700">{thisMonthIncome.toLocaleString()} <span className="text-sm text-purple-500">pts</span></div>
-              <p className="text-sm text-purple-700">{currentMonthName} Income</p>
+            <div className="text-center p-4 bg-gradient-to-r from-rose-50 to-pink-50 rounded-xl transition-all duration-300 hover:from-rose-100 hover:to-pink-100 hover:scale-105 cursor-pointer transform">
+              <div className="text-2xl font-bold text-rose-600 transition-colors duration-300 hover:text-rose-700">{todayTotalPoints.toLocaleString()} <span className="text-sm text-rose-500">pts</span></div>
+              <p className="text-sm text-rose-700">Today's Earnings</p>
+              <p className="text-xs text-rose-500">${(todayTotalPoints / 100).toFixed(2)}</p>
             </div>
 
-            <div className="text-center p-4 bg-gradient-to-r from-cyan-50 to-teal-50 rounded-xl transition-all duration-300 hover:from-cyan-100 hover:to-teal-100 hover:scale-105 cursor-pointer transform">
-              <div className="text-2xl font-bold text-cyan-600 transition-colors duration-300 hover:text-cyan-700">${thisMonthWithdrawalsInDollars}</div>
-              <p className="text-sm text-cyan-700">{currentMonthName} Withdrawals</p>
-              <p className="text-xs text-cyan-500">{thisMonthCompletedWithdrawals.toLocaleString()} pts</p>
-            </div>
+            <Link href="/reports" className="block">
+              <div className="text-center p-4 bg-gradient-to-r from-purple-50 to-violet-50 rounded-xl transition-all duration-300 hover:from-purple-100 hover:to-violet-100 hover:scale-105 cursor-pointer transform">
+                <div className="text-2xl font-bold text-purple-600 transition-colors duration-300 hover:text-purple-700">{thisMonthIncome.toLocaleString()} <span className="text-sm text-purple-500">pts</span></div>
+                <p className="text-sm text-purple-700">{currentMonthName} Income</p>
+              </div>
+            </Link>
+
+            <Link href="/withdrawals-reports" className="block">
+              <div className="text-center p-4 bg-gradient-to-r from-cyan-50 to-teal-50 rounded-xl transition-all duration-300 hover:from-cyan-100 hover:to-teal-100 hover:scale-105 cursor-pointer transform">
+                <div className="text-2xl font-bold text-cyan-600 transition-colors duration-300 hover:text-cyan-700">${thisMonthWithdrawalsInDollars}</div>
+                <p className="text-sm text-cyan-700">{currentMonthName} Approved</p>
+                <p className="text-xs text-cyan-500">{thisMonthCompletedWithdrawals.toLocaleString()} pts</p>
+              </div>
+            </Link>
 
             <div className="text-center p-4 bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl transition-all duration-300 hover:from-orange-100 hover:to-amber-100 hover:scale-105 cursor-pointer transform">
               <div className="flex items-center justify-center gap-2">
