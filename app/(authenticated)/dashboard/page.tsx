@@ -6,11 +6,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { ExportButton } from "@/components/ui/export-button"
 import { EarningsChart } from "@/components/charts/earnings-chart"
-import { GoalTracker } from "@/components/goal-tracker"
 import { getAvatarGradient } from "@/lib/avatar-utils"
 import { TrendingUp, Wallet, Clock, DollarSign, Target, Activity, ArrowUpRight, Calendar, Users } from "lucide-react"
 import Link from "next/link"
 import { PendingWithdrawalsCard } from "@/components/pending-withdrawals-card"
+import { PerformanceMonitor } from "@/components/performance-monitor"
+import { SmartInsights } from "@/components/smart-insights"
 
 export default async function DashboardPage() {
   // Fetch only what this page actually renders — no more loading everything then slicing
@@ -235,6 +236,13 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
 
+        <PerformanceMonitor />
+      </div>
+
+      {/* Smart Insights & Analytics */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <SmartInsights />
+
         <Card className="bg-white/80 backdrop-blur-sm border border-white/60 shadow-xl">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -286,12 +294,6 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
       </div>
-
-      {/* Goal Tracker Section */}
-      <GoalTracker 
-        accounts={accounts}
-        entries={allEntries}
-      />
 
       {/* Charts Section */}
       {allEntries.length > 0 && (

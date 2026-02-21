@@ -7,14 +7,17 @@ import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { logout } from "@/app/actions/auth"
-import { LayoutDashboard, Users, Calendar, Wallet, LogOut, Menu, X } from "lucide-react"
+import { LayoutDashboard, Users, Calendar, Wallet, LogOut, Menu, X, Bell, BellRing, Settings } from "lucide-react"
 import { useState } from "react"
+import { useNotifications } from "@/hooks/use-notifications"
+import { NotificationCenter } from "@/components/notification-center"
 
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Accounts", href: "/accounts", icon: Users },
   { name: "Daily Entries", href: "/entries", icon: Calendar },
   { name: "Withdrawals", href: "/withdrawals", icon: Wallet },
+  { name: "Settings", href: "/settings", icon: Settings },
 ]
 
 const NavigationItem = memo(({ item, isActive, onClick }: { 
@@ -46,6 +49,12 @@ NavigationItem.displayName = 'NavigationItem'
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const { triggerCheck, lastChecked } = useNotifications({
+    enableWithdrawalAlerts: true,
+    enableMilestoneAlerts: true,
+    enableDailyGoalAlerts: true,
+    checkInterval: 60000 // Check every minute
+  })
 
   return (
     <div className="min-h-screen bg-linear-to-br from-slate-50 via-blue-50 to-indigo-50">
@@ -58,14 +67,26 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
             <span className="font-bold text-lg bg-linear-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">Survey Tracker</span>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="hover:bg-blue-100 transition-colors"
-          >
-            {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </Button>
+          <div className="flex items-center gap-2">
+            <NotificationCenter />
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={triggerCheck}
+              className="hover:bg-blue-100 transition-colors"
+              title="Check for updates"
+            >
+              <Bell className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="hover:bg-blue-100 transition-colors"
+            >
+              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </Button>
+          </div>
         </div>
         {mobileMenuOpen && (
           <nav className="border-t border-white/20 p-4 space-y-2 bg-white/95 backdrop-blur-md">
@@ -94,11 +115,25 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <aside className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col">
         <div className="flex flex-col grow bg-white/80 backdrop-blur-md border-r border-white/20 shadow-xl">
           <div className="flex items-center h-16 px-6 border-b border-white/20">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-linear-to-r from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
-                <LayoutDashboard className="w-5 h-5 text-white" />
+            <div className="flex items-center justify-between w-full">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-linear-to-r from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <LayoutDashboard className="w-5 h-5 text-white" />
+                </div>
+                <span className="font-bold text-xl bg-linear-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">Survey Tracker</span>
               </div>
-              <span className="font-bold text-xl bg-linear-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">Survey Tracker</span>
+              <div className="flex items-center gap-2">
+                <NotificationCenter />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={triggerCheck}
+                  className="hover:bg-blue-100 transition-colors"
+                  title="Check for updates"
+                >
+                  <Bell className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </div>
           <nav className="flex-1 p-4 space-y-2">

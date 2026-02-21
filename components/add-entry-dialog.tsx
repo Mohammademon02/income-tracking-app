@@ -25,6 +25,7 @@ import { getAvatarGradient } from "@/lib/avatar-utils"
 import { Plus } from "lucide-react"
 import { createEntry } from "@/app/actions/entries"
 import { enhancedToast, commonToasts } from "@/components/ui/enhanced-toast"
+import { notifications } from "@/lib/notification-service"
 
 type Account = {
   id: string
@@ -51,16 +52,17 @@ export function AddEntryDialog({ accounts }: { accounts: Account[] }) {
     if (result?.error) {
       setError(result.error)
       setLoading(false)
-      enhancedToast.error("Failed to add entry", {
+      notifications.error("Failed to add entry", {
         description: result.error
       })
     } else {
       const points = parseInt(formData.get("points") as string)
+      const accountName = accounts.find(a => a.id === selectedAccountId)?.name || "Unknown"
       setOpen(false)
       setLoading(false)
       setSelectedAccountId("")
       router.refresh()
-      commonToasts.entryAdded(points)
+      notifications.entry.added(points, accountName)
     }
   }
 
