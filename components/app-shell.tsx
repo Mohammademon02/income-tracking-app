@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { logout } from "@/app/actions/auth"
-import { LayoutDashboard, Users, Calendar, Wallet, LogOut, Menu, X, Bell, BellRing, Settings } from "lucide-react"
+import { LayoutDashboard, Users, Calendar, Wallet, LogOut, Menu, X, Settings } from "lucide-react"
 import { useState } from "react"
 import { useNotifications } from "@/hooks/use-notifications"
 import { NotificationCenter } from "@/components/notification-center"
@@ -49,9 +49,9 @@ NavigationItem.displayName = 'NavigationItem'
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const { triggerCheck, lastChecked } = useNotifications({
-    enableWithdrawalAlerts: true,
-    enableMilestoneAlerts: true,
+  
+  // Simple notification system
+  useNotifications({
     enableDailyGoalAlerts: true,
     checkInterval: 60000 // Check every minute
   })
@@ -69,15 +69,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
           <div className="flex items-center gap-2">
             <NotificationCenter />
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={triggerCheck}
-              className="hover:bg-blue-100 transition-colors"
-              title="Check for updates"
-            >
-              <Bell className="h-4 w-4" />
-            </Button>
             <Button
               variant="ghost"
               size="icon"
@@ -124,15 +115,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </div>
               <div className="flex items-center gap-2">
                 <NotificationCenter />
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={triggerCheck}
-                  className="hover:bg-blue-100 transition-colors"
-                  title="Check for updates"
-                >
-                  <Bell className="h-4 w-4" />
-                </Button>
               </div>
             </div>
           </div>

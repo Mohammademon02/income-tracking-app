@@ -52,7 +52,53 @@ model Withdrawal {
   @@map("withdrawals")
 }
 
+model Notification {
+  id        String             @id @default(auto()) @map("_id") @db.ObjectId
+  type      NotificationType
+  title     String
+  message   String
+  timestamp DateTime           @default(now())
+  read      Boolean            @default(false)
+  actionUrl String?
+  priority  NotificationPriority @default(MEDIUM)
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  @@index([read])
+  @@index([timestamp])
+  @@map("notifications")
+}
+
+model UserSettings {
+  id                    String   @id @default(auto()) @map("_id") @db.ObjectId
+  dailyGoalPoints       Int      @default(2000)
+  weeklyGoalPoints      Int      @default(14000)
+  monthlyGoalPoints     Int      @default(60000)
+  notificationsEnabled  Boolean  @default(true)
+  emailNotifications    Boolean  @default(false)
+  pushNotifications     Boolean  @default(true)
+  quietHoursStart       String?  @default("22:00")
+  quietHoursEnd         String?  @default("08:00")
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@map("user_settings")
+}
+
 enum WithdrawalStatus {
   PENDING
   COMPLETED
+}
+
+enum NotificationType {
+  WITHDRAWAL
+  MILESTONE
+  GOAL
+  SYSTEM
+}
+
+enum NotificationPriority {
+  LOW
+  MEDIUM
+  HIGH
 }

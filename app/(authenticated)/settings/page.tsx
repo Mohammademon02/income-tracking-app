@@ -78,6 +78,16 @@ export default function SettingsPage() {
                 <div className="w-4 h-4 bg-white rounded-full absolute top-1 right-1 transition-all"></div>
               </div>
             </div>
+
+            <div className="pt-4 border-t">
+              <a 
+                href="/settings/notifications" 
+                className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium"
+              >
+                <Settings className="w-4 h-4" />
+                Advanced Notification Settings
+              </a>
+            </div>
           </CardContent>
         </Card>
 

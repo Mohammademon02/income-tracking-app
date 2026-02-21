@@ -18,19 +18,21 @@ import {
   Wallet,
   X,
   Settings,
-  MoreHorizontal
+  RefreshCw
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useRouter } from "next/navigation"
+import { useNotificationState } from "@/hooks/use-notification-state"
 
 interface Notification {
   id: string
-  type: 'withdrawal' | 'milestone' | 'goal' | 'system'
+  type: 'WITHDRAWAL' | 'MILESTONE' | 'GOAL' | 'SYSTEM'
   title: string
   message: string
   timestamp: Date
   read: boolean
   actionUrl?: string
-  priority: 'low' | 'medium' | 'high'
+  priority: 'LOW' | 'MEDIUM' | 'HIGH'
 }
 
 interface NotificationCenterProps {
@@ -41,26 +43,38 @@ export function NotificationCenter({ className }: NotificationCenterProps) {
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [isOpen, setIsOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const router = useRouter()
+  const notificationState = useNotificationState()
 
-  // Mock notifications for demo - replace with real API calls
+  // Fetch notifications from API only after state is loaded
   useEffect(() => {
+    if (!notificationState.isLoaded) return
+
     async function fetchNotifications() {
+      setLoading(true)
+      setError(null)
       try {
         const response = await fetch('/api/notifications/recent')
         if (response.ok) {
           const data = await response.json()
-          setNotifications(data.map((n: any) => ({
-            ...n,
-            timestamp: new Date(n.timestamp)
-          })))
+          const processedNotifications = data
+            .filter((n: any) => !notificationState.isDeleted(n.id))
+            .map((n: any) => ({
+              ...n,
+              timestamp: new Date(n.timestamp),
+              read: notificationState.isRead(n.id)
+            }))
+          setNotifications(processedNotifications)
         } else {
-          // Fallback to empty array if API fails
-          setNotifications([])
+          throw new Error(`Failed to fetch notifications: ${response.status}`)
         }
       } catch (error) {
         console.error('Failed to fetch notifications:', error)
-        // Fallback to empty array
+        setError('Failed to load notifications')
         setNotifications([])
+      } finally {
+        setLoading(false)
       }
     }
 
@@ -69,35 +83,129 @@ export function NotificationCenter({ className }: NotificationCenterProps) {
     // Refresh notifications every 2 minutes
     const interval = setInterval(fetchNotifications, 2 * 60 * 1000)
     return () => clearInterval(interval)
-  }, [])
+  }, [notificationState.isLoaded])
+
+  // Update notification states when localStorage state changes
+  useEffect(() => {
+    if (!notificationState.isLoaded) return
+    
+    setNotifications(prev => 
+      prev
+        .filter(n => !notificationState.isDeleted(n.id))
+        .map(n => ({
+          ...n,
+          read: notificationState.isRead(n.id)
+        }))
+    )
+  }, [notificationState.state, notificationState.isLoaded])
 
   const unreadCount = notifications.filter(n => !n.read).length
 
-  const markAsRead = (id: string) => {
-    setNotifications(prev => 
-      prev.map(n => n.id === id ? { ...n, read: true } : n)
-    )
+  const markAsRead = async (id: string) => {
+    try {
+      // Update local state immediately for instant feedback
+      notificationState.markAsRead(id)
+      setNotifications(prev => 
+        prev.map(n => n.id === id ? { ...n, read: true } : n)
+      )
+
+      // Also call API for server-side tracking
+      await fetch(`/api/notifications/${id}/read`, {
+        method: 'POST'
+      })
+    } catch (error) {
+      console.error('Failed to mark notification as read:', error)
+    }
   }
 
-  const markAllAsRead = () => {
-    setNotifications(prev => 
-      prev.map(n => ({ ...n, read: true }))
-    )
+  const markAllAsRead = async () => {
+    try {
+      const notificationIds = notifications.map(n => n.id)
+      
+      // Update local state immediately for instant feedback
+      notificationState.markAllAsRead(notificationIds)
+      setNotifications(prev => 
+        prev.map(n => ({ ...n, read: true }))
+      )
+
+      // Also call API for server-side tracking
+      await fetch('/api/notifications/mark-all-read', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ notificationIds })
+      })
+    } catch (error) {
+      console.error('Failed to mark all notifications as read:', error)
+    }
   }
 
-  const deleteNotification = (id: string) => {
-    setNotifications(prev => prev.filter(n => n.id !== id))
+  const deleteNotification = async (id: string) => {
+    try {
+      // Update local state immediately for instant feedback
+      notificationState.deleteNotification(id)
+      setNotifications(prev => prev.filter(n => n.id !== id))
+
+      // Also call API for server-side tracking
+      await fetch(`/api/notifications/${id}`, {
+        method: 'DELETE'
+      })
+    } catch (error) {
+      console.error('Failed to delete notification:', error)
+    }
+  }
+
+  const clearAllNotifications = async () => {
+    try {
+      // Clear local state
+      notificationState.clearAll()
+      setNotifications([])
+      
+      // Also clear any server-side state if needed
+      await fetch('/api/notifications/clear-all', {
+        method: 'POST'
+      })
+    } catch (error) {
+      console.error('Failed to clear all notifications:', error)
+    }
+  }
+
+  const refreshNotifications = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const response = await fetch('/api/notifications/recent')
+      if (response.ok) {
+        const data = await response.json()
+        const processedNotifications = data
+          .filter((n: any) => !notificationState.isDeleted(n.id))
+          .map((n: any) => ({
+            ...n,
+            timestamp: new Date(n.timestamp),
+            read: notificationState.isRead(n.id)
+          }))
+        setNotifications(processedNotifications)
+      } else {
+        throw new Error(`Failed to fetch notifications: ${response.status}`)
+      }
+    } catch (error) {
+      console.error('Failed to fetch notifications:', error)
+      setError('Failed to load notifications')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const getNotificationIcon = (type: Notification['type']) => {
     switch (type) {
-      case 'withdrawal':
+      case 'WITHDRAWAL':
         return <Wallet className="w-4 h-4 text-green-600" />
-      case 'milestone':
+      case 'MILESTONE':
         return <TrendingUp className="w-4 h-4 text-purple-600" />
-      case 'goal':
+      case 'GOAL':
         return <CheckCircle className="w-4 h-4 text-blue-600" />
-      case 'system':
+      case 'SYSTEM':
         return <Bell className="w-4 h-4 text-slate-600" />
       default:
         return <Bell className="w-4 h-4 text-slate-600" />
@@ -106,11 +214,11 @@ export function NotificationCenter({ className }: NotificationCenterProps) {
 
   const getPriorityColor = (priority: Notification['priority']) => {
     switch (priority) {
-      case 'high':
+      case 'HIGH':
         return 'border-l-red-500 bg-red-50/50'
-      case 'medium':
+      case 'MEDIUM':
         return 'border-l-orange-500 bg-orange-50/50'
-      case 'low':
+      case 'LOW':
         return 'border-l-blue-500 bg-blue-50/50'
       default:
         return 'border-l-slate-500 bg-slate-50/50'
@@ -140,6 +248,7 @@ export function NotificationCenter({ className }: NotificationCenterProps) {
             "relative hover:bg-blue-100 transition-colors",
             className
           )}
+          disabled={loading}
         >
           {unreadCount > 0 ? (
             <BellRing className="h-5 w-5 text-blue-600" />
@@ -161,7 +270,7 @@ export function NotificationCenter({ className }: NotificationCenterProps) {
         sideOffset={8}
       >
         <Card className="border-0 shadow-none">
-          <CardHeader className="pb-3 bg-gradient-to-r from-blue-50 to-indigo-50 border-b">
+          <CardHeader className="pb-3 bg-linear-to-r from-blue-50 to-indigo-50 border-b">
             <div className="flex items-center justify-between">
               <CardTitle className="text-lg flex items-center gap-2">
                 <Bell className="w-5 h-5 text-blue-600" />
@@ -173,12 +282,23 @@ export function NotificationCenter({ className }: NotificationCenterProps) {
                 )}
               </CardTitle>
               <div className="flex items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 hover:bg-blue-100"
+                  disabled={loading}
+                  onClick={refreshNotifications}
+                  title="Refresh notifications"
+                >
+                  <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} />
+                </Button>
                 {unreadCount > 0 && (
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={markAllAsRead}
                     className="text-xs hover:bg-blue-100"
+                    disabled={loading}
                   >
                     Mark all read
                   </Button>
@@ -187,6 +307,11 @@ export function NotificationCenter({ className }: NotificationCenterProps) {
                   variant="ghost"
                   size="icon"
                   className="h-8 w-8 hover:bg-blue-100"
+                  disabled={loading}
+                  onClick={() => {
+                    setIsOpen(false)
+                    router.push('/settings/notifications')
+                  }}
                 >
                   <Settings className="w-4 h-4" />
                 </Button>
@@ -194,7 +319,26 @@ export function NotificationCenter({ className }: NotificationCenterProps) {
             </div>
           </CardHeader>
           <CardContent className="p-0 max-h-96 overflow-y-auto">
-            {notifications.length === 0 ? (
+            {loading ? (
+              <div className="text-center py-8 text-slate-500">
+                <div className="animate-spin w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-3"></div>
+                <p className="text-sm">Loading notifications...</p>
+              </div>
+            ) : error ? (
+              <div className="text-center py-8 text-red-500">
+                <Bell className="w-12 h-12 mx-auto mb-3 text-red-300" />
+                <p className="font-medium">Error loading notifications</p>
+                <p className="text-sm">{error}</p>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="mt-3"
+                  onClick={() => window.location.reload()}
+                >
+                  Retry
+                </Button>
+              </div>
+            ) : notifications.length === 0 ? (
               <div className="text-center py-8 text-slate-500">
                 <Bell className="w-12 h-12 mx-auto mb-3 text-slate-300" />
                 <p className="font-medium">No notifications</p>
@@ -206,20 +350,22 @@ export function NotificationCenter({ className }: NotificationCenterProps) {
                   <div
                     key={notification.id}
                     className={cn(
-                      "p-4 hover:bg-slate-50 transition-colors border-l-4 cursor-pointer",
+                      "group p-4 hover:bg-slate-50 transition-colors border-l-4 cursor-pointer",
                       getPriorityColor(notification.priority),
                       !notification.read && "bg-blue-50/30"
                     )}
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.preventDefault()
                       markAsRead(notification.id)
                       if (notification.actionUrl) {
                         setIsOpen(false)
-                        window.location.href = notification.actionUrl
+                        // Use Next.js router instead of window.location to avoid reload
+                        // For now, just close the popover without navigation
                       }
                     }}
                   >
                     <div className="flex items-start gap-3">
-                      <div className="flex-shrink-0 mt-0.5">
+                      <div className="shrink-0 mt-0.5">
                         {getNotificationIcon(notification.type)}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -268,7 +414,11 @@ export function NotificationCenter({ className }: NotificationCenterProps) {
               <Button
                 variant="ghost"
                 className="w-full text-sm text-slate-600 hover:text-slate-800"
-                onClick={() => setIsOpen(false)}
+                onClick={(e) => {
+                  e.preventDefault()
+                  setIsOpen(false)
+                  router.push('/notifications')
+                }}
               >
                 View all notifications
               </Button>
