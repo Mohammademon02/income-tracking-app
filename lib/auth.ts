@@ -2,7 +2,7 @@ import { cookies } from "next/headers"
 import { SignJWT, jwtVerify } from "jose"
 
 const secretKey = new TextEncoder().encode(
-  process.env.APP_PASSWORD || "fallback-secret-key-change-me"
+  process.env.JWT_SECRET || process.env.APP_PASSWORD || "fallback-secret-key-change-me"
 )
 
 export async function createSession(username: string) {

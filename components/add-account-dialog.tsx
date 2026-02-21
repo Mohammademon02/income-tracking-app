@@ -18,7 +18,7 @@ import { ColorPicker } from "@/components/ui/color-picker"
 import { getAvatarGradient } from "@/lib/avatar-utils"
 import { Plus } from "lucide-react"
 import { createAccount } from "@/app/actions/accounts"
-import { toast } from "sonner"
+import { enhancedToast, commonToasts } from "@/components/ui/enhanced-toast"
 
 export function AddAccountDialog() {
   const router = useRouter()
@@ -37,21 +37,23 @@ export function AddAccountDialog() {
     if (result?.error) {
       setError(result.error)
       setLoading(false)
-      toast.error(result.error)
+      enhancedToast.error("Failed to create account", {
+        description: result.error
+      })
     } else {
       setOpen(false)
       setLoading(false)
       setAccountName("")
       setSelectedColor("blue")
       router.refresh()
-      toast.success("Account created successfully!")
+      commonToasts.accountCreated()
     }
   }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg shadow-blue-200/50 transition-all duration-200 hover:scale-105">
+        <Button className="bg-linear-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg shadow-blue-200/50 transition-all duration-200 hover:scale-105">
           <Plus className="mr-2 h-4 w-4" />
           Add Account
         </Button>
@@ -102,7 +104,7 @@ export function AddAccountDialog() {
             <Button type="button" variant="outline" onClick={() => setOpen(false)} className="hover:bg-slate-50 transition-colors">
               Cancel
             </Button>
-            <Button type="submit" disabled={loading} className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg transition-all duration-200">
+            <Button type="submit" disabled={loading} className="bg-linear-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg transition-all duration-200">
               {loading ? "Creating..." : "Create Account"}
             </Button>
           </DialogFooter>

@@ -32,6 +32,26 @@ export async function getEntries(accountId?: string) {
   }))
 }
 
+/** Fetch ALL entries for goal tracking and analytics */
+export async function getAllEntries() {
+  const session = await verifySession()
+  if (!session) throw new Error("Unauthorized")
+
+  const entries = await prisma.dailyEntry.findMany({
+    include: { account: { select: { name: true, color: true } } },
+    orderBy: { date: "desc" },
+  })
+
+  return entries.map((entry) => ({
+    id: entry.id,
+    date: entry.date,
+    points: entry.points,
+    accountId: entry.accountId,
+    accountName: entry.account.name,
+    accountColor: entry.account.color || "blue",
+  }))
+}
+
 /** Fetch only the N most recent entries — used by the dashboard. */
 export async function getRecentEntries(take = 5) {
   const session = await verifySession()

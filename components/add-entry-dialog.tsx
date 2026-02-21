@@ -24,7 +24,7 @@ import { Label } from "@/components/ui/label"
 import { getAvatarGradient } from "@/lib/avatar-utils"
 import { Plus } from "lucide-react"
 import { createEntry } from "@/app/actions/entries"
-import { toast } from "sonner"
+import { enhancedToast, commonToasts } from "@/components/ui/enhanced-toast"
 
 type Account = {
   id: string
@@ -51,13 +51,16 @@ export function AddEntryDialog({ accounts }: { accounts: Account[] }) {
     if (result?.error) {
       setError(result.error)
       setLoading(false)
-      toast.error(result.error)
+      enhancedToast.error("Failed to add entry", {
+        description: result.error
+      })
     } else {
+      const points = parseInt(formData.get("points") as string)
       setOpen(false)
       setLoading(false)
       setSelectedAccountId("")
       router.refresh()
-      toast.success("Entry added successfully!")
+      commonToasts.entryAdded(points)
     }
   }
 
@@ -79,7 +82,7 @@ export function AddEntryDialog({ accounts }: { accounts: Account[] }) {
       }
     }}>
       <DialogTrigger asChild>
-        <Button className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg shadow-green-200/50 transition-all duration-200 hover:scale-105">
+        <Button className="bg-linear-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg shadow-green-200/50 transition-all duration-200 hover:scale-105">
           <Plus className="mr-2 h-4 w-4" />
           Add Entry
         </Button>
@@ -120,7 +123,7 @@ export function AddEntryDialog({ accounts }: { accounts: Account[] }) {
                     <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-md ring-1 ring-white/30 ${getAvatarGradient(selectedAccount.color || "blue")}`}>
                       {selectedAccount.name.charAt(0).toUpperCase()}
                     </div>
-                    <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full border border-white shadow-sm"></div>
+                    <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-linear-to-r from-green-400 to-emerald-500 rounded-full border border-white shadow-sm"></div>
                   </div>
                   <div className="flex flex-col">
                     <span className="font-semibold text-slate-800">{selectedAccount.name}</span>
@@ -159,7 +162,7 @@ export function AddEntryDialog({ accounts }: { accounts: Account[] }) {
             <Button type="button" variant="outline" onClick={() => setOpen(false)} className="hover:bg-slate-50 transition-colors">
               Cancel
             </Button>
-            <Button type="submit" disabled={loading} className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg transition-all duration-200">
+            <Button type="submit" disabled={loading} className="bg-linear-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg transition-all duration-200">
               {loading ? "Adding..." : "Add Entry"}
             </Button>
           </DialogFooter>

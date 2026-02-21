@@ -4,6 +4,8 @@ import { Geist, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { Toaster } from 'sonner'
 import './globals.css'
+import { ErrorBoundary } from "@/lib/error-boundary"
+import { AccessibilityProvider } from "@/components/accessibility-provider"
 
 const geist = Geist({
   subsets: ["latin"],
@@ -44,14 +46,18 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${geist.variable} ${geistMono.variable}`}>
       <body className="font-sans antialiased">
-        {children}
-        <Analytics />
-        <Toaster
-          position="top-right"
-          richColors
-          closeButton
-          duration={3000}
-        />
+        <AccessibilityProvider>
+          <ErrorBoundary>
+            {children}
+            <Analytics />
+            <Toaster
+              position="top-right"
+              richColors
+              closeButton
+              duration={3000}
+            />
+          </ErrorBoundary>
+        </AccessibilityProvider>
       </body>
     </html>
   )

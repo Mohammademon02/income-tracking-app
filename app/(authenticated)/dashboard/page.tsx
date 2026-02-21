@@ -1,9 +1,12 @@
 import { getAccounts } from "@/app/actions/accounts"
-import { getRecentEntries } from "@/app/actions/entries"
+import { getRecentEntries, getAllEntries } from "@/app/actions/entries"
 import { getRecentWithdrawals, getPendingWithdrawals } from "@/app/actions/withdrawals"
 import { getMonthlyStats } from "@/app/actions/monthly-stats"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { ExportButton } from "@/components/ui/export-button"
+import { EarningsChart } from "@/components/charts/earnings-chart"
+import { GoalTracker } from "@/components/goal-tracker"
 import { getAvatarGradient } from "@/lib/avatar-utils"
 import { TrendingUp, Wallet, Clock, DollarSign, Target, Activity, ArrowUpRight, Calendar, Users } from "lucide-react"
 import Link from "next/link"
@@ -11,9 +14,10 @@ import { PendingWithdrawalsCard } from "@/components/pending-withdrawals-card"
 
 export default async function DashboardPage() {
   // Fetch only what this page actually renders — no more loading everything then slicing
-  const [accounts, recentEntries, recentWithdrawals, pendingWithdrawalsData, monthlyStats] = await Promise.all([
+  const [accounts, recentEntries, allEntries, recentWithdrawals, pendingWithdrawalsData, monthlyStats] = await Promise.all([
     getAccounts(),
     getRecentEntries(5),
+    getAllEntries(), // Get ALL entries for accurate goal calculation
     getRecentWithdrawals(5),
     getPendingWithdrawals(),
     getMonthlyStats(), // Get current month stats
@@ -52,14 +56,24 @@ export default async function DashboardPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-bold bg-linear-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
             {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
           </h1>
           <p className="text-slate-600 mt-1">Welcome back! Here's your survey income overview</p>
         </div>
-        <div className="flex items-center space-x-2 text-sm text-slate-500">
-          <Calendar className="w-4 h-4" />
-          <span>Dashboard</span>
+        <div className="flex items-center gap-3">
+          <ExportButton
+            data={accounts}
+            type="comprehensive"
+            accounts={accounts}
+            entries={allEntries}
+            withdrawals={recentWithdrawals}
+            className="hidden sm:flex"
+          />
+          <div className="flex items-center space-x-2 text-sm text-slate-500">
+            <Calendar className="w-4 h-4" />
+            <span>Dashboard</span>
+          </div>
         </div>
       </div>
 
@@ -272,6 +286,33 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Goal Tracker Section */}
+      <GoalTracker 
+        accounts={accounts}
+        entries={allEntries}
+      />
+
+      {/* Charts Section */}
+      {allEntries.length > 0 && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold text-slate-800">Analytics & Trends</h2>
+            <Badge className="bg-blue-100 text-blue-700 border-blue-200">
+              Last {allEntries.length} entries
+            </Badge>
+          </div>
+          <EarningsChart 
+            data={allEntries.map(entry => ({
+              date: entry.date.toString(),
+              points: entry.points,
+              accountName: entry.accountName,
+              accountColor: entry.accountColor
+            }))}
+            accounts={accounts}
+          />
+        </div>
+      )}
 
       {/* Recent Activity */}
       <div className="grid gap-6 lg:grid-cols-2">

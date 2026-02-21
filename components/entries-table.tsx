@@ -50,7 +50,7 @@ import { getAvatarGradient } from "@/lib/avatar-utils"
 import { cn } from "@/lib/utils"
 import { MoreHorizontal, Pencil, Trash2, Plus, Filter, X } from "lucide-react"
 import { updateEntry, deleteEntry } from "@/app/actions/entries"
-import { toast } from "sonner"
+import { enhancedToast, commonToasts } from "@/components/ui/enhanced-toast"
 
 type Entry = {
   id: string
@@ -149,7 +149,7 @@ export function EntriesTable({ entries, accounts }: { entries: Entry[]; accounts
     setEditingEntry(null)
     setLoading(false)
     router.refresh()
-    toast.success("Entry updated successfully!")
+    commonToasts.entryUpdated()
   }
 
   async function handleDelete() {
@@ -159,7 +159,7 @@ export function EntriesTable({ entries, accounts }: { entries: Entry[]; accounts
     setDeletingEntry(null)
     setLoading(false)
     router.refresh()
-    toast.success("Entry deleted")
+    commonToasts.entryDeleted()
   }
 
   if (entries.length === 0) {
