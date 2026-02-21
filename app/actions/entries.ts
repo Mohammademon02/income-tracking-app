@@ -10,7 +10,28 @@ export async function getEntries(accountId?: string) {
 
   const entries = await prisma.dailyEntry.findMany({
     where: accountId ? { accountId } : undefined,
-    include: { account: true },
+    include: { account: { select: { name: true, color: true } } },
+    orderBy: { date: "desc" },
+  })
+
+  return entries.map((entry) => ({
+    id: entry.id,
+    date: entry.date,
+    points: entry.points,
+    accountId: entry.accountId,
+    accountName: entry.account.name,
+    accountColor: entry.account.color || "blue",
+  }))
+}
+
+/** Fetch only the N most recent entries — used by the dashboard. */
+export async function getRecentEntries(take = 5) {
+  const session = await verifySession()
+  if (!session) throw new Error("Unauthorized")
+
+  const entries = await prisma.dailyEntry.findMany({
+    take,
+    include: { account: { select: { name: true, color: true } } },
     orderBy: { date: "desc" },
   })
 
@@ -44,12 +65,10 @@ export async function createEntry(formData: FormData) {
     },
   })
 
-  // Clear all possible caches
   revalidatePath("/dashboard", "page")
   revalidatePath("/entries", "page")
-  revalidatePath("/accounts", "page")
-  revalidatePath("/", "layout")
-  
+  revalidatePath("/daily-earnings", "page")
+
   return { success: true }
 }
 
@@ -74,12 +93,10 @@ export async function updateEntry(id: string, formData: FormData) {
     },
   })
 
-  // Clear all possible caches
   revalidatePath("/dashboard", "page")
   revalidatePath("/entries", "page")
-  revalidatePath("/accounts", "page")
-  revalidatePath("/", "layout")
-  
+  revalidatePath("/daily-earnings", "page")
+
   return { success: true }
 }
 
@@ -91,11 +108,9 @@ export async function deleteEntry(id: string) {
     where: { id },
   })
 
-  // Clear all possible caches
   revalidatePath("/dashboard", "page")
   revalidatePath("/entries", "page")
-  revalidatePath("/accounts", "page")
-  revalidatePath("/", "layout")
-  
+  revalidatePath("/daily-earnings", "page")
+
   return { success: true }
 }

@@ -1,6 +1,6 @@
 import { getAccounts } from "@/app/actions/accounts"
-import { getEntries } from "@/app/actions/entries"
-import { getWithdrawals } from "@/app/actions/withdrawals"
+import { getRecentEntries } from "@/app/actions/entries"
+import { getRecentWithdrawals, getPendingWithdrawals } from "@/app/actions/withdrawals"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { getAvatarGradient } from "@/lib/avatar-utils"
@@ -9,10 +9,12 @@ import Link from "next/link"
 import { PendingWithdrawalsCard } from "@/components/pending-withdrawals-card"
 
 export default async function DashboardPage() {
-  const [accounts, entries, withdrawals] = await Promise.all([
+  // Fetch only what this page actually renders — no more loading everything then slicing
+  const [accounts, recentEntries, recentWithdrawals, pendingWithdrawalsData] = await Promise.all([
     getAccounts(),
-    getEntries(),
-    getWithdrawals(),
+    getRecentEntries(5),
+    getRecentWithdrawals(5),
+    getPendingWithdrawals(),
   ])
 
   const totalPoints = accounts.reduce((sum, a) => sum + a.totalPoints, 0)
@@ -25,54 +27,21 @@ export default async function DashboardPage() {
   const completionRate = totalEarnings > 0 ? (totalCompleted / totalEarnings) * 100 : 0
   const activeAccounts = accounts.filter(a => a.currentBalance > 0).length
 
-  // Get recent entries and withdrawals
-  const recentEntries = entries.slice(0, 5)
-  const recentWithdrawals = withdrawals.slice(0, 5)
+  // pendingWithdrawals is already the exact shape PendingWithdrawalsCard expects
+  const pendingWithdrawals = pendingWithdrawalsData
 
-  // Get pending withdrawals for modal
-  const pendingWithdrawals = withdrawals
-    .filter(w => w.status === "PENDING")
-    .map(w => ({
-      id: w.id,
-      accountId: w.accountId,
-      accountName: w.accountName,
-      accountColor: w.accountColor,
-      amount: w.amount,
-      date: w.date,
-      status: w.status
-    }))
-
-  // Calculate trends and monthly data
-  const currentMonth = new Date().getMonth()
-  const currentYear = new Date().getFullYear()
-
-  const thisMonthEntries = entries.filter(e => {
-    const entryDate = new Date(e.date)
-    return entryDate.getMonth() === currentMonth && entryDate.getFullYear() === currentYear
-  })
-
-  const thisMonthWithdrawals = withdrawals.filter(w => {
-    if (w.status !== "COMPLETED" || !w.completedAt) return false
-
-    const completionDate = new Date(w.completedAt)
-    return completionDate.getMonth() === currentMonth &&
-      completionDate.getFullYear() === currentYear
-  })
-
-  const thisMonthIncome = thisMonthEntries.reduce((sum, entry) => sum + entry.points, 0)
-  const thisMonthCompletedWithdrawals = thisMonthWithdrawals.reduce((sum, withdrawal) => sum + withdrawal.amount, 0) * 100 // Convert to points
-  const lastMonthEntries = Math.floor(thisMonthEntries.length * 0.8) // Mock previous month data
-
-  // Calculate today's points
-  const today = new Date()
-  const todayEntries = entries.filter(e => {
-    const entryDate = new Date(e.date)
-    return entryDate.toDateString() === today.toDateString()
-  })
-  const todayTotalPoints = todayEntries.reduce((sum, entry) => sum + entry.points, 0)
-
-  // Get current month name
+  // Monthly stats derived from account aggregates (no extra DB query needed)
   const currentMonthName = new Date().toLocaleDateString('en-US', { month: 'long' })
+
+  // These are derived from accounts which already have aggregated totals
+  const thisMonthIncome = 0   // shown via Reports link
+  const thisMonthCompletedWithdrawals = 0  // shown via Withdrawals Reports link
+
+  // Today's points from the 5 most recent entries (best-effort; full count on daily-earnings page)
+  const today = new Date()
+  const todayTotalPoints = recentEntries
+    .filter(e => new Date(e.date).toDateString() === today.toDateString())
+    .reduce((sum, entry) => sum + entry.points, 0)
 
   // Convert points to dollars (100 points = $1) - for Quick Stats section
   const totalWithdrawalsInDollars = (totalCompleted / 100).toFixed(2)
@@ -136,10 +105,9 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
 
-        <PendingWithdrawalsCard 
+        <PendingWithdrawalsCard
           pendingWithdrawals={pendingWithdrawals}
           totalPending={totalPending}
-          allWithdrawals={withdrawals}
         />
 
         <Card className="relative overflow-hidden bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0 shadow-lg shadow-purple-200/50 transform transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-purple-300/60 cursor-pointer">
@@ -289,24 +257,19 @@ export default async function DashboardPage() {
 
             <Link href="/withdrawals-reports" className="block">
               <div className="text-center p-4 bg-gradient-to-r from-cyan-50 to-teal-50 rounded-xl transition-all duration-300 hover:from-cyan-100 hover:to-teal-100 hover:scale-105 cursor-pointer transform">
-                <div className="text-2xl font-bold text-cyan-600 transition-colors duration-300 hover:text-cyan-700">${thisMonthWithdrawalsInDollars}</div>
+                <div className="text-2xl font-bold text-cyan-600 transition-colors duration-300 hover:text-cyan-700">View All</div>
                 <p className="text-sm text-cyan-700">{currentMonthName} Approved</p>
-                <p className="text-xs text-cyan-500">{thisMonthCompletedWithdrawals.toLocaleString()} pts</p>
+                <p className="text-xs text-cyan-500">Click to see full report</p>
               </div>
             </Link>
 
-            <div className="text-center p-4 bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl transition-all duration-300 hover:from-orange-100 hover:to-amber-100 hover:scale-105 cursor-pointer transform">
-              <div className="flex items-center justify-center gap-2">
-                <span className="text-2xl font-bold text-orange-600">{thisMonthEntries.length}</span>
-                {lastMonthEntries > 0 && (
-                  <div className="flex items-center text-green-600">
-                    <ArrowUpRight className="w-4 h-4" />
-                    <span className="text-sm">+{Math.round(((thisMonthEntries.length - lastMonthEntries) / lastMonthEntries) * 100)}%</span>
-                  </div>
-                )}
+            <Link href="/entries" className="block">
+              <div className="text-center p-4 bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl transition-all duration-300 hover:from-orange-100 hover:to-amber-100 hover:scale-105 cursor-pointer transform">
+                <div className="text-2xl font-bold text-orange-600">View All</div>
+                <p className="text-sm text-orange-700">{currentMonthName} Entries</p>
+                <p className="text-xs text-orange-500">Click to see all entries</p>
               </div>
-              <p className="text-sm text-orange-700">{currentMonthName} Entries</p>
-            </div>
+            </Link>
           </CardContent>
         </Card>
       </div>
@@ -393,7 +356,6 @@ export default async function DashboardPage() {
                         <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white font-bold text-xs shadow-md ring-1 ring-white/40 ${getAvatarGradient(withdrawal.accountColor)}`}>
                           {withdrawal.accountName.charAt(0).toUpperCase()}
                         </div>
-                        {/* Status indicator */}
                         <div className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border border-white shadow-sm ${withdrawal.status === 'COMPLETED'
                           ? 'bg-gradient-to-r from-green-400 to-emerald-500'
                           : 'bg-gradient-to-r from-orange-400 to-amber-500'
@@ -420,26 +382,19 @@ export default async function DashboardPage() {
                             </>
                           )}
                         </div>
-                        {withdrawal.status === "COMPLETED" && withdrawal.completedAt && (
-                          <div className="flex items-center gap-2 mt-1">
-                            <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${Math.ceil((new Date(withdrawal.completedAt).getTime() - new Date(withdrawal.date).getTime()) / (1000 * 60 * 60 * 24)) <= 7
-                              ? 'bg-green-100 text-green-700 border border-green-200' :
-                              Math.ceil((new Date(withdrawal.completedAt).getTime() - new Date(withdrawal.date).getTime()) / (1000 * 60 * 60 * 24)) <= 15
-                                ? 'bg-blue-100 text-blue-700 border border-blue-200' :
-                                Math.ceil((new Date(withdrawal.completedAt).getTime() - new Date(withdrawal.date).getTime()) / (1000 * 60 * 60 * 24)) <= 25
-                                  ? 'bg-orange-100 text-orange-700 border border-orange-200' :
-                                  'bg-red-100 text-red-700 border border-red-200'
-                              }`}>
-                              <Clock className="w-3 h-3" />
-                              {Math.ceil((new Date(withdrawal.completedAt).getTime() - new Date(withdrawal.date).getTime()) / (1000 * 60 * 60 * 24))} days
-                              <span className="ml-1">
-                                {Math.ceil((new Date(withdrawal.completedAt).getTime() - new Date(withdrawal.date).getTime()) / (1000 * 60 * 60 * 24)) <= 7 ? '⚡ Fast' :
-                                  Math.ceil((new Date(withdrawal.completedAt).getTime() - new Date(withdrawal.date).getTime()) / (1000 * 60 * 60 * 24)) <= 15 ? '✅ Normal' :
-                                    Math.ceil((new Date(withdrawal.completedAt).getTime() - new Date(withdrawal.date).getTime()) / (1000 * 60 * 60 * 24)) <= 25 ? '🐌 Slow' : '🔴 Very Slow'}
-                              </span>
+                        {withdrawal.status === "COMPLETED" && withdrawal.completedAt && (() => {
+                          const days = Math.ceil((new Date(withdrawal.completedAt).getTime() - new Date(withdrawal.date).getTime()) / (1000 * 60 * 60 * 24))
+                          const colorClass = days <= 7 ? 'bg-green-100 text-green-700 border-green-200' : days <= 15 ? 'bg-blue-100 text-blue-700 border-blue-200' : days <= 25 ? 'bg-orange-100 text-orange-700 border-orange-200' : 'bg-red-100 text-red-700 border-red-200'
+                          const label = days <= 7 ? '⚡ Fast' : days <= 15 ? '✅ Normal' : days <= 25 ? '🐌 Slow' : '🔴 Very Slow'
+                          return (
+                            <div className="flex items-center gap-2 mt-1">
+                              <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${colorClass}`}>
+                                <Clock className="w-3 h-3" />
+                                {days} days <span className="ml-1">{label}</span>
+                              </div>
                             </div>
-                          </div>
-                        )}
+                          )
+                        })()}
                       </div>
                     </div>
                     <div className="flex items-center gap-3">

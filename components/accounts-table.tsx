@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import {
   Table,
   TableBody,
@@ -41,6 +42,7 @@ import { ColorPicker } from "@/components/ui/color-picker"
 import { getAvatarGradient } from "@/lib/avatar-utils"
 import { MoreHorizontal, Pencil, Trash2, Users } from "lucide-react"
 import { updateAccount, deleteAccount } from "@/app/actions/accounts"
+import { toast } from "sonner"
 
 type Account = {
   id: string
@@ -54,6 +56,7 @@ type Account = {
 }
 
 export function AccountsTable({ accounts }: { accounts: Account[] }) {
+  const router = useRouter()
   const [editingAccount, setEditingAccount] = useState<Account | null>(null)
   const [deletingAccount, setDeletingAccount] = useState<Account | null>(null)
   const [loading, setLoading] = useState(false)
@@ -64,17 +67,18 @@ export function AccountsTable({ accounts }: { accounts: Account[] }) {
     if (!editingAccount) return
     setLoading(true)
     setError(null)
-    
+
     const result = await updateAccount(editingAccount.id, formData)
-    
+
     if (result?.error) {
       setError(result.error)
       setLoading(false)
+      toast.error(result.error)
     } else {
       setEditingAccount(null)
       setLoading(false)
-      // Force router refresh
-      window.location.href = window.location.href
+      router.refresh()
+      toast.success("Account updated successfully!")
     }
   }
 
@@ -84,6 +88,8 @@ export function AccountsTable({ accounts }: { accounts: Account[] }) {
     await deleteAccount(deletingAccount.id)
     setDeletingAccount(null)
     setLoading(false)
+    router.refresh()
+    toast.success(`"${deletingAccount.name}" deleted`)
   }
 
   function handleEditClick(account: Account) {
@@ -141,9 +147,9 @@ export function AccountsTable({ accounts }: { accounts: Account[] }) {
                       <span className="font-semibold text-slate-800">{account.name}</span>
                       <span className="text-xs text-slate-500">
                         {account.totalPoints >= 1000 ? '🏆 Top Performer' :
-                         account.totalPoints >= 500 ? '⭐ Active' :
-                         account.totalPoints >= 100 ? '📈 Growing' :
-                         '🌱 New Account'}
+                          account.totalPoints >= 500 ? '⭐ Active' :
+                            account.totalPoints >= 100 ? '📈 Growing' :
+                              '🌱 New Account'}
                       </span>
                     </div>
                   </div>
@@ -225,7 +231,7 @@ export function AccountsTable({ accounts }: { accounts: Account[] }) {
                   required
                 />
               </div>
-              
+
               <div className="space-y-3">
                 <Label>Preview</Label>
                 <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
@@ -241,12 +247,12 @@ export function AccountsTable({ accounts }: { accounts: Account[] }) {
                 </div>
               </div>
 
-              <ColorPicker 
-                selectedColor={editColor} 
+              <ColorPicker
+                selectedColor={editColor}
                 onColorChange={setEditColor}
                 name="color"
               />
-              
+
               {error && <p className="text-sm text-destructive">{error}</p>}
             </div>
             <DialogFooter>

@@ -27,13 +27,13 @@ export default async function DailyEarningsPage() {
   const dailyData = recentEntries.reduce((acc, entry) => {
     const date = new Date(entry.date)
     const dateKey = date.toISOString().split('T')[0] // YYYY-MM-DD format
-    const dateDisplay = date.toLocaleDateString('en-US', { 
-      weekday: 'long', 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
+    const dateDisplay = date.toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
     })
-    
+
     if (!acc[dateKey]) {
       acc[dateKey] = {
         dateDisplay,
@@ -43,10 +43,10 @@ export default async function DailyEarningsPage() {
         date: date
       }
     }
-    
+
     acc[dateKey].totalPoints += entry.points
     acc[dateKey].totalEntries += 1
-    
+
     // Add individual entry to the list
     acc[dateKey].entriesList.push({
       id: entry.id,
@@ -55,9 +55,8 @@ export default async function DailyEarningsPage() {
       accountColor: entry.accountColor,
       points: entry.points,
       date: entry.date,
-      createdAt: entry.createdAt
     })
-    
+
     return acc
   }, {} as Record<string, any>)
 
@@ -73,13 +72,13 @@ export default async function DailyEarningsPage() {
   // Get today as default and ensure it's always available
   const today = new Date()
   const todayKey = today.toISOString().split('T')[0]
-  const todayDisplay = today.toLocaleDateString('en-US', { 
-    weekday: 'long', 
-    year: 'numeric', 
-    month: 'long', 
-    day: 'numeric' 
+  const todayDisplay = today.toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
   })
-  
+
   // Add today to the list if it doesn't exist
   if (!sortedDates.find(d => d.key === todayKey)) {
     sortedDates.unshift({
@@ -100,8 +99,8 @@ export default async function DailyEarningsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link 
-            href="/dashboard" 
+          <Link
+            href="/dashboard"
             className="flex items-center gap-2 text-slate-600 hover:text-slate-800 transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
@@ -120,7 +119,7 @@ export default async function DailyEarningsPage() {
       </div>
 
       {/* Daily Earnings Display */}
-      <DailyEarningsClient 
+      <DailyEarningsClient
         dailyData={dailyData}
         availableDates={sortedDates}
         todayKey={todayKey}

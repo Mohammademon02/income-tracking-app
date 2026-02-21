@@ -10,7 +10,7 @@ export async function getWithdrawals(accountId?: string) {
 
   const withdrawals = await prisma.withdrawal.findMany({
     where: accountId ? { accountId } : undefined,
-    include: { account: true },
+    include: { account: { select: { name: true, color: true } } },
     orderBy: { date: "desc" },
   })
 
@@ -20,6 +20,52 @@ export async function getWithdrawals(accountId?: string) {
     amount: withdrawal.amount,
     status: withdrawal.status,
     completedAt: withdrawal.completedAt || null,
+    accountId: withdrawal.accountId,
+    accountName: withdrawal.account.name,
+    accountColor: withdrawal.account.color || "blue",
+  }))
+}
+
+/** Fetch only the N most recent withdrawals — used by the dashboard. */
+export async function getRecentWithdrawals(take = 5) {
+  const session = await verifySession()
+  if (!session) throw new Error("Unauthorized")
+
+  const withdrawals = await prisma.withdrawal.findMany({
+    take,
+    include: { account: { select: { name: true, color: true } } },
+    orderBy: { date: "desc" },
+  })
+
+  return withdrawals.map((withdrawal) => ({
+    id: withdrawal.id,
+    date: withdrawal.date,
+    amount: withdrawal.amount,
+    status: withdrawal.status,
+    completedAt: withdrawal.completedAt || null,
+    accountId: withdrawal.accountId,
+    accountName: withdrawal.account.name,
+    accountColor: withdrawal.account.color || "blue",
+  }))
+}
+
+/** Fetch only pending withdrawals — used by the dashboard pending card. */
+export async function getPendingWithdrawals() {
+  const session = await verifySession()
+  if (!session) throw new Error("Unauthorized")
+
+  const withdrawals = await prisma.withdrawal.findMany({
+    where: { status: "PENDING" },
+    include: { account: { select: { name: true, color: true } } },
+    orderBy: { date: "desc" },
+  })
+
+  return withdrawals.map((withdrawal) => ({
+    id: withdrawal.id,
+    date: withdrawal.date,
+    amount: withdrawal.amount,
+    status: withdrawal.status as "PENDING",
+    completedAt: null,
     accountId: withdrawal.accountId,
     accountName: withdrawal.account.name,
     accountColor: withdrawal.account.color || "blue",
@@ -51,12 +97,10 @@ export async function createWithdrawal(formData: FormData) {
     },
   })
 
-  // Clear all possible caches
   revalidatePath("/dashboard", "page")
   revalidatePath("/withdrawals", "page")
-  revalidatePath("/accounts", "page")
-  revalidatePath("/", "layout")
-  
+  revalidatePath("/withdrawals-reports", "page")
+
   return { success: true }
 }
 
@@ -77,12 +121,23 @@ export async function updateWithdrawal(id: string, formData: FormData) {
   // Convert points to dollars (100 points = $1)
   const dollarAmount = pointsAmount / 100
 
-  // Get current withdrawal to check if status is changing
+  // Get current withdrawal only to check status change for completedAt logic
   const currentWithdrawal = await prisma.withdrawal.findUnique({
-    where: { id }
+    where: { id },
+    select: { status: true },
   })
 
-  const updateData: any = {
+  if (!currentWithdrawal) {
+    return { error: "Withdrawal not found" }
+  }
+
+  const updateData: {
+    accountId: string
+    date: Date
+    amount: number
+    status: "PENDING" | "COMPLETED"
+    completedAt?: Date | null
+  } = {
     accountId,
     date: new Date(date),
     amount: dollarAmount,
@@ -92,15 +147,11 @@ export async function updateWithdrawal(id: string, formData: FormData) {
   // Handle completion date logic
   if (status === "COMPLETED") {
     if (completedDate) {
-      // Use the manually provided completion date
       updateData.completedAt = new Date(completedDate)
-    } else if (currentWithdrawal?.status !== "COMPLETED") {
-      // If no manual date provided and status is changing to COMPLETED, use current time
+    } else if (currentWithdrawal.status !== "COMPLETED") {
       updateData.completedAt = new Date()
     }
-    // If already completed and no new date provided, keep existing completedAt
   } else if (status === "PENDING") {
-    // If status is changing to PENDING, clear completedAt
     updateData.completedAt = null
   }
 
@@ -109,12 +160,10 @@ export async function updateWithdrawal(id: string, formData: FormData) {
     data: updateData,
   })
 
-  // Clear all possible caches
   revalidatePath("/dashboard", "page")
   revalidatePath("/withdrawals", "page")
-  revalidatePath("/accounts", "page")
-  revalidatePath("/", "layout")
-  
+  revalidatePath("/withdrawals-reports", "page")
+
   return { success: true }
 }
 
@@ -126,11 +175,9 @@ export async function deleteWithdrawal(id: string) {
     where: { id },
   })
 
-  // Clear all possible caches
   revalidatePath("/dashboard", "page")
   revalidatePath("/withdrawals", "page")
-  revalidatePath("/accounts", "page")
-  revalidatePath("/", "layout")
-  
+  revalidatePath("/withdrawals-reports", "page")
+
   return { success: true }
 }

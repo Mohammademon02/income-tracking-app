@@ -8,35 +8,57 @@ export async function getAccounts() {
   const session = await verifySession()
   if (!session) throw new Error("Unauthorized")
 
+  // Use aggregation instead of loading all entries/withdrawals into memory
   const accounts = await prisma.account.findMany({
-    include: {
-      entries: true,
-      withdrawals: true,
-    },
     orderBy: { name: "asc" },
+    include: {
+      _count: { select: { entries: true, withdrawals: true } },
+    },
   })
 
-  return accounts.map((account) => {
-    const totalPoints = account.entries.reduce((sum, e) => sum + e.points, 0)
-    const completedWithdrawals = account.withdrawals
-      .filter((w) => w.status === "COMPLETED")
-      .reduce((sum, w) => sum + w.amount, 0)
-    const pendingWithdrawals = account.withdrawals
-      .filter((w) => w.status === "PENDING")
-      .reduce((sum, w) => sum + w.amount, 0)
+  // Fetch aggregated sums in a single DB call per account set
+  const [entrySums, withdrawalSums] = await Promise.all([
+    prisma.dailyEntry.groupBy({
+      by: ["accountId"],
+      _sum: { points: true },
+    }),
+    prisma.withdrawal.groupBy({
+      by: ["accountId", "status"],
+      _sum: { amount: true },
+    }),
+  ])
 
-    // Convert dollar amounts to points for balance calculation (100 points = $1)
+  // Build lookup maps for O(1) access
+  const entryPointsMap = new Map(
+    entrySums.map((e) => [e.accountId, e._sum.points ?? 0])
+  )
+
+  const completedMap = new Map<string, number>()
+  const pendingMap = new Map<string, number>()
+  for (const w of withdrawalSums) {
+    if (w.status === "COMPLETED") {
+      completedMap.set(w.accountId, w._sum.amount ?? 0)
+    } else if (w.status === "PENDING") {
+      pendingMap.set(w.accountId, w._sum.amount ?? 0)
+    }
+  }
+
+  return accounts.map((account) => {
+    const totalPoints = entryPointsMap.get(account.id) ?? 0
+    const completedWithdrawals = completedMap.get(account.id) ?? 0
+    const pendingWithdrawals = pendingMap.get(account.id) ?? 0
+
     const completedWithdrawalsInPoints = completedWithdrawals * 100
     const pendingWithdrawalsInPoints = pendingWithdrawals * 100
 
     return {
       id: account.id,
       name: account.name,
-      color: account.color || "blue", // Fallback to blue if color is missing
+      color: account.color || "blue",
       totalPoints,
-      completedWithdrawals, // Keep in dollars for dashboard display conversion
-      pendingWithdrawals, // Keep in dollars for dashboard display conversion
-      currentBalance: totalPoints - completedWithdrawalsInPoints - pendingWithdrawalsInPoints, // Calculate in points
+      completedWithdrawals,
+      pendingWithdrawals,
+      currentBalance: totalPoints - completedWithdrawalsInPoints - pendingWithdrawalsInPoints,
       createdAt: account.createdAt,
     }
   })
@@ -47,25 +69,23 @@ export async function createAccount(formData: FormData) {
   if (!session) throw new Error("Unauthorized")
 
   const name = formData.get("name") as string
-  const color = formData.get("color") as string || "blue"
+  const color = (formData.get("color") as string) || "blue"
 
   if (!name || name.trim() === "") {
     return { error: "Account name is required" }
   }
 
   await prisma.account.create({
-    data: { 
+    data: {
       name: name.trim(),
-      color: color
+      color,
     },
   })
 
-  // Revalidate multiple paths to ensure UI updates
-  revalidatePath("/dashboard")
-  revalidatePath("/accounts")
-  revalidatePath("/entries")
-  revalidatePath("/", "layout") // Revalidate root layout
-  
+  revalidatePath("/dashboard", "page")
+  revalidatePath("/accounts", "page")
+  revalidatePath("/entries", "page")
+
   return { success: true }
 }
 
@@ -76,82 +96,36 @@ export async function updateAccount(id: string, formData: FormData) {
   const name = formData.get("name") as string
   const color = (formData.get("color") as string) || "blue"
 
-  console.log("Updating account:", { id, name, color }) // Debug log
-
   if (!name || name.trim() === "") {
     return { error: "Account name is required" }
   }
 
   try {
-    // First, try to ensure the account exists and has a color field
-    const existingAccount = await prisma.account.findUnique({
-      where: { id }
-    })
-
-    if (!existingAccount) {
-      return { error: "Account not found" }
-    }
-
-    // Update the account
-    const result = await prisma.account.update({
+    await prisma.account.update({
       where: { id },
       data: {
         name: name.trim(),
-        color: color
+        color,
       },
     })
 
-    console.log("Account updated successfully:", result) // Debug log
-
-    // Clear all possible caches
     revalidatePath("/dashboard", "page")
-    revalidatePath("/accounts", "page") 
+    revalidatePath("/accounts", "page")
     revalidatePath("/entries", "page")
-    revalidatePath("/", "layout")
-    
-    // Also try to revalidate by tag if using tags
-    try {
-      const { revalidateTag } = await import('next/cache')
-      revalidateTag('accounts')
-    } catch (e) {
-      // Ignore if revalidateTag is not available
-    }
-    
+
     return { success: true }
   } catch (error) {
-    console.error("Error updating account:", error)
-    
-    // If the error is related to the color field not existing, try to add it first
-    if (error instanceof Error && error.message.includes('color')) {
-      try {
-        console.log("Attempting to add color field to account...")
-        
-        // Use raw MongoDB operation to add the color field
-        await prisma.$runCommandRaw({
-          update: "accounts",
-          updates: [
-            {
-              q: { _id: { $oid: id } },
-              u: { 
-                $set: { 
-                  name: name.trim(),
-                  color: color 
-                }
-              }
-            }
-          ]
-        })
-
-        revalidatePath("/dashboard")
-        revalidatePath("/accounts")
-        return { success: true }
-      } catch (rawError) {
-        console.error("Raw update also failed:", rawError)
-        return { error: `Failed to update account: ${rawError instanceof Error ? rawError.message : 'Unknown error'}` }
-      }
+    // Prisma error code P2025 = record not found
+    if (
+      error instanceof Error &&
+      (error.message.includes("P2025") || error.message.includes("not found"))
+    ) {
+      return { error: "Account not found" }
     }
-    
-    return { error: `Failed to update account: ${error instanceof Error ? error.message : 'Unknown error'}` }
+    return {
+      error: `Failed to update account: ${error instanceof Error ? error.message : "Unknown error"
+        }`,
+    }
   }
 }
 
@@ -163,7 +137,7 @@ export async function deleteAccount(id: string) {
     where: { id },
   })
 
-  revalidatePath("/dashboard")
-  revalidatePath("/accounts")
+  revalidatePath("/dashboard", "page")
+  revalidatePath("/accounts", "page")
   return { success: true }
 }

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
+import { useRouter } from "next/navigation"
 import {
   Table,
   TableBody,
@@ -48,6 +49,7 @@ import { Card } from "@/components/ui/card"
 import { getAvatarGradient } from "@/lib/avatar-utils"
 import { MoreHorizontal, Pencil, Trash2, Wallet, Clock, Filter, X, Calendar, DollarSign, Eye } from "lucide-react"
 import { updateWithdrawal, deleteWithdrawal } from "@/app/actions/withdrawals"
+import { toast } from "sonner"
 import { WithdrawalDetailsModal } from "@/components/withdrawal-details-modal"
 
 type Withdrawal = {
@@ -68,6 +70,7 @@ type Account = {
 }
 
 export function WithdrawalsTable({ withdrawals, accounts }: { withdrawals: Withdrawal[]; accounts: Account[] }) {
+  const router = useRouter()
   const [editingWithdrawal, setEditingWithdrawal] = useState<Withdrawal | null>(null)
   const [deletingWithdrawal, setDeletingWithdrawal] = useState<Withdrawal | null>(null)
   const [selectedWithdrawal, setSelectedWithdrawal] = useState<Withdrawal | null>(null)
@@ -156,19 +159,19 @@ export function WithdrawalsTable({ withdrawals, accounts }: { withdrawals: Withd
   const isFirstWithdrawal = (withdrawal: Withdrawal) => {
     // Get all withdrawals for this account
     const accountWithdrawals = withdrawals.filter(w => w.accountId === withdrawal.accountId)
-    
+
     // If only one withdrawal for this account, it's the first
     if (accountWithdrawals.length === 1) {
       return true
     }
-    
+
     // Sort by date (earliest first)
     const sortedWithdrawals = accountWithdrawals.sort((a, b) => {
       const dateA = new Date(a.date).getTime()
       const dateB = new Date(b.date).getTime()
       return dateA - dateB
     })
-    
+
     // Check if this withdrawal is the first one
     return sortedWithdrawals[0].id === withdrawal.id
   }
@@ -179,6 +182,8 @@ export function WithdrawalsTable({ withdrawals, accounts }: { withdrawals: Withd
     await updateWithdrawal(editingWithdrawal.id, formData)
     setEditingWithdrawal(null)
     setLoading(false)
+    router.refresh()
+    toast.success("Withdrawal updated successfully!")
   }
 
   async function handleDelete() {
@@ -187,6 +192,8 @@ export function WithdrawalsTable({ withdrawals, accounts }: { withdrawals: Withd
     await deleteWithdrawal(deletingWithdrawal.id)
     setDeletingWithdrawal(null)
     setLoading(false)
+    router.refresh()
+    toast.success("Withdrawal deleted")
   }
 
   if (withdrawals.length === 0) {
@@ -366,7 +373,7 @@ export function WithdrawalsTable({ withdrawals, accounts }: { withdrawals: Withd
           </TableHeader>
           <TableBody>
             {filteredWithdrawals.map((withdrawal) => (
-              <TableRow 
+              <TableRow
                 key={withdrawal.id}
                 className="cursor-pointer hover:bg-slate-50 transition-colors group"
                 onClick={() => setSelectedWithdrawal(withdrawal)}
@@ -383,11 +390,10 @@ export function WithdrawalsTable({ withdrawals, accounts }: { withdrawals: Withd
                         {withdrawal.accountName.charAt(0).toUpperCase()}
                       </div>
                       {/* Status indicator */}
-                      <div className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border border-white shadow-sm ${
-                        withdrawal.status === 'COMPLETED' 
-                          ? 'bg-gradient-to-r from-green-400 to-emerald-500' 
-                          : 'bg-gradient-to-r from-orange-400 to-amber-500'
-                      }`}></div>
+                      <div className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border border-white shadow-sm ${withdrawal.status === 'COMPLETED'
+                        ? 'bg-gradient-to-r from-green-400 to-emerald-500'
+                        : 'bg-gradient-to-r from-orange-400 to-amber-500'
+                        }`}></div>
                     </div>
                     <div className="flex flex-col">
                       <span className="font-semibold text-slate-800 group-hover:text-blue-600 transition-colors">{withdrawal.accountName}</span>

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
+import { useRouter } from "next/navigation"
 import {
   Table,
   TableBody,
@@ -49,6 +50,7 @@ import { getAvatarGradient } from "@/lib/avatar-utils"
 import { cn } from "@/lib/utils"
 import { MoreHorizontal, Pencil, Trash2, Plus, Filter, X } from "lucide-react"
 import { updateEntry, deleteEntry } from "@/app/actions/entries"
+import { toast } from "sonner"
 
 type Entry = {
   id: string
@@ -66,6 +68,7 @@ type Account = {
 }
 
 export function EntriesTable({ entries, accounts }: { entries: Entry[]; accounts: Account[] }) {
+  const router = useRouter()
   const [editingEntry, setEditingEntry] = useState<Entry | null>(null)
   const [deletingEntry, setDeletingEntry] = useState<Entry | null>(null)
   const [loading, setLoading] = useState(false)
@@ -145,6 +148,8 @@ export function EntriesTable({ entries, accounts }: { entries: Entry[]; accounts
     await updateEntry(editingEntry.id, formData)
     setEditingEntry(null)
     setLoading(false)
+    router.refresh()
+    toast.success("Entry updated successfully!")
   }
 
   async function handleDelete() {
@@ -153,6 +158,8 @@ export function EntriesTable({ entries, accounts }: { entries: Entry[]; accounts
     await deleteEntry(deletingEntry.id)
     setDeletingEntry(null)
     setLoading(false)
+    router.refresh()
+    toast.success("Entry deleted")
   }
 
   if (entries.length === 0) {
@@ -292,8 +299,8 @@ export function EntriesTable({ entries, accounts }: { entries: Entry[]; accounts
           </TableHeader>
           <TableBody>
             {paginatedEntries.map((entry, index) => (
-              <TableRow 
-                key={entry.id} 
+              <TableRow
+                key={entry.id}
                 className={cn(
                   "hover:bg-blue-50/30 transition-all duration-200 border-b border-slate-100 last:border-b-0",
                   index % 2 === 0 ? "bg-white" : "bg-slate-50/20"
@@ -343,8 +350,8 @@ export function EntriesTable({ entries, accounts }: { entries: Entry[]; accounts
                 <TableCell className="py-4">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button 
-                        variant="ghost" 
+                      <Button
+                        variant="ghost"
                         size="icon"
                         className="h-8 w-8 hover:bg-slate-100 transition-colors duration-200"
                       >
@@ -353,8 +360,8 @@ export function EntriesTable({ entries, accounts }: { entries: Entry[]; accounts
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-48 shadow-lg border-slate-200">
-                      <DropdownMenuItem 
-                        onClick={() => setEditingEntry(entry)} 
+                      <DropdownMenuItem
+                        onClick={() => setEditingEntry(entry)}
                         className="cursor-pointer hover:bg-blue-50 focus:bg-blue-50"
                       >
                         <Pencil className="mr-2 h-4 w-4 text-blue-600" />

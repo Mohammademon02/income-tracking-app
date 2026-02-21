@@ -1,10 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  typescript: {
-    ignoreBuildErrors: true,
-  },
   images: {
-    unoptimized: true,
+    // Image optimization enabled (Next.js WebP conversion, lazy loading, resizing)
+    formats: ['image/avif', 'image/webp'],
   },
 }
 

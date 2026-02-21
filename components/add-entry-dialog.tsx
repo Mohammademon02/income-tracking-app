@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -23,6 +24,7 @@ import { Label } from "@/components/ui/label"
 import { getAvatarGradient } from "@/lib/avatar-utils"
 import { Plus } from "lucide-react"
 import { createEntry } from "@/app/actions/entries"
+import { toast } from "sonner"
 
 type Account = {
   id: string
@@ -31,6 +33,7 @@ type Account = {
 }
 
 export function AddEntryDialog({ accounts }: { accounts: Account[] }) {
+  const router = useRouter()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -42,18 +45,19 @@ export function AddEntryDialog({ accounts }: { accounts: Account[] }) {
   async function handleSubmit(formData: FormData) {
     setLoading(true)
     setError(null)
-    
+
     const result = await createEntry(formData)
-    
+
     if (result?.error) {
       setError(result.error)
       setLoading(false)
+      toast.error(result.error)
     } else {
       setOpen(false)
       setLoading(false)
       setSelectedAccountId("")
-      // Force page refresh to see new entry
-      window.location.reload()
+      router.refresh()
+      toast.success("Entry added successfully!")
     }
   }
 
@@ -107,7 +111,7 @@ export function AddEntryDialog({ accounts }: { accounts: Account[] }) {
                 </SelectContent>
               </Select>
             </div>
-            
+
             {selectedAccount && (
               <div className="space-y-3">
                 <Label>Preview</Label>

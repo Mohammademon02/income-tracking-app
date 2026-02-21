@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -17,8 +18,10 @@ import { ColorPicker } from "@/components/ui/color-picker"
 import { getAvatarGradient } from "@/lib/avatar-utils"
 import { Plus } from "lucide-react"
 import { createAccount } from "@/app/actions/accounts"
+import { toast } from "sonner"
 
 export function AddAccountDialog() {
+  const router = useRouter()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -28,19 +31,20 @@ export function AddAccountDialog() {
   async function handleSubmit(formData: FormData) {
     setLoading(true)
     setError(null)
-    
+
     const result = await createAccount(formData)
-    
+
     if (result?.error) {
       setError(result.error)
       setLoading(false)
+      toast.error(result.error)
     } else {
       setOpen(false)
       setLoading(false)
       setAccountName("")
       setSelectedColor("blue")
-      // Force page refresh to see new account
-      window.location.reload()
+      router.refresh()
+      toast.success("Account created successfully!")
     }
   }
 
@@ -70,7 +74,7 @@ export function AddAccountDialog() {
                 required
               />
             </div>
-            
+
             <div className="space-y-3">
               <Label>Preview</Label>
               <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
@@ -86,12 +90,12 @@ export function AddAccountDialog() {
               </div>
             </div>
 
-            <ColorPicker 
-              selectedColor={selectedColor} 
+            <ColorPicker
+              selectedColor={selectedColor}
               onColorChange={setSelectedColor}
               name="color"
             />
-            
+
             {error && <p className="text-sm text-destructive">{error}</p>}
           </div>
           <DialogFooter>
