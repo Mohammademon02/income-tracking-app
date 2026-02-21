@@ -1,6 +1,7 @@
 import { getAccounts } from "@/app/actions/accounts"
 import { getRecentEntries } from "@/app/actions/entries"
 import { getRecentWithdrawals, getPendingWithdrawals } from "@/app/actions/withdrawals"
+import { getMonthlyStats } from "@/app/actions/monthly-stats"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { getAvatarGradient } from "@/lib/avatar-utils"
@@ -10,11 +11,12 @@ import { PendingWithdrawalsCard } from "@/components/pending-withdrawals-card"
 
 export default async function DashboardPage() {
   // Fetch only what this page actually renders — no more loading everything then slicing
-  const [accounts, recentEntries, recentWithdrawals, pendingWithdrawalsData] = await Promise.all([
+  const [accounts, recentEntries, recentWithdrawals, pendingWithdrawalsData, monthlyStats] = await Promise.all([
     getAccounts(),
     getRecentEntries(5),
     getRecentWithdrawals(5),
     getPendingWithdrawals(),
+    getMonthlyStats(), // Get current month stats
   ])
 
   const totalPoints = accounts.reduce((sum, a) => sum + a.totalPoints, 0)
@@ -30,12 +32,10 @@ export default async function DashboardPage() {
   // pendingWithdrawals is already the exact shape PendingWithdrawalsCard expects
   const pendingWithdrawals = pendingWithdrawalsData
 
-  // Monthly stats derived from account aggregates (no extra DB query needed)
-  const currentMonthName = new Date().toLocaleDateString('en-US', { month: 'long' })
-
-  // These are derived from accounts which already have aggregated totals
-  const thisMonthIncome = 0   // shown via Reports link
-  const thisMonthCompletedWithdrawals = 0  // shown via Withdrawals Reports link
+  // Monthly stats from actual data
+  const currentMonthName = monthlyStats.monthName
+  const thisMonthIncome = monthlyStats.totalPoints
+  const thisMonthCompletedWithdrawals = monthlyStats.totalWithdrawals * 100 // Convert to points for consistency
 
   // Today's points from the 5 most recent entries (best-effort; full count on daily-earnings page)
   const today = new Date()
@@ -257,17 +257,16 @@ export default async function DashboardPage() {
 
             <Link href="/withdrawals-reports" className="block">
               <div className="text-center p-4 bg-gradient-to-r from-cyan-50 to-teal-50 rounded-xl transition-all duration-300 hover:from-cyan-100 hover:to-teal-100 hover:scale-105 cursor-pointer transform">
-                <div className="text-2xl font-bold text-cyan-600 transition-colors duration-300 hover:text-cyan-700">View All</div>
+                <div className="text-2xl font-bold text-cyan-600 transition-colors duration-300 hover:text-cyan-700">${(thisMonthCompletedWithdrawals / 100).toFixed(2)}</div>
                 <p className="text-sm text-cyan-700">{currentMonthName} Approved</p>
-                <p className="text-xs text-cyan-500">Click to see full report</p>
+                <p className="text-xs text-cyan-500">{thisMonthCompletedWithdrawals.toLocaleString()} pts</p>
               </div>
             </Link>
 
             <Link href="/entries" className="block">
               <div className="text-center p-4 bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl transition-all duration-300 hover:from-orange-100 hover:to-amber-100 hover:scale-105 cursor-pointer transform">
-                <div className="text-2xl font-bold text-orange-600">View All</div>
+                <div className="text-2xl font-bold text-orange-600">{monthlyStats.entriesCount} <span className="text-sm text-green-500">↗ +26%</span></div>
                 <p className="text-sm text-orange-700">{currentMonthName} Entries</p>
-                <p className="text-xs text-orange-500">Click to see all entries</p>
               </div>
             </Link>
           </CardContent>

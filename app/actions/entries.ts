@@ -10,7 +10,14 @@ export async function getEntries(accountId?: string) {
 
   const entries = await prisma.dailyEntry.findMany({
     where: accountId ? { accountId } : undefined,
-    include: { account: { select: { name: true, color: true } } },
+    include: { 
+      account: { 
+        select: { 
+          name: true, 
+          color: true 
+        } 
+      } 
+    },
     orderBy: { date: "desc" },
   })
 
@@ -21,6 +28,7 @@ export async function getEntries(accountId?: string) {
     accountId: entry.accountId,
     accountName: entry.account.name,
     accountColor: entry.account.color || "blue",
+    createdAt: entry.createdAt, // Add this for sorting in components
   }))
 }
 

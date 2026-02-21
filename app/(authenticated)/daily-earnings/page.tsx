@@ -1,16 +1,10 @@
 import { getEntries } from "@/app/actions/entries"
-import { getAccounts } from "@/app/actions/accounts"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { TrendingUp, Calendar, ArrowLeft, Clock } from "lucide-react"
+import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
-import { getAvatarGradient } from "@/lib/avatar-utils"
 import { DailyEarningsClient } from "@/components/daily-earnings-client"
 
 export default async function DailyEarningsPage() {
-  const [entries, accounts] = await Promise.all([
-    getEntries(),
-    getAccounts(),
-  ])
+  const entries = await getEntries()
 
   // Get date range for last 30 days
   const currentDate = new Date()
@@ -95,7 +89,7 @@ export default async function DailyEarningsPage() {
   }
 
   return (
-    <div className="p-6 space-y-8 bg-gradient-to-br from-slate-50/50 to-blue-50/30 min-h-screen">
+    <div className="p-6 space-y-8 bg-linear-to-br from-slate-50/50 to-blue-50/30 min-h-screen">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -111,7 +105,7 @@ export default async function DailyEarningsPage() {
 
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-bold bg-linear-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
             Daily Earnings - Last 30 Days
           </h1>
           <p className="text-slate-600 mt-1">Track your daily earnings and entries from the past month</p>

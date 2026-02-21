@@ -1,6 +1,6 @@
 "use client"
 
-import React from "react"
+import React, { memo } from "react"
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -16,6 +16,32 @@ const navigation = [
   { name: "Daily Entries", href: "/entries", icon: Calendar },
   { name: "Withdrawals", href: "/withdrawals", icon: Wallet },
 ]
+
+const NavigationItem = memo(({ item, isActive, onClick }: { 
+  item: typeof navigation[0], 
+  isActive: boolean, 
+  onClick?: () => void 
+}) => (
+  <Link
+    key={item.name}
+    href={item.href}
+    onClick={onClick}
+    className={cn(
+      "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 group",
+      isActive
+        ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-200/50"
+        : "text-slate-600 hover:bg-blue-50 hover:text-blue-700 hover:shadow-md"
+    )}
+  >
+    <item.icon className={cn(
+      "h-5 w-5 transition-transform duration-200",
+      isActive ? "text-white" : "text-slate-500 group-hover:text-blue-600 group-hover:scale-110"
+    )} />
+    {item.name}
+  </Link>
+))
+
+NavigationItem.displayName = 'NavigationItem'
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
@@ -46,20 +72,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {navigation.map((item) => {
               const isActive = pathname === item.href
               return (
-                <Link
+                <NavigationItem
                   key={item.name}
-                  href={item.href}
+                  item={item}
+                  isActive={isActive}
                   onClick={() => setMobileMenuOpen(false)}
-                  className={cn(
-                    "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200",
-                    isActive
-                      ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-200/50"
-                      : "text-slate-600 hover:bg-blue-50 hover:text-blue-700"
-                  )}
-                >
-                  <item.icon className="h-5 w-5" />
-                  {item.name}
-                </Link>
+                />
               )
             })}
             <form action={logout}>
@@ -87,22 +105,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {navigation.map((item) => {
               const isActive = pathname === item.href
               return (
-                <Link
+                <NavigationItem
                   key={item.name}
-                  href={item.href}
-                  className={cn(
-                    "flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 group",
-                    isActive
-                      ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-200/50"
-                      : "text-slate-600 hover:bg-blue-50 hover:text-blue-700 hover:shadow-md"
-                  )}
-                >
-                  <item.icon className={cn(
-                    "h-5 w-5 transition-transform duration-200",
-                    isActive ? "text-white" : "text-slate-500 group-hover:text-blue-600 group-hover:scale-110"
-                  )} />
-                  {item.name}
-                </Link>
+                  item={item}
+                  isActive={isActive}
+                />
               )
             })}
           </nav>
