@@ -76,7 +76,7 @@ export default async function ReportsPage() {
     }
 
     return (
-        <div className="p-6 space-y-8 bg-gradient-to-br from-slate-50/50 to-blue-50/30 min-h-screen">
+        <div className="px-3 py-6 sm:px-6 space-y-8 bg-gradient-to-br from-slate-50/50 to-blue-50/30 min-h-screen">
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
@@ -85,17 +85,18 @@ export default async function ReportsPage() {
                         className="flex items-center gap-2 text-slate-600 hover:text-slate-800 transition-colors"
                     >
                         <ArrowLeft className="w-5 h-5" />
-                        <span>Back to Dashboard</span>
+                        <span className="hidden sm:inline">Back to Dashboard</span>
+                        <span className="sm:hidden">Back</span>
                     </Link>
                 </div>
             </div>
 
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+                    <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
                         Monthly Income History
                     </h1>
-                    <p className="text-slate-600 mt-1">Track your earnings for the selected month</p>
+                    <p className="text-slate-600 mt-1 text-sm sm:text-base">Track your earnings for the selected month</p>
                 </div>
             </div>
 

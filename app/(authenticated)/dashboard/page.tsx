@@ -55,14 +55,14 @@ export default async function DashboardPage() {
   const thisMonthWithdrawalsInDollars = (thisMonthCompletedWithdrawals / 100).toFixed(2)
 
   return (
-    <div className="p-6 space-y-8 bg-gradient-to-br from-slate-50/50 to-blue-50/30 min-h-screen">
+    <div className="px-3 py-6 sm:px-6 space-y-8 bg-gradient-to-br from-slate-50/50 to-blue-50/30 min-h-screen">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold bg-linear-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+          <h1 className="text-2xl sm:text-3xl font-bold bg-linear-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
             {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
           </h1>
-          <p className="text-slate-600 mt-1">Welcome back! Here's your survey income overview</p>
+          <p className="text-slate-600 mt-1 text-sm sm:text-base">Welcome back! Here's your survey income overview</p>
         </div>
         <div className="flex items-center gap-3">
           <ExportButton
@@ -75,64 +75,68 @@ export default async function DashboardPage() {
           />
           <div className="flex items-center space-x-2 text-sm text-slate-500">
             <Calendar className="w-4 h-4" />
-            <span>Dashboard</span>
+            <span className="hidden sm:inline">Dashboard</span>
           </div>
         </div>
       </div>
 
       {/* Enhanced Stats Cards */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="relative overflow-hidden bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-lg shadow-blue-200/50 transform transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-blue-300/60 cursor-pointer">
+      <div className="grid gap-4 sm:gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <Card className="relative overflow-hidden bg-gradient-to-br from-blue-100/40 via-blue-50/60 to-white/40 backdrop-blur-xl border-2 border-white/30 shadow-2xl shadow-blue-500/20 transform transition-all duration-300 hover:scale-105 hover:shadow-3xl hover:shadow-blue-500/30 cursor-pointer">
+          {/* Glass reflection effect */}
+          <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-transparent"></div>
           {/* Animated Wave Background */}
           <div className="absolute inset-0 overflow-hidden">
-            <div className="absolute top-2 left-0 w-full h-1 bg-gradient-to-r from-transparent via-white/15 to-transparent wave-flow"></div>
-            <div className="absolute top-6 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-white/10 to-transparent wave-flow-delayed"></div>
-            <div className="absolute top-12 right-8 w-1.5 h-1.5 bg-white/30 rounded-full wave-pulse"></div>
-            <div className="absolute top-16 right-16 w-1 h-1 bg-white/25 rounded-full wave-pulse" style={{animationDelay: '0.7s'}}></div>
+            <div className="absolute top-2 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-400/30 to-transparent wave-flow"></div>
+            <div className="absolute top-6 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-blue-300/20 to-transparent wave-flow-delayed"></div>
+            <div className="absolute top-12 right-8 w-1.5 h-1.5 bg-blue-500/40 rounded-full wave-pulse"></div>
+            <div className="absolute top-16 right-16 w-1 h-1 bg-blue-400/30 rounded-full wave-pulse" style={{ animationDelay: '0.7s' }}></div>
           </div>
-          <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10 transition-all duration-500 hover:bg-white/20 float-animation"></div>
+          <div className="absolute top-0 right-0 w-20 h-20 bg-blue-200/30 rounded-full -mr-10 -mt-10 transition-all duration-500 hover:bg-blue-300/40 float-animation"></div>
           <CardHeader className="flex flex-row items-center justify-between pb-2 relative z-10">
-            <CardTitle className="text-sm font-medium text-blue-100">Total Points</CardTitle>
-            <TrendingUp className="h-5 w-5 text-blue-200 wave-pulse" />
+            <CardTitle className="text-sm font-semibold text-blue-800/90">Total Points</CardTitle>
+            <TrendingUp className="h-5 w-5 text-blue-600 wave-pulse" />
           </CardHeader>
           <CardContent className="relative z-10">
-            <div className="text-3xl font-bold">{totalPoints.toLocaleString()}</div>
-            <div className="flex items-center justify-between mt-2 text-blue-100">
+            <div className="text-3xl font-bold text-blue-900/95">{totalPoints.toLocaleString()}</div>
+            <div className="flex items-center justify-between mt-2 text-blue-800/80">
               <div className="flex items-center">
-                <ArrowUpRight className="w-4 h-4 mr-1 wave-pulse" style={{animationDelay: '0.3s'}} />
-                <span className="text-sm">Across {accounts.length} accounts</span>
+                <ArrowUpRight className="w-4 h-4 mr-1 text-blue-600 wave-pulse" style={{ animationDelay: '0.3s' }} />
+                <span className="text-sm font-medium">Across {accounts.length} accounts</span>
               </div>
-              <span className="text-lg font-semibold">${(totalPoints / 100).toFixed(2)}</span>
+              <span className="text-lg font-bold text-blue-700">${(totalPoints / 100).toFixed(2)}</span>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="relative overflow-hidden bg-gradient-to-br from-green-500 to-green-600 text-white border-0 shadow-lg shadow-green-200/50 transform transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-green-300/60 cursor-pointer">
+        <Card className="relative overflow-hidden bg-gradient-to-br from-green-100/40 via-green-50/60 to-white/40 backdrop-blur-xl border-2 border-white/30 shadow-2xl shadow-green-500/20 transform transition-all duration-300 hover:scale-105 hover:shadow-3xl hover:shadow-green-500/30 cursor-pointer">
+          {/* Glass reflection effect */}
+          <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-transparent"></div>
           {/* Animated Wave Background */}
           <div className="absolute inset-0 overflow-hidden">
-            <div className="absolute top-1 left-0 w-full h-1.5 bg-gradient-to-r from-transparent via-white/20 to-transparent wave-flow-delayed"></div>
-            <div className="absolute top-5 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-white/15 to-transparent wave-flow"></div>
-            <div className="absolute top-8 right-12 w-1.5 h-1.5 bg-white/35 rounded-full wave-pulse" style={{animationDelay: '0.4s'}}></div>
-            <div className="absolute top-14 right-6 w-1 h-1 bg-white/25 rounded-full wave-pulse" style={{animationDelay: '1.2s'}}></div>
+            <div className="absolute top-1 left-0 w-full h-1.5 bg-gradient-to-r from-transparent via-green-400/30 to-transparent wave-flow-delayed"></div>
+            <div className="absolute top-5 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-green-300/20 to-transparent wave-flow"></div>
+            <div className="absolute top-8 right-12 w-1.5 h-1.5 bg-green-500/40 rounded-full wave-pulse" style={{ animationDelay: '0.4s' }}></div>
+            <div className="absolute top-14 right-6 w-1 h-1 bg-green-400/30 rounded-full wave-pulse" style={{ animationDelay: '1.2s' }}></div>
           </div>
-          <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10 transition-all duration-500 hover:bg-white/20 float-animation" style={{animationDelay: '0.5s'}}></div>
+          <div className="absolute top-0 right-0 w-20 h-20 bg-green-200/30 rounded-full -mr-10 -mt-10 transition-all duration-500 hover:bg-green-300/40 float-animation" style={{ animationDelay: '0.5s' }}></div>
           <CardHeader className="flex flex-row items-center justify-between pb-2 relative z-10">
-            <CardTitle className="text-sm font-medium text-green-100">Completed Withdrawals</CardTitle>
-            <DollarSign className="h-5 w-5 text-green-200 wave-pulse" style={{animationDelay: '0.2s'}} />
+            <CardTitle className="text-sm font-semibold text-green-800/90">Completed Withdrawals</CardTitle>
+            <DollarSign className="h-5 w-5 text-green-600 wave-pulse" style={{ animationDelay: '0.2s' }} />
           </CardHeader>
           <CardContent className="relative z-10">
-            <div className="text-3xl font-bold">{totalCompleted.toLocaleString()} <span className="text-lg text-green-200">pts</span></div>
-            <div className="text-xl font-semibold text-green-100 mb-2">${(totalCompleted / 100).toFixed(2)}</div>
-            <div className="flex items-center mt-2 text-green-100">
-              <div className="w-full bg-green-400/30 rounded-full h-2 mr-2">
+            <div className="text-3xl font-bold text-green-900/95">{totalCompleted.toLocaleString()} <span className="text-lg text-green-700">pts</span></div>
+            <div className="text-xl font-semibold text-green-700 mb-2">${(totalCompleted / 100).toFixed(2)}</div>
+            <div className="flex items-center mt-2 text-green-800/80">
+              <div className="w-full bg-green-300/40 rounded-full h-2 mr-2">
                 <div
-                  className="bg-white h-2 rounded-full transition-all duration-500"
+                  className="bg-green-600 h-2 rounded-full transition-all duration-500"
                   style={{ width: `${completionRate}%` }}
                 ></div>
               </div>
-              <span className="text-sm">{completionRate.toFixed(0)}% of total</span>
+              <span className="text-sm font-medium">{completionRate.toFixed(0)}% of total</span>
             </div>
-            <p className="text-xs text-green-200 mt-1">Successfully withdrawn from accounts</p>
+            <p className="text-xs text-green-700/80 mt-1 font-medium">Successfully withdrawn from accounts</p>
           </CardContent>
         </Card>
 
@@ -142,27 +146,29 @@ export default async function DashboardPage() {
           allWithdrawals={allWithdrawals}
         />
 
-        <Card className="relative overflow-hidden bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0 shadow-lg shadow-purple-200/50 transform transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-purple-300/60 cursor-pointer">
+        <Card className="relative overflow-hidden bg-gradient-to-br from-purple-100/40 via-purple-50/60 to-white/40 backdrop-blur-xl border-2 border-white/30 shadow-2xl shadow-purple-500/20 transform transition-all duration-300 hover:scale-105 hover:shadow-3xl hover:shadow-purple-500/30 cursor-pointer">
+          {/* Glass reflection effect */}
+          <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-transparent"></div>
           {/* Animated Wave Background */}
           <div className="absolute inset-0 overflow-hidden">
-            <div className="absolute top-3 left-0 w-full h-1 bg-gradient-to-r from-transparent via-white/18 to-transparent wave-flow-delayed-2"></div>
-            <div className="absolute top-7 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-white/12 to-transparent wave-flow"></div>
-            <div className="absolute top-10 right-10 w-2 h-2 bg-white/30 rounded-full wave-pulse" style={{animationDelay: '0.6s'}}></div>
-            <div className="absolute top-15 right-14 w-1 h-1 bg-white/20 rounded-full wave-pulse" style={{animationDelay: '1.4s'}}></div>
+            <div className="absolute top-3 left-0 w-full h-1 bg-gradient-to-r from-transparent via-purple-400/30 to-transparent wave-flow-delayed-2"></div>
+            <div className="absolute top-7 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-purple-300/20 to-transparent wave-flow"></div>
+            <div className="absolute top-10 right-10 w-2 h-2 bg-purple-500/40 rounded-full wave-pulse" style={{ animationDelay: '0.6s' }}></div>
+            <div className="absolute top-15 right-14 w-1 h-1 bg-purple-400/30 rounded-full wave-pulse" style={{ animationDelay: '1.4s' }}></div>
           </div>
-          <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10 transition-all duration-500 hover:bg-white/20 float-animation" style={{animationDelay: '1s'}}></div>
+          <div className="absolute top-0 right-0 w-20 h-20 bg-purple-200/30 rounded-full -mr-10 -mt-10 transition-all duration-500 hover:bg-purple-300/40 float-animation" style={{ animationDelay: '1s' }}></div>
           <CardHeader className="flex flex-row items-center justify-between pb-2 relative z-10">
-            <CardTitle className="text-sm font-medium text-purple-100">Available Balance</CardTitle>
-            <Wallet className="h-5 w-5 text-purple-200 wave-pulse" style={{animationDelay: '0.4s'}} />
+            <CardTitle className="text-sm font-semibold text-purple-800/90">Available Balance</CardTitle>
+            <Wallet className="h-5 w-5 text-purple-600 wave-pulse" style={{ animationDelay: '0.4s' }} />
           </CardHeader>
           <CardContent className="relative z-10">
-            <div className="text-3xl font-bold">{totalBalance.toLocaleString()} <span className="text-lg text-purple-200">pts</span></div>
-            <div className="text-xl font-semibold text-purple-100 mb-2">${(totalBalance / 100).toFixed(2)}</div>
-            <div className="flex items-center mt-2 text-purple-100">
-              <Target className="w-4 h-4 mr-1 wave-pulse" style={{animationDelay: '0.8s'}} />
-              <span className="text-sm">Ready to withdraw</span>
+            <div className="text-3xl font-bold text-purple-900/95">{totalBalance.toLocaleString()} <span className="text-lg text-purple-700">pts</span></div>
+            <div className="text-xl font-semibold text-purple-700 mb-2">${(totalBalance / 100).toFixed(2)}</div>
+            <div className="flex items-center mt-2 text-purple-800/80">
+              <Target className="w-4 h-4 mr-1 text-purple-600 wave-pulse" style={{ animationDelay: '0.8s' }} />
+              <span className="text-sm font-medium">Ready to withdraw</span>
             </div>
-            <p className="text-xs text-purple-200 mt-1">Current balance across all accounts</p>
+            <p className="text-xs text-purple-700/80 mt-1 font-medium">Current balance across all accounts</p>
           </CardContent>
         </Card>
       </div>
@@ -239,7 +245,7 @@ export default async function DashboardPage() {
               Last {allEntries.length} entries
             </Badge>
           </div>
-          <EarningsChart 
+          <EarningsChart
             data={allEntries.map(entry => ({
               date: entry.date.toString(),
               points: entry.points,

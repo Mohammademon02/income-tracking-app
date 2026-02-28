@@ -4,23 +4,23 @@ import { Settings, Target, Bell, User } from "lucide-react"
 
 export default function SettingsPage() {
   return (
-    <div className="p-6 space-y-8 bg-linear-to-br from-slate-50/50 to-blue-50/30 min-h-screen">
+    <div className="px-3 py-6 sm:px-6 space-y-8 bg-linear-to-br from-slate-50/50 to-blue-50/30 min-h-screen">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold bg-linear-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+          <h1 className="text-2xl sm:text-3xl font-bold bg-linear-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
             Settings
           </h1>
-          <p className="text-slate-600 mt-1">Customize your Survey Tracker experience</p>
+          <p className="text-slate-600 mt-1 text-sm sm:text-base">Customize your Survey Tracker experience</p>
         </div>
         <div className="flex items-center space-x-2 text-sm text-slate-500">
           <Settings className="w-4 h-4" />
-          <span>Preferences</span>
+          <span className="hidden sm:inline">Preferences</span>
         </div>
       </div>
 
       {/* Settings Sections */}
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
         {/* Monthly Target Settings */}
         <Card className="bg-white/80 backdrop-blur-sm border border-white/60 shadow-xl">
           <CardHeader>
