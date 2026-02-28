@@ -14,6 +14,7 @@ import { PerformanceMonitor } from "@/components/performance-monitor"
 import { SmartInsights } from "@/components/smart-insights"
 import { AnimatedAccountPerformance } from "@/components/animated-account-performance"
 import { ScenicTimeHeader } from "@/components/scenic-time-header"
+import { UnifiedNotificationSetup } from "@/components/unified-notification-setup"
 
 export default async function DashboardPage() {
   // Fetch only what this page actually renders — no more loading everything then slicing
@@ -171,6 +172,9 @@ export default async function DashboardPage() {
 
         <PerformanceMonitor />
       </div>
+
+      {/* Push Notification Quick Setup */}
+      <UnifiedNotificationSetup />
 
       {/* Smart Insights & Analytics */}
       <div className="grid gap-6 lg:grid-cols-2">

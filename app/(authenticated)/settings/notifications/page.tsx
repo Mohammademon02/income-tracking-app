@@ -15,6 +15,7 @@ import {
   ArrowLeft
 } from "lucide-react"
 import Link from "next/link"
+import { PushNotificationSettings } from "@/components/push-notification-settings"
 
 interface UserSettings {
   id: string
@@ -287,6 +288,9 @@ export default function NotificationSettingsPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Push Notification Settings */}
+        <PushNotificationSettings />
       </div>
     </div>
   )

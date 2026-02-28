@@ -40,7 +40,6 @@ export function withPerformanceLogging<T extends any[], R>(
 // Client-side performance metrics
 export function reportWebVitals(metric: any) {
   if (process.env.NODE_ENV === 'production') {
-    // Send to analytics service
-    console.log(metric)
+    // Send to analytics service in production
   }
 }

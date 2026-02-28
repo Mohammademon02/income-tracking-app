@@ -1,13 +1,17 @@
 {
-  "name": "Income Tracking App",
-  "short_name": "IncomeTracker",
-  "description": "Track your daily income and manage your finances",
-  "theme_color": "#000000",
+  "name": "SurvTrack - Survey Income Tracker",
+  "short_name": "SurvTrack",
+  "description": "Track your survey income, points, and withdrawals with SurvTrack",
+  "theme_color": "#3b82f6",
   "background_color": "#ffffff",
   "display": "standalone",
-  "orientation": "portrait",
+  "orientation": "portrait-primary",
   "scope": "/",
-  "start_url": "/",
+  "start_url": "/dashboard",
+  "permissions": [
+    "notifications"
+  ],
+  "categories": ["finance", "productivity"],
   "icons": [
     {
       "src": "/icon-192x192.png",
