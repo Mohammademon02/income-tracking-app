@@ -195,9 +195,11 @@ export function SmartInsights() {
                   variant="ghost"
                   className="text-xs hover:bg-white/80 transition-colors"
                   onClick={() => {
-                    if (insight.action?.url.startsWith('mailto:')) {
+                    if (!insight.action) return;
+                    
+                    if (insight.action.url.startsWith('mailto:')) {
                       window.open(insight.action.url, '_blank')
-                    } else if (insight.action?.url.startsWith('http')) {
+                    } else if (insight.action.url.startsWith('http')) {
                       window.open(insight.action.url, '_blank')
                     } else {
                       // Navigate to internal route

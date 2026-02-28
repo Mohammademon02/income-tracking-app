@@ -4,7 +4,7 @@ import { notificationStore } from "@/lib/notification-store"
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await verifySession()
@@ -12,7 +12,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const { id } = params
+    const { id } = await params
 
     // Delete notification using shared store
     notificationStore.deleteNotification(id);
