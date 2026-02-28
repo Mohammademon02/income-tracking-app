@@ -173,11 +173,31 @@ export function MonthlyTargetSettings() {
   }
 
   const getProgressMessage = (percentage: number) => {
-    if (percentage >= 100) return "🎉 Target achieved!"
-    if (percentage >= 75) return "🔥 Almost there!"
-    if (percentage >= 50) return "📈 Good progress!"
-    if (percentage >= 25) return "💪 Keep going!"
-    return "🚀 Let's start earning!"
+    if (percentage >= 100) return { 
+      text: "🎉 Target achieved!", 
+      celebration: true,
+      color: "text-green-600"
+    }
+    if (percentage >= 75) return { 
+      text: "🔥 Almost there!", 
+      celebration: false,
+      color: "text-orange-600"
+    }
+    if (percentage >= 50) return { 
+      text: "📈 Good progress!", 
+      celebration: false,
+      color: "text-blue-600"
+    }
+    if (percentage >= 25) return { 
+      text: "💪 Keep going!", 
+      celebration: false,
+      color: "text-slate-600"
+    }
+    return { 
+      text: "🚀 Let's start earning!", 
+      celebration: false,
+      color: "text-slate-600"
+    }
   }
 
   return (
@@ -220,8 +240,47 @@ export function MonthlyTargetSettings() {
         </div>
         
         <p className={`text-sm font-medium mt-3 ${getProgressColor(currentProgress.percentage)}`}>
-          {getProgressMessage(currentProgress.percentage)}
+          {getProgressMessage(currentProgress.percentage).text}
         </p>
+        
+        {/* Goal Achievement Celebration */}
+        {getProgressMessage(currentProgress.percentage).celebration && (
+          <div className="mt-3 relative overflow-hidden rounded-lg p-1 bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 animate-pulse shadow-lg">
+            {/* Animated border effect */}
+            <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 animate-spin rounded-lg" style={{ animationDuration: '3s' }}></div>
+            
+            {/* Inner content container */}
+            <div className="relative bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500 rounded-lg p-4 text-white">
+              {/* Animated background */}
+              <div className="absolute inset-0 bg-gradient-to-r from-green-400/20 via-emerald-400/20 to-teal-400/20 animate-pulse"></div>
+            
+            {/* Content */}
+            <div className="relative z-10 text-center">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <div className="text-xl animate-bounce">🎊</div>
+                <h4 className="text-base font-bold">Congratulations!</h4>
+                <div className="text-xl animate-bounce" style={{ animationDelay: '0.2s' }}>🏆</div>
+              </div>
+              
+              <p className="text-sm opacity-90">
+                You've reached your monthly target of ${target.earnings.toFixed(2)}!
+              </p>
+              
+              {currentProgress.points > target.points && (
+                <div className="mt-2">
+                  <span className="text-xs font-medium bg-white/20 rounded-full px-3 py-1 inline-block">
+                    Bonus: +{(currentProgress.points - target.points).toLocaleString()} points
+                  </span>
+                </div>
+              )}
+            </div>
+            
+            {/* Decorative elements */}
+            <div className="absolute top-1 right-2 text-yellow-300 animate-spin" style={{ animationDuration: '3s' }}>✨</div>
+            <div className="absolute bottom-1 left-2 text-yellow-300 animate-spin" style={{ animationDuration: '4s', animationDirection: 'reverse' }}>⭐</div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Target Settings */}

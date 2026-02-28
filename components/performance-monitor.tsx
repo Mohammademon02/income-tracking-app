@@ -4,10 +4,10 @@ import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  Target, 
+import {
+  TrendingUp,
+  TrendingDown,
+  Target,
   Calendar,
   Clock,
   Zap,
@@ -35,7 +35,7 @@ export function PerformanceMonitor() {
       try {
         setLoading(true)
         setError(null)
-        
+
         // Get user's custom monthly target
         let customTarget = 14000 // Default
         try {
@@ -47,16 +47,16 @@ export function PerformanceMonitor() {
         } catch (e) {
           console.log('Using default target')
         }
-        
+
         setMonthlyTarget(customTarget)
-        
+
         const response = await fetch('/api/performance/metrics')
         if (!response.ok) {
           throw new Error('Failed to fetch performance metrics')
         }
-        
+
         const data = await response.json()
-        
+
         // Always recalculate monthly goal progress with custom target
         let actualCurrentPoints = 0
         try {
@@ -71,9 +71,9 @@ export function PerformanceMonitor() {
           // Fallback calculation
           actualCurrentPoints = Math.round((data.monthlyGoalProgress / 100) * customTarget)
         }
-        
+
         setCurrentMonthPoints(actualCurrentPoints)
-        
+
         setMetrics(data)
       } catch (err) {
         console.error('Error fetching performance metrics:', err)
@@ -213,7 +213,7 @@ export function PerformanceMonitor() {
             <span className="text-sm text-slate-600">{metrics.monthlyGoalProgress.toFixed(1)}%</span>
           </div>
           <Progress value={metrics.monthlyGoalProgress} className="h-2" />
-          
+
           {/* Current vs Target Display */}
           <div className="flex items-center justify-between text-xs">
             <div className="text-slate-600">
@@ -223,12 +223,56 @@ export function PerformanceMonitor() {
               <span className="font-medium">Target:</span> {monthlyTarget.toLocaleString()} pts
             </div>
           </div>
-          
-          <p className="text-xs text-slate-500">
-            {metrics.monthlyGoalProgress >= 100 ? "Goal achieved! 🎉" : 
-             metrics.monthlyGoalProgress >= 80 ? "Almost there!" :
-             "Keep going!"}
-          </p>
+
+          {/* Goal Achievement Celebration */}
+          {metrics.monthlyGoalProgress >= 100 ? (
+            <div className="relative overflow-hidden rounded-lg p-1 bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 animate-pulse shadow-lg">
+              {/* Animated border effect */}
+              <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 animate-spin rounded-lg" style={{ animationDuration: '3s' }}></div>
+
+              {/* Inner content container */}
+              <div className="relative bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500 rounded-lg p-4 text-white">
+                {/* Animated background pattern */}
+                <div className="absolute inset-0 bg-gradient-to-r from-green-400/20 via-emerald-400/20 to-teal-400/20 animate-pulse"></div>
+
+                {/* Content */}
+                <div className="relative z-10">
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <div className="text-2xl animate-bounce">🎉</div>
+                    <h3 className="text-lg font-bold text-center">Goal Achieved!</h3>
+                    <div className="text-2xl animate-bounce" style={{ animationDelay: '0.1s' }}>🌟</div>
+                  </div>
+
+                  <div className="text-center space-y-1">
+                    <p className="text-sm font-medium">
+                      {currentMonthPoints.toLocaleString()} / {monthlyTarget.toLocaleString()} points
+                    </p>
+                    <p className="text-xs opacity-90">
+                      ${(currentMonthPoints / 100).toFixed(2)} earned this month
+                    </p>
+                    {currentMonthPoints > monthlyTarget && (
+                      <p className="text-xs font-medium bg-white/20 rounded-full px-2 py-1 inline-block">
+                        +{(currentMonthPoints - monthlyTarget).toLocaleString()} bonus points!
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Decorative elements */}
+                <div className="absolute top-1 right-1 text-yellow-300 animate-spin" style={{ animationDuration: '3s' }}>✨</div>
+                <div className="absolute bottom-1 left-1 text-yellow-300 animate-spin" style={{ animationDuration: '4s', animationDirection: 'reverse' }}>⭐</div>
+              </div>
+            </div>
+          ) : (
+            <div className={`text-xs font-medium p-2 rounded-lg ${metrics.monthlyGoalProgress >= 80
+              ? 'bg-orange-50 text-orange-700 border border-orange-200'
+              : 'bg-blue-50 text-blue-700 border border-blue-200'
+              }`}>
+              {metrics.monthlyGoalProgress >= 80 ? "🔥 Almost there! You're so close!" :
+                metrics.monthlyGoalProgress >= 50 ? "📈 Great progress! Keep it up!" :
+                  "💪 Keep going! You've got this!"}
+            </div>
+          )}
         </div>
 
         {/* Streak & Top Account */}
@@ -240,7 +284,7 @@ export function PerformanceMonitor() {
             <p className="text-2xl font-bold text-orange-600">{metrics.streakDays}</p>
             <p className="text-xs text-orange-700">Day Streak</p>
           </div>
-          
+
           <div className="text-center p-3 bg-linear-to-r from-green-50 to-emerald-50 rounded-lg">
             <div className="flex items-center justify-center mb-2">
               <Award className="w-5 h-5 text-green-600" />
@@ -263,7 +307,7 @@ export function PerformanceMonitor() {
               {efficiencyBadge.label}
             </Badge>
           </div>
-          
+
           <div className="flex items-center gap-3">
             <div className="flex-1">
               <Progress value={metrics.efficiency} className="h-3" />
@@ -272,7 +316,7 @@ export function PerformanceMonitor() {
               {metrics.efficiency}%
             </span>
           </div>
-          
+
           <p className="text-xs text-slate-500 mt-2">
             Based on consistency, goal achievement, and earning patterns
           </p>
@@ -282,11 +326,11 @@ export function PerformanceMonitor() {
         <div className="p-3 bg-linear-to-r from-indigo-50 to-purple-50 rounded-lg border border-indigo-200">
           <h4 className="text-sm font-medium text-indigo-800 mb-2">💡 Performance Tip</h4>
           <p className="text-xs text-indigo-700">
-            {metrics.efficiency >= 80 
+            {metrics.efficiency >= 80
               ? "Great work! Try setting higher daily goals to maximize earnings."
               : metrics.streakDays >= 5
-              ? "Your consistency is paying off! Focus on your top-performing accounts."
-              : "Build a daily routine to improve your earning consistency."
+                ? "Your consistency is paying off! Focus on your top-performing accounts."
+                : "Build a daily routine to improve your earning consistency."
             }
           </p>
         </div>
