@@ -1,3 +1,5 @@
+import withPWA from 'next-pwa'
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
@@ -12,6 +14,8 @@ const nextConfig = {
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production',
   },
+  // Turbopack config to avoid conflicts
+  turbopack: {},
   // Bundle analyzer for production builds
   ...(process.env.ANALYZE === 'true' && {
     webpack: (config) => {
@@ -25,4 +29,21 @@ const nextConfig = {
   }),
 }
 
-export default nextConfig
+export default withPWA({
+  dest: 'public',
+  disable: false, // Always enable PWA
+  register: true,
+  skipWaiting: true,
+  runtimeCaching: [
+    {
+      urlPattern: /^https?.*/,
+      handler: 'NetworkFirst',
+      options: {
+        cacheName: 'offlineCache',
+        expiration: {
+          maxEntries: 200,
+        },
+      },
+    },
+  ],
+})(nextConfig)
