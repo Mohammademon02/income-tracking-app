@@ -255,127 +255,137 @@ export function AnimatedAccountPerformance({ accounts, totalPoints }: AnimatedAc
 
                                         {/* Morphing Background Blob - Removed */}
 
-                                        <div className="flex items-center justify-between mb-3 relative z-30">
-                                            <div className="flex items-center gap-3">
-                                                <motion.div
-                                                    className="relative"
-                                                    variants={avatarVariants}
-                                                >
+                                        {/* Mobile-first responsive layout */}
+                                        <div className="space-y-3 mb-3 relative z-30">
+                                            {/* Top row: Avatar, Name, and Points */}
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-3 min-w-0 flex-1">
                                                     <motion.div
-                                                        className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg ring-2 ring-white/20 ${getAvatarGradient(account.color || "blue")} ${account.currentBalance >= 1000 ? 'shadow-xl shadow-orange-200/50 status-glow' :
-                                                            account.currentBalance >= 500 ? 'shadow-lg shadow-emerald-200/50' : ''
-                                                            }`}
+                                                        className="relative flex-shrink-0"
+                                                        variants={avatarVariants}
                                                     >
-                                                        {account.name.charAt(0).toUpperCase()}
-                                                    </motion.div>
-
-                                                    {/* Animated Performance Badges */}
-                                                    {account.currentBalance >= 1000 && (
                                                         <motion.div
-                                                            className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-r from-yellow-400 to-amber-500 rounded-full border-2 border-white shadow-md flex items-center justify-center"
-                                                            initial={{ scale: 0, rotate: -180 }}
-                                                            animate={{
-                                                                scale: 1,
-                                                                rotate: 0,
-                                                                y: [0, -2, 0]
-                                                            }}
-                                                            transition={{
-                                                                scale: { delay: 0.5, type: "spring", damping: 10 },
-                                                                rotate: { delay: 0.5, duration: 0.5 },
-                                                                y: { duration: 2, repeat: Infinity, ease: "easeInOut" }
-                                                            }}
+                                                            className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-white font-bold text-xs sm:text-sm shadow-lg ring-2 ring-white/20 ${getAvatarGradient(account.color || "blue")} ${account.currentBalance >= 1000 ? 'shadow-xl shadow-orange-200/50 status-glow' :
+                                                                account.currentBalance >= 500 ? 'shadow-lg shadow-emerald-200/50' : ''
+                                                                }`}
                                                         >
-                                                            <div className="w-2 h-2 bg-white rounded-full"></div>
+                                                            {account.name.charAt(0).toUpperCase()}
                                                         </motion.div>
-                                                    )}
 
-                                                    {account.currentBalance >= 500 && account.currentBalance < 1000 && (
-                                                        <motion.div
-                                                            className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full border-2 border-white shadow-sm"
-                                                            initial={{ scale: 0 }}
-                                                            animate={{ scale: 1 }}
-                                                            transition={{ delay: 0.6, type: "spring", damping: 15 }}
-                                                        />
-                                                    )}
-                                                </motion.div>
+                                                        {/* Animated Performance Badges */}
+                                                        {account.currentBalance >= 1000 && (
+                                                            <motion.div
+                                                                className="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 bg-gradient-to-r from-yellow-400 to-amber-500 rounded-full border-2 border-white shadow-md flex items-center justify-center"
+                                                                initial={{ scale: 0, rotate: -180 }}
+                                                                animate={{
+                                                                    scale: 1,
+                                                                    rotate: 0,
+                                                                    y: [0, -2, 0]
+                                                                }}
+                                                                transition={{
+                                                                    scale: { delay: 0.5, type: "spring", damping: 10 },
+                                                                    rotate: { delay: 0.5, duration: 0.5 },
+                                                                    y: { duration: 2, repeat: Infinity, ease: "easeInOut" }
+                                                                }}
+                                                            >
+                                                                <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white rounded-full"></div>
+                                                            </motion.div>
+                                                        )}
 
-                                                <div>
-                                                    <motion.p
-                                                        className="font-semibold text-slate-800 text-lg drop-shadow-sm"
-                                                        variants={numberVariants}
-                                                        style={{ textShadow: '0 1px 2px rgba(255,255,255,0.8)' }}
-                                                    >
-                                                        {account.name}
-                                                    </motion.p>
-                                                    <motion.div
-                                                        className="flex items-center gap-2"
-                                                        variants={numberVariants}
-                                                    >
-                                                        {getPerformanceIcon(account.currentBalance, account.totalPoints)}
-                                                        <span className={`text-sm font-medium ${performanceLabel.color}`}>
-                                                            {performanceLabel.text}
-                                                        </span>
+                                                        {account.currentBalance >= 500 && account.currentBalance < 1000 && (
+                                                            <motion.div
+                                                                className="absolute -top-1 -right-1 w-3 h-3 sm:w-4 sm:h-4 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full border-2 border-white shadow-sm"
+                                                                initial={{ scale: 0 }}
+                                                                animate={{ scale: 1 }}
+                                                                transition={{ delay: 0.6, type: "spring", damping: 15 }}
+                                                            />
+                                                        )}
                                                     </motion.div>
+
+                                                    <div className="min-w-0 flex-1">
+                                                        <motion.p
+                                                            className="font-semibold text-slate-800 text-base sm:text-lg drop-shadow-sm truncate"
+                                                            variants={numberVariants}
+                                                            style={{ textShadow: '0 1px 2px rgba(255,255,255,0.8)' }}
+                                                        >
+                                                            {account.name}
+                                                        </motion.p>
+                                                        <motion.div
+                                                            className="flex items-center gap-2"
+                                                            variants={numberVariants}
+                                                        >
+                                                            {getPerformanceIcon(account.currentBalance, account.totalPoints)}
+                                                            <span className={`text-xs sm:text-sm font-medium ${performanceLabel.color} truncate`}>
+                                                                {performanceLabel.text}
+                                                            </span>
+                                                        </motion.div>
+                                                    </div>
+                                                </div>
+
+                                                <motion.div
+                                                    className="text-right flex-shrink-0"
+                                                    variants={numberVariants}
+                                                >
                                                     <motion.p
-                                                        className="text-sm text-slate-500 drop-shadow-sm"
-                                                        variants={numberVariants}
+                                                        className={`text-xl sm:text-3xl font-bold number-animate drop-shadow-sm ${isWithdrawalReady ? 'text-green-600' : 'text-slate-800'}`}
                                                         style={{ textShadow: '0 1px 2px rgba(255,255,255,0.8)' }}
                                                     >
-                                                        {account.totalPoints.toLocaleString()} points earned
+                                                        {account.currentBalance.toLocaleString()}
+                                                        <span className="text-xs sm:text-sm text-slate-500 ml-1">pts</span>
                                                     </motion.p>
-                                                </div>
+                                                    <p className="text-xs sm:text-sm text-slate-400 drop-shadow-sm" style={{ textShadow: '0 1px 2px rgba(255,255,255,0.8)' }}>${(account.currentBalance / 100).toFixed(2)}</p>
+                                                </motion.div>
                                             </div>
 
-                                            <motion.div
-                                                className="text-right"
-                                                variants={numberVariants}
-                                            >
+                                            {/* Second row: Total points and status badges */}
+                                            <div className="flex items-center justify-between">
                                                 <motion.p
-                                                    className={`text-3xl font-bold number-animate drop-shadow-sm ${isWithdrawalReady ? 'text-green-600' : 'text-slate-800'}`}
+                                                    className="text-xs sm:text-sm text-slate-500 drop-shadow-sm"
+                                                    variants={numberVariants}
                                                     style={{ textShadow: '0 1px 2px rgba(255,255,255,0.8)' }}
                                                 >
-                                                    {account.currentBalance.toLocaleString()}
-                                                    <span className="text-sm text-slate-500 ml-1">pts</span>
+                                                    {account.totalPoints.toLocaleString()} points earned
                                                 </motion.p>
-                                                <p className="text-sm text-slate-400 drop-shadow-sm" style={{ textShadow: '0 1px 2px rgba(255,255,255,0.8)' }}>${(account.currentBalance / 100).toFixed(2)}</p>
 
-                                                <div className="flex flex-col gap-2 mt-3">
+                                                <div className="flex flex-wrap gap-1 sm:gap-2 justify-end">
                                                     <AnimatePresence>
                                                         {isWithdrawalReady && (
                                                             <motion.div
-                                                                className="inline-flex items-center gap-2 px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium self-end"
+                                                                className="inline-flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium"
                                                                 initial={{ scale: 0, opacity: 0 }}
                                                                 animate={{ scale: 1, opacity: 1 }}
                                                                 exit={{ scale: 0, opacity: 0 }}
                                                                 transition={{ type: "spring", damping: 15 }}
                                                             >
                                                                 <motion.div
-                                                                    className="w-2 h-2 bg-green-500 rounded-full"
+                                                                    className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-green-500 rounded-full"
                                                                     animate={{ scale: [1, 1.2, 1] }}
                                                                     transition={{ duration: 1, repeat: Infinity }}
                                                                 />
-                                                                Ready to withdraw
+                                                                <span className="hidden sm:inline">Ready to withdraw</span>
+                                                                <span className="sm:hidden">Ready</span>
                                                             </motion.div>
                                                         )}
 
                                                         {account.pendingWithdrawals > 0 && (
                                                             <motion.div
-                                                                className="inline-flex items-center gap-2 px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-medium self-end"
+                                                                className="inline-flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-medium"
                                                                 initial={{ scale: 0, opacity: 0 }}
                                                                 animate={{ scale: 1, opacity: 1 }}
                                                                 transition={{ type: "spring", damping: 15, delay: 0.2 }}
                                                             >
                                                                 <motion.div
-                                                                    className="w-2 h-2 bg-orange-500 rounded-full"
+                                                                    className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-orange-500 rounded-full"
                                                                     animate={{ opacity: [1, 0.3, 1] }}
                                                                     transition={{ duration: 1.5, repeat: Infinity }}
                                                                 />
-                                                                ${account.pendingWithdrawals.toFixed(2)} withdrawal pending
+                                                                <span className="hidden sm:inline">${account.pendingWithdrawals.toFixed(2)} withdrawal pending</span>
+                                                                <span className="sm:hidden">${account.pendingWithdrawals.toFixed(2)} pending</span>
                                                             </motion.div>
                                                         )}
                                                     </AnimatePresence>
                                                 </div>
-                                            </motion.div>
+                                            </div>
                                         </div>
 
                                         {/* Animated Progress Bar */}
