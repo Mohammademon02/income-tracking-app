@@ -237,21 +237,28 @@ export function AccountsTable({ accounts }: { accounts: Account[] }) {
                 <TableCell className="font-medium">
                   <div className="flex items-center gap-3">
                     <div className="relative">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg ring-2 ring-white/20 ${getAvatarGradient(account.color || "blue")}`}>
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg ring-2 ring-white/20 transition-all duration-300 hover:scale-110 ${getAvatarGradient(account.color || "blue")}`}>
                         {account.name.charAt(0).toUpperCase()}
                       </div>
-                      {/* Performance indicator dot */}
+                      {/* Performance indicator dot with animations */}
                       {account.totalPoints >= 1000 && (
-                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-linear-to-r from-yellow-400 to-amber-500 rounded-full border-2 border-white shadow-sm flex items-center justify-center">
+                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-linear-to-r from-yellow-400 to-amber-500 rounded-full border-2 border-white shadow-sm flex items-center justify-center wave-pulse">
                           <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
                         </div>
                       )}
                       {account.totalPoints >= 500 && account.totalPoints < 1000 && (
-                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-linear-to-r from-green-400 to-emerald-500 rounded-full border-2 border-white shadow-sm"></div>
+                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-linear-to-r from-green-400 to-emerald-500 rounded-full border-2 border-white shadow-sm wave-pulse"></div>
+                      )}
+                      
+                      {/* Ready to withdraw indicator */}
+                      {account.currentBalance >= 1000 && (
+                        <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-linear-to-r from-blue-400 to-blue-500 rounded-full border-2 border-white shadow-sm">
+                          <div className="absolute inset-0 bg-blue-400 rounded-full animate-ping opacity-75"></div>
+                        </div>
                       )}
                     </div>
                     <div className="flex flex-col">
-                      <span className="font-semibold text-slate-800">{account.name}</span>
+                      <span className="font-semibold text-slate-800 transition-colors duration-200 hover:text-blue-600">{account.name}</span>
                       <span className="text-xs text-slate-500">
                         {account.totalPoints >= 1000 ? '🏆 Top Performer' :
                           account.totalPoints >= 500 ? '⭐ Active' :
@@ -276,8 +283,9 @@ export function AccountsTable({ accounts }: { accounts: Account[] }) {
                 <TableCell className="text-right">
                   {account.pendingWithdrawals > 0 ? (
                     <div className="flex flex-col items-end">
-                      <Badge variant="secondary" className="bg-orange-100 text-orange-700 border-orange-200">
-                        {(account.pendingWithdrawals * 100).toLocaleString()} pts
+                      <Badge variant="secondary" className="bg-orange-100 text-orange-700 border-orange-200 relative overflow-hidden">
+                        <div className="absolute inset-0 shimmer-effect opacity-20"></div>
+                        <span className="relative z-10">{(account.pendingWithdrawals * 100).toLocaleString()} pts</span>
                       </Badge>
                       <span className="text-xs text-muted-foreground">${account.pendingWithdrawals.toFixed(2)}</span>
                     </div>

@@ -12,6 +12,7 @@ import Link from "next/link"
 import { PendingWithdrawalsCard } from "@/components/pending-withdrawals-card"
 import { PerformanceMonitor } from "@/components/performance-monitor"
 import { SmartInsights } from "@/components/smart-insights"
+import { AnimatedAccountPerformance } from "@/components/animated-account-performance"
 
 export default async function DashboardPage() {
   // Fetch only what this page actually renders — no more loading everything then slicing
@@ -82,16 +83,23 @@ export default async function DashboardPage() {
       {/* Enhanced Stats Cards */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <Card className="relative overflow-hidden bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-lg shadow-blue-200/50 transform transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-blue-300/60 cursor-pointer">
-          <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10 transition-all duration-500 hover:bg-white/20"></div>
+          {/* Animated Wave Background */}
+          <div className="absolute inset-0 overflow-hidden">
+            <div className="absolute top-2 left-0 w-full h-1 bg-gradient-to-r from-transparent via-white/15 to-transparent wave-flow"></div>
+            <div className="absolute top-6 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-white/10 to-transparent wave-flow-delayed"></div>
+            <div className="absolute top-12 right-8 w-1.5 h-1.5 bg-white/30 rounded-full wave-pulse"></div>
+            <div className="absolute top-16 right-16 w-1 h-1 bg-white/25 rounded-full wave-pulse" style={{animationDelay: '0.7s'}}></div>
+          </div>
+          <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10 transition-all duration-500 hover:bg-white/20 float-animation"></div>
           <CardHeader className="flex flex-row items-center justify-between pb-2 relative z-10">
             <CardTitle className="text-sm font-medium text-blue-100">Total Points</CardTitle>
-            <TrendingUp className="h-5 w-5 text-blue-200" />
+            <TrendingUp className="h-5 w-5 text-blue-200 wave-pulse" />
           </CardHeader>
           <CardContent className="relative z-10">
             <div className="text-3xl font-bold">{totalPoints.toLocaleString()}</div>
             <div className="flex items-center justify-between mt-2 text-blue-100">
               <div className="flex items-center">
-                <ArrowUpRight className="w-4 h-4 mr-1" />
+                <ArrowUpRight className="w-4 h-4 mr-1 wave-pulse" style={{animationDelay: '0.3s'}} />
                 <span className="text-sm">Across {accounts.length} accounts</span>
               </div>
               <span className="text-lg font-semibold">${(totalPoints / 100).toFixed(2)}</span>
@@ -100,10 +108,17 @@ export default async function DashboardPage() {
         </Card>
 
         <Card className="relative overflow-hidden bg-gradient-to-br from-green-500 to-green-600 text-white border-0 shadow-lg shadow-green-200/50 transform transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-green-300/60 cursor-pointer">
-          <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10 transition-all duration-500 hover:bg-white/20"></div>
+          {/* Animated Wave Background */}
+          <div className="absolute inset-0 overflow-hidden">
+            <div className="absolute top-1 left-0 w-full h-1.5 bg-gradient-to-r from-transparent via-white/20 to-transparent wave-flow-delayed"></div>
+            <div className="absolute top-5 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-white/15 to-transparent wave-flow"></div>
+            <div className="absolute top-8 right-12 w-1.5 h-1.5 bg-white/35 rounded-full wave-pulse" style={{animationDelay: '0.4s'}}></div>
+            <div className="absolute top-14 right-6 w-1 h-1 bg-white/25 rounded-full wave-pulse" style={{animationDelay: '1.2s'}}></div>
+          </div>
+          <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10 transition-all duration-500 hover:bg-white/20 float-animation" style={{animationDelay: '0.5s'}}></div>
           <CardHeader className="flex flex-row items-center justify-between pb-2 relative z-10">
             <CardTitle className="text-sm font-medium text-green-100">Completed Withdrawals</CardTitle>
-            <DollarSign className="h-5 w-5 text-green-200" />
+            <DollarSign className="h-5 w-5 text-green-200 wave-pulse" style={{animationDelay: '0.2s'}} />
           </CardHeader>
           <CardContent className="relative z-10">
             <div className="text-3xl font-bold">{totalCompleted.toLocaleString()} <span className="text-lg text-green-200">pts</span></div>
@@ -128,16 +143,23 @@ export default async function DashboardPage() {
         />
 
         <Card className="relative overflow-hidden bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0 shadow-lg shadow-purple-200/50 transform transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-purple-300/60 cursor-pointer">
-          <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10 transition-all duration-500 hover:bg-white/20"></div>
+          {/* Animated Wave Background */}
+          <div className="absolute inset-0 overflow-hidden">
+            <div className="absolute top-3 left-0 w-full h-1 bg-gradient-to-r from-transparent via-white/18 to-transparent wave-flow-delayed-2"></div>
+            <div className="absolute top-7 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-white/12 to-transparent wave-flow"></div>
+            <div className="absolute top-10 right-10 w-2 h-2 bg-white/30 rounded-full wave-pulse" style={{animationDelay: '0.6s'}}></div>
+            <div className="absolute top-15 right-14 w-1 h-1 bg-white/20 rounded-full wave-pulse" style={{animationDelay: '1.4s'}}></div>
+          </div>
+          <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mr-10 -mt-10 transition-all duration-500 hover:bg-white/20 float-animation" style={{animationDelay: '1s'}}></div>
           <CardHeader className="flex flex-row items-center justify-between pb-2 relative z-10">
             <CardTitle className="text-sm font-medium text-purple-100">Available Balance</CardTitle>
-            <Wallet className="h-5 w-5 text-purple-200" />
+            <Wallet className="h-5 w-5 text-purple-200 wave-pulse" style={{animationDelay: '0.4s'}} />
           </CardHeader>
           <CardContent className="relative z-10">
             <div className="text-3xl font-bold">{totalBalance.toLocaleString()} <span className="text-lg text-purple-200">pts</span></div>
             <div className="text-xl font-semibold text-purple-100 mb-2">${(totalBalance / 100).toFixed(2)}</div>
             <div className="flex items-center mt-2 text-purple-100">
-              <Target className="w-4 h-4 mr-1" />
+              <Target className="w-4 h-4 mr-1 wave-pulse" style={{animationDelay: '0.8s'}} />
               <span className="text-sm">Ready to withdraw</span>
             </div>
             <p className="text-xs text-purple-200 mt-1">Current balance across all accounts</p>
@@ -147,96 +169,7 @@ export default async function DashboardPage() {
 
       {/* Performance Overview */}
       <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2 bg-white/80 backdrop-blur-sm border border-white/60 shadow-xl transition-all duration-300 hover:shadow-2xl hover:bg-white/90">
-          <CardHeader className="transition-colors duration-300 hover:bg-slate-50/50 rounded-t-lg">
-            <CardTitle className="flex items-center gap-2">
-              <Activity className="w-5 h-5 text-indigo-600" />
-              Account Performance
-            </CardTitle>
-            <CardDescription>Balance and activity across all accounts</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {accounts.length === 0 ? (
-              <div className="text-center py-12">
-                <Users className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-                <p className="text-slate-500 text-lg">No accounts yet</p>
-                <p className="text-slate-400 text-sm">Add your first account to get started</p>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {accounts.map((account, index) => {
-                  const progressValue = totalPoints > 0 ? (account.totalPoints / totalPoints) * 100 : 0
-                  const isWithdrawalReady = account.currentBalance >= 1000
-                  return (
-                    <div key={account.id} className={`relative group transition-all duration-300 hover:bg-slate-50/50 rounded-lg p-2 -m-2 ${account.currentBalance >= 1000 ? 'bg-gradient-to-r from-green-50/30 to-emerald-50/30 border border-green-200/50 shadow-sm' : ''
-                      }`}>
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-3">
-                          <div className="relative">
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg ring-2 ring-white/20 ${getAvatarGradient(account.color || "blue")} ${
-                              // Add premium styling for high balance accounts
-                              account.currentBalance >= 1000 ? 'shadow-xl shadow-orange-200/50' :
-                                account.currentBalance >= 500 ? 'shadow-lg shadow-emerald-200/50' : ''
-                              }`}>
-                              {account.name.charAt(0).toUpperCase()}
-                            </div>
-                            {/* Performance badges */}
-                            {account.currentBalance >= 1000 && (
-                              <div className="absolute -top-1 -right-1 w-4 h-4 bg-gradient-to-r from-yellow-400 to-amber-500 rounded-full border-2 border-white shadow-md flex items-center justify-center animate-pulse">
-                                <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
-                              </div>
-                            )}
-                            {account.currentBalance >= 500 && account.currentBalance < 1000 && (
-                              <div className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full border-2 border-white shadow-sm"></div>
-                            )}
-                          </div>
-                          <div>
-                            <p className="font-semibold text-slate-800">{account.name}</p>
-                            <p className="text-sm text-slate-500">
-                              {account.totalPoints.toLocaleString()} points earned
-                            </p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className={`text-2xl font-bold ${isWithdrawalReady ? 'text-green-600' : 'text-slate-800'}`}>
-                            {account.currentBalance.toLocaleString()} <span className="text-sm text-slate-500">pts</span>
-                          </p>
-                          <p className="text-sm text-slate-400">${(account.currentBalance / 100).toFixed(2)}</p>
-
-                          <div className="flex flex-col gap-2 mt-2">
-                            {isWithdrawalReady && (
-                              <div className="inline-flex items-center gap-2 px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium self-end">
-                                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                                Ready to withdraw
-                              </div>
-                            )}
-                            {account.pendingWithdrawals > 0 && (
-                              <div className="inline-flex items-center gap-2 px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-xs font-medium self-end">
-                                <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
-                                ${account.pendingWithdrawals.toFixed(2)} withdrawal pending
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
-                        <div
-                          className={`h-2 rounded-full transition-all duration-700 ease-out group-hover:animate-pulse ${account.currentBalance >= 1000 ? 'bg-gradient-to-r from-green-500 to-emerald-500' :
-                            index % 4 === 0 ? 'bg-blue-500' :
-                              index % 4 === 1 ? 'bg-green-500' :
-                                index % 4 === 2 ? 'bg-orange-500' : 'bg-purple-500'
-                            }`}
-                          style={{ width: `${progressValue}%` }}
-                        ></div>
-                      </div>
-                      <p className="text-xs text-slate-400 mt-1">{progressValue.toFixed(1)}% of total points</p>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <AnimatedAccountPerformance accounts={accounts} totalPoints={totalPoints} />
 
         <PerformanceMonitor />
       </div>
