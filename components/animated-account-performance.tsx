@@ -24,11 +24,8 @@ interface AnimatedAccountPerformanceProps {
 }
 
 export function AnimatedAccountPerformance({ accounts, totalPoints }: AnimatedAccountPerformanceProps) {
-    const [hoveredAccount, setHoveredAccount] = useState<string | null>(null)
-    const [animationComplete, setAnimationComplete] = useState(false)
-
     useEffect(() => {
-        const timer = setTimeout(() => setAnimationComplete(true), 1000)
+        const timer = setTimeout(() => {}, 1000)
         return () => clearTimeout(timer)
     }, [])
 
@@ -56,7 +53,7 @@ export function AnimatedAccountPerformance({ accounts, totalPoints }: AnimatedAc
             scale: 1,
             rotateX: 0,
             transition: {
-                type: "spring",
+                type: "spring" as const,
                 damping: 20,
                 stiffness: 300,
                 duration: 0.6
@@ -68,7 +65,7 @@ export function AnimatedAccountPerformance({ accounts, totalPoints }: AnimatedAc
             rotateY: 2,
             rotateX: 2,
             transition: {
-                type: "spring",
+                type: "spring" as const,
                 damping: 15,
                 stiffness: 400
             }
@@ -81,7 +78,7 @@ export function AnimatedAccountPerformance({ accounts, totalPoints }: AnimatedAc
             width: `${progressValue}%`,
             opacity: 1,
             transition: {
-                width: { duration: 1.5, ease: "easeOut", delay: 0.5 },
+                width: { duration: 1.5, ease: "easeOut" as const, delay: 0.5 },
                 opacity: { duration: 0.3, delay: 0.3 }
             }
         })
@@ -93,7 +90,7 @@ export function AnimatedAccountPerformance({ accounts, totalPoints }: AnimatedAc
             scale: 1,
             rotate: 0,
             transition: {
-                type: "spring",
+                type: "spring" as const,
                 damping: 10,
                 stiffness: 200,
                 delay: 0.3
@@ -112,7 +109,7 @@ export function AnimatedAccountPerformance({ accounts, totalPoints }: AnimatedAc
             y: 0,
             opacity: 1,
             transition: {
-                type: "spring",
+                type: "spring" as const,
                 damping: 15,
                 stiffness: 300,
                 delay: 0.4
@@ -130,7 +127,7 @@ export function AnimatedAccountPerformance({ accounts, totalPoints }: AnimatedAc
                 duration: 2,
                 repeat: Infinity,
                 repeatDelay: 3,
-                ease: "easeInOut"
+                ease: "easeInOut" as const
             }
         }
     }
