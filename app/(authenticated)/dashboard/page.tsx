@@ -13,6 +13,7 @@ import { PendingWithdrawalsCard } from "@/components/pending-withdrawals-card"
 import { PerformanceMonitor } from "@/components/performance-monitor"
 import { SmartInsights } from "@/components/smart-insights"
 import { AnimatedAccountPerformance } from "@/components/animated-account-performance"
+import { ScenicTimeHeader } from "@/components/scenic-time-header"
 
 export default async function DashboardPage() {
   // Fetch only what this page actually renders — no more loading everything then slicing
@@ -56,28 +57,19 @@ export default async function DashboardPage() {
 
   return (
     <div className="px-3 py-6 sm:px-6 space-y-8 bg-gradient-to-br from-slate-50/50 to-blue-50/30 min-h-screen">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold bg-linear-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
-            {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-          </h1>
-          <p className="text-slate-600 mt-1 text-sm sm:text-base">Welcome back! Here's your survey income overview</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <ExportButton
-            data={accounts}
-            type="comprehensive"
-            accounts={accounts}
-            entries={allEntries}
-            withdrawals={recentWithdrawals}
-            className="hidden sm:flex"
-          />
-          <div className="flex items-center space-x-2 text-sm text-slate-500">
-            <Calendar className="w-4 h-4" />
-            <span className="hidden sm:inline">Dashboard</span>
-          </div>
-        </div>
+      {/* Scenic Time Header */}
+      <ScenicTimeHeader className="mb-8" />
+
+      {/* Export Button Row */}
+      <div className="flex justify-end">
+        <ExportButton
+          data={accounts}
+          type="comprehensive"
+          accounts={accounts}
+          entries={allEntries}
+          withdrawals={recentWithdrawals}
+          className="hidden sm:flex"
+        />
       </div>
 
       {/* Enhanced Stats Cards */}
