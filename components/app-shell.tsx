@@ -1,7 +1,7 @@
 "use client"
 
 import React, { memo } from "react"
-
+import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
@@ -62,10 +62,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-white/20 shadow-lg">
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-linear-to-r from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
-              <LayoutDashboard className="w-4 h-4 text-white" />
-            </div>
-            <span className="font-bold text-lg bg-linear-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">Survey Tracker</span>
+            <Image 
+              src="/Logo.png" 
+              alt="SurvTrack Logo" 
+              width={120} 
+              height={32}
+              className="h-8 w-auto"
+            />
           </div>
           <div className="flex items-center gap-2">
             <NotificationCenter />
@@ -108,10 +111,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="flex items-center h-16 px-6 border-b border-white/20">
             <div className="flex items-center justify-between w-full">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-linear-to-r from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
-                  <LayoutDashboard className="w-5 h-5 text-white" />
-                </div>
-                <span className="font-bold text-xl bg-linear-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">Survey Tracker</span>
+                <Image 
+                  src="/Logo.png" 
+                  alt="SurvTrack Logo" 
+                  width={160} 
+                  height={40}
+                  className="h-10 w-auto"
+                />
               </div>
               <div className="flex items-center gap-2">
                 <NotificationCenter />

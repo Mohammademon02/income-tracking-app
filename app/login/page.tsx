@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -45,12 +46,15 @@ export default function LoginPage() {
       {/* Clean Modern Card */}
       <Card className="w-full max-w-md relative z-10 bg-white/90 backdrop-blur-sm border border-white/60 shadow-xl shadow-indigo-100/50">
         <CardHeader className="text-center space-y-4 pb-8">
-          <div className="mx-auto w-16 h-16 bg-gradient-to-r from-indigo-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-200/50">
-            <TrendingUp className="w-8 h-8 text-white" />
+          <div className="mx-auto">
+            <Image 
+              src="/Logo.png" 
+              alt="SurvTrack Logo" 
+              width={200} 
+              height={60}
+              className="h-16 w-auto mx-auto"
+            />
           </div>
-          <CardTitle className="text-3xl font-bold text-slate-800">
-            Survey Tracker
-          </CardTitle>
           <CardDescription className="text-slate-600 text-base">
             Sign in to manage your survey income
           </CardDescription>

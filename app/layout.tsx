@@ -26,8 +26,8 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title: 'Survey Tracker',
-  description: 'Track your survey income, points, and withdrawals',
+  title: 'SurvTrack - Survey Income Tracking App',
+  description: 'Track your survey income, points, and withdrawals with SurvTrack',
   icons: {
     icon: [
       { url: '/icon-light-32x32.png', media: '(prefers-color-scheme: light)' },
