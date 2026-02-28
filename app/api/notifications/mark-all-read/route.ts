@@ -29,7 +29,6 @@ export async function POST(request: Request) {
       for (let i = 1; i <= 10; i++) {
         notificationIds.push(`withdrawal-delayed-${i}`);
         notificationIds.push(`withdrawal-completed-${i}`);
-        notificationIds.push(`milestone-${i * 1000}`);
       }
     }
 

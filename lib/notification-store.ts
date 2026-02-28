@@ -51,7 +51,6 @@ class NotificationStore {
   markAsRead(id: string): void {
     this.readStates.set(id, true);
     this.saveToLocalStorage();
-    console.log(`Marked notification ${id} as read`);
   }
 
   markAllAsRead(notificationIds: string[]): void {
@@ -59,7 +58,6 @@ class NotificationStore {
       this.readStates.set(id, true);
     });
     this.saveToLocalStorage();
-    console.log(`Marked ${notificationIds.length} notifications as read`);
   }
 
   isRead(id: string): boolean {
@@ -70,7 +68,6 @@ class NotificationStore {
     this.deletedNotifications.add(id);
     this.readStates.delete(id);
     this.saveToLocalStorage();
-    console.log(`Deleted notification ${id}`);
   }
 
   isDeleted(id: string): boolean {

@@ -130,11 +130,6 @@ class NotificationService {
         description: `+${points.toLocaleString()} points ($${(points / 100).toFixed(2)})`,
       }),
 
-    milestone: (totalPoints: number, milestone: number) =>
-      this.success(`Milestone reached! 🎯`, {
-        description: `You've earned ${totalPoints.toLocaleString()} points total! Next milestone: ${milestone.toLocaleString()} pts`,
-      }),
-
     dailyGoal: (todayPoints: number, goalPoints: number) =>
       this.success(`Daily goal achieved! 🌟`, {
         description: `${todayPoints.toLocaleString()} / ${goalPoints.toLocaleString()} points earned today`,
@@ -179,7 +174,7 @@ class NotificationService {
           description: `${successCount} successful, ${errorCount} failed`,
           action: {
             label: "View Details",
-            onClick: () => console.log("Show import details"),
+            onClick: () => {}, // Placeholder action
           },
         });
       }

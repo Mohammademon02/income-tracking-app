@@ -30,7 +30,7 @@ export async function GET() {
         })
       }
     } catch (dbError) {
-      console.log("Database not ready, returning default settings")
+      // Database not ready, returning default settings
       // Return default settings if database is not ready
       settings = {
         id: "default",
@@ -118,7 +118,7 @@ export async function PUT(request: Request) {
         })
       }
     } catch (dbError) {
-      console.log("Database not ready, using localStorage fallback")
+      // Database not ready, using localStorage fallback
       // Return updated settings even if database fails
       settings = {
         id: "default",

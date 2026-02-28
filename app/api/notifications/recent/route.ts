@@ -92,66 +92,6 @@ async function generateRealtimeNotifications() {
       }
     }
 
-    // Check for milestone achievements
-    const milestones = [
-      1000, 5000, 10000, 25000, 50000, 100000, 250000, 500000,
-    ];
-    const recentEntries = await prisma.dailyEntry.findMany({
-      where: {
-        createdAt: { gte: last24Hours },
-      },
-      orderBy: { createdAt: "asc" },
-    });
-
-    if (recentEntries.length > 0) {
-      const allEntries = await prisma.dailyEntry.findMany({
-        select: { points: true, createdAt: true },
-        orderBy: { createdAt: "asc" },
-      });
-
-      const totalPoints = allEntries.reduce(
-        (sum, entry) => sum + entry.points,
-        0,
-      );
-      const recentPoints = recentEntries.reduce(
-        (sum, entry) => sum + entry.points,
-        0,
-      );
-      const pointsBeforeRecent = totalPoints - recentPoints;
-
-      let runningTotal = pointsBeforeRecent;
-      const achievedMilestones: number[] = [];
-
-      recentEntries.forEach((entry) => {
-        const previousTotal = runningTotal;
-        runningTotal += entry.points;
-
-        milestones.forEach((milestone) => {
-          if (previousTotal < milestone && runningTotal >= milestone) {
-            achievedMilestones.push(milestone);
-          }
-        });
-      });
-
-      for (const milestone of achievedMilestones) {
-        const nextMilestone =
-          milestones.find((m) => m > milestone) || milestone * 2;
-        const newNotification = {
-          id: `milestone-${milestone}`,
-          type: "MILESTONE",
-          title: "Milestone Reached! 🎯",
-          message: `You've earned ${milestone.toLocaleString()} points total! Next: ${nextMilestone.toLocaleString()} pts`,
-          timestamp: recentEntries[recentEntries.length - 1].createdAt,
-          priority: "MEDIUM",
-          read: false,
-          createdAt: now,
-          updatedAt: now,
-        };
-
-        notifications.push(newNotification);
-      }
-    }
-
     // Check for daily goal achievements
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -177,7 +117,6 @@ async function generateRealtimeNotifications() {
     
     // For now, we'll use a simple approach since database model isn't ready
     // In production, this would read from prisma.userSettings
-    console.log("Using default settings until database is ready");
 
     // Always create daily goal notification for testing
     if (todayPoints >= dailyGoal) {
@@ -194,7 +133,6 @@ async function generateRealtimeNotifications() {
       };
 
       notifications.push(newNotification);
-      console.log("Daily goal notification created:", newNotification);
     }
 
     // Check for delayed withdrawals
@@ -209,6 +147,45 @@ async function generateRealtimeNotifications() {
         account: { select: { name: true } },
       },
     });
+
+    // Check for monthly goal achievements
+    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    
+    const monthlyEntries = await prisma.dailyEntry.findMany({
+      where: {
+        date: {
+          gte: startOfMonth,
+          lte: endOfMonth,
+        },
+      },
+    });
+
+    const monthlyPoints = monthlyEntries.reduce(
+      (sum, entry) => sum + entry.points,
+      0,
+    );
+
+    // Get monthly goal from settings (default 15000)
+    let monthlyGoal = 15000; // Default fallback
+    
+    // Check if monthly goal is achieved
+    if (monthlyPoints >= monthlyGoal) {
+      const monthName = today.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      const newNotification = {
+        id: `monthly-goal-${today.getFullYear()}-${today.getMonth() + 1}`,
+        type: "GOAL",
+        title: "Monthly Goal Achieved! 🎯",
+        message: `${monthlyPoints.toLocaleString()} / ${monthlyGoal.toLocaleString()} points earned in ${monthName} ($${(monthlyPoints / 100).toFixed(2)})`,
+        timestamp: now,
+        priority: "HIGH",
+        read: false,
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      notifications.push(newNotification);
+    }
 
     for (const withdrawal of pendingWithdrawals) {
       const daysWaiting = Math.ceil(
@@ -233,18 +210,47 @@ async function generateRealtimeNotifications() {
 
     // Add a demo notification if no real notifications exist
     if (notifications.length === 0) {
+      // Add welcome message for new users
+      notifications.push({
+        id: "welcome-message",
+        type: "SYSTEM",
+        title: "Welcome Message 🌟",
+        message: "You'll receive updates about withdrawals, daily goals, and monthly goals here.",
+        timestamp: now,
+        priority: "LOW",
+        read: false,
+        createdAt: now,
+        updatedAt: now,
+      });
+      
       notifications.push({
         id: "demo-notification",
         type: "SYSTEM",
         title: "Notification System Active! 🎉",
         message:
-          "Your notification system is working correctly. You'll receive updates about withdrawals, milestones, and daily goals here.",
+          "Your notification system is working correctly. You'll receive updates about withdrawals and daily goals here.",
         timestamp: now,
         priority: "MEDIUM",
         read: false,
         createdAt: now,
         updatedAt: now,
       });
+    } else {
+      // Always show welcome message for new users (if not deleted)
+      const hasWelcomeMessage = notifications.some(n => n.id === "welcome-message");
+      if (!hasWelcomeMessage) {
+        notifications.unshift({
+          id: "welcome-message",
+          type: "SYSTEM",
+          title: "Welcome Message 🌟",
+          message: "You'll receive updates about withdrawals, daily goals, and monthly goals here.",
+          timestamp: new Date(now.getTime() - 10 * 60 * 1000), // 10 minutes ago
+          priority: "LOW",
+          read: false,
+          createdAt: now,
+          updatedAt: now,
+        });
+      }
     }
   } catch (error) {
     console.error("Error generating realtime notifications:", error);

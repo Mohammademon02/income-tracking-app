@@ -68,16 +68,6 @@ export default function SettingsPage() {
                 <div className="w-4 h-4 bg-white rounded-full absolute top-1 right-1 transition-all"></div>
               </div>
             </div>
-            
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-slate-800">Milestone Celebrations</p>
-                <p className="text-sm text-slate-500">Celebrate when you reach point milestones</p>
-              </div>
-              <div className="w-10 h-6 bg-blue-500 rounded-full relative cursor-pointer">
-                <div className="w-4 h-4 bg-white rounded-full absolute top-1 right-1 transition-all"></div>
-              </div>
-            </div>
 
             <div className="pt-4 border-t">
               <a 

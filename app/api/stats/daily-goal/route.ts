@@ -46,7 +46,7 @@ export async function GET(request: Request) {
         dailyGoalPoints = userSettings.dailyGoalPoints;
       }
     } catch (error) {
-      console.log("Settings not available, using default daily goal");
+      // Settings not available, using default daily goal
     }
 
     const achieved = todayPoints >= dailyGoalPoints;

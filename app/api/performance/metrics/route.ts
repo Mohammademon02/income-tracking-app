@@ -68,13 +68,6 @@ export async function GET() {
     const activeDaysInLast30 = new Set(
       last30DaysEntries.map(entry => entry.date.toISOString().split('T')[0])
     ).size
-    
-    console.log('Daily Average Calculation:', {
-      totalPointsLast30Days,
-      dailyAverage,
-      entriesCount: last30DaysEntries.length,
-      activeDaysInLast30
-    })
 
     // Calculate weekly trend
     const thisWeekTotal = thisWeekEntries.reduce((sum, entry) => sum + entry.points, 0)
@@ -130,14 +123,6 @@ export async function GET() {
     const activityScore = Math.min((activeDaysInLast30 / 30) * 100, 100)
     
     const efficiency = Math.round((consistencyScore + goalScore + activityScore) / 3)
-    
-    console.log('Efficiency Calculation:', {
-      consistencyScore,
-      goalScore,
-      activityScore,
-      efficiency,
-      streakDays
-    })
 
     return NextResponse.json({
       dailyAverage: dailyAverage,

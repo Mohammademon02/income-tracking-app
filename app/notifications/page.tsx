@@ -8,7 +8,6 @@ import {
   Bell, 
   CheckCircle, 
   Clock, 
-  TrendingUp, 
   Wallet,
   X,
   ArrowLeft
@@ -19,7 +18,7 @@ import { useNotificationState } from "@/hooks/use-notification-state"
 
 interface Notification {
   id: string
-  type: 'WITHDRAWAL' | 'MILESTONE' | 'GOAL' | 'SYSTEM'
+  type: 'WITHDRAWAL' | 'GOAL' | 'SYSTEM'
   title: string
   message: string
   timestamp: Date
@@ -139,8 +138,6 @@ export default function NotificationsPage() {
     switch (type) {
       case 'WITHDRAWAL':
         return <Wallet className="w-5 h-5 text-green-600" />
-      case 'MILESTONE':
-        return <TrendingUp className="w-5 h-5 text-purple-600" />
       case 'GOAL':
         return <CheckCircle className="w-5 h-5 text-blue-600" />
       case 'SYSTEM':

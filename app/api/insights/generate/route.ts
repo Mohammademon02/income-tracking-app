@@ -130,7 +130,7 @@ export async function GET() {
       insights.push({
         id: 'streak-achievement',
         type: 'achievement',
-        title: 'Consistency Milestone',
+        title: 'Consistency Achievement',
         description: `Amazing! You've maintained a ${streakDays}-day earning streak. This puts you in the top 20% of users.`,
         priority: 'medium',
         impact: 'Top 20% performer'

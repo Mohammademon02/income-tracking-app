@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
-import { Target, TrendingUp, Calendar, Save, RotateCcw } from "lucide-react"
+import { Target, Calendar, Save, RotateCcw } from "lucide-react"
 import { notifications } from "@/lib/notification-service"
 
 interface MonthlyTarget {
@@ -48,7 +48,7 @@ export function MonthlyTargetSettings() {
           return
         }
       } catch (error) {
-        console.log('API not available, using localStorage')
+        // API not available, using localStorage
       }
 
       // Fallback to localStorage
@@ -126,10 +126,10 @@ export function MonthlyTargetSettings() {
         })
         
         if (response.ok) {
-          console.log('Target saved to API')
+          // Target saved to API
         }
       } catch (apiError) {
-        console.log('API save failed, using localStorage only')
+        // API save failed, using localStorage only
       }
       
       // Always save to localStorage as backup

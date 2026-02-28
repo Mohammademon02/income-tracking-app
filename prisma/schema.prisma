@@ -92,7 +92,6 @@ enum WithdrawalStatus {
 
 enum NotificationType {
   WITHDRAWAL
-  MILESTONE
   GOAL
   SYSTEM
 }

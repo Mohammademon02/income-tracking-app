@@ -14,7 +14,6 @@ import {
   BellRing, 
   CheckCircle, 
   Clock, 
-  TrendingUp, 
   Wallet,
   X,
   Settings,
@@ -26,7 +25,7 @@ import { useNotificationState } from "@/hooks/use-notification-state"
 
 interface Notification {
   id: string
-  type: 'WITHDRAWAL' | 'MILESTONE' | 'GOAL' | 'SYSTEM'
+  type: 'WITHDRAWAL' | 'GOAL' | 'SYSTEM'
   title: string
   message: string
   timestamp: Date
@@ -201,8 +200,6 @@ export function NotificationCenter({ className }: NotificationCenterProps) {
     switch (type) {
       case 'WITHDRAWAL':
         return <Wallet className="w-4 h-4 text-green-600" />
-      case 'MILESTONE':
-        return <TrendingUp className="w-4 h-4 text-purple-600" />
       case 'GOAL':
         return <CheckCircle className="w-4 h-4 text-blue-600" />
       case 'SYSTEM':

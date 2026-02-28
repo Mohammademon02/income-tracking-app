@@ -23,9 +23,9 @@ export async function GET() {
       },
       {
         id: "test-notification-2",
-        type: "GOAL",
-        title: "Welcome to Notifications! 🌟",
-        message: "You'll receive updates about withdrawals, milestones, and daily goals here.",
+        type: "SYSTEM",
+        title: "Welcome Message 🌟",
+        message: "You'll receive updates about withdrawals, daily goals, and monthly goals here.",
         timestamp: new Date(Date.now() - 5 * 60 * 1000), // 5 minutes ago
         read: false,
         priority: "LOW",

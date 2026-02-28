@@ -45,7 +45,7 @@ export function PerformanceMonitor() {
             customTarget = parsed.points || 14000
           }
         } catch (e) {
-          console.log('Using default target')
+          // Using default target
         }
 
         setMonthlyTarget(customTarget)
@@ -67,7 +67,7 @@ export function PerformanceMonitor() {
             data.monthlyGoalProgress = Math.min((actualCurrentPoints / customTarget) * 100, 100)
           }
         } catch (e) {
-          console.log('Could not fetch current month entries, using API default')
+          // Could not fetch current month entries, using API default
           // Fallback calculation
           actualCurrentPoints = Math.round((data.monthlyGoalProgress / 100) * customTarget)
         }

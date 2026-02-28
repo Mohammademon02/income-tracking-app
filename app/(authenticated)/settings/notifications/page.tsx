@@ -259,7 +259,7 @@ export default function NotificationSettingsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <Label className="font-medium">Enable Notifications</Label>
-                <p className="text-sm text-slate-500">Receive goal and milestone notifications</p>
+                <p className="text-sm text-slate-500">Receive goal notifications</p>
               </div>
               <Button
                 variant={settings.notificationsEnabled ? "default" : "outline"}
