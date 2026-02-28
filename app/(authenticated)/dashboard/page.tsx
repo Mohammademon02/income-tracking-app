@@ -1,6 +1,6 @@
 import { getAccounts } from "@/app/actions/accounts"
 import { getRecentEntries, getAllEntries } from "@/app/actions/entries"
-import { getRecentWithdrawals, getPendingWithdrawals } from "@/app/actions/withdrawals"
+import { getRecentWithdrawals, getPendingWithdrawals, getWithdrawals } from "@/app/actions/withdrawals"
 import { getMonthlyStats } from "@/app/actions/monthly-stats"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -15,11 +15,12 @@ import { SmartInsights } from "@/components/smart-insights"
 
 export default async function DashboardPage() {
   // Fetch only what this page actually renders — no more loading everything then slicing
-  const [accounts, recentEntries, allEntries, recentWithdrawals, pendingWithdrawalsData, monthlyStats] = await Promise.all([
+  const [accounts, recentEntries, allEntries, recentWithdrawals, allWithdrawals, pendingWithdrawalsData, monthlyStats] = await Promise.all([
     getAccounts(),
     getRecentEntries(5),
     getAllEntries(), // Get ALL entries for accurate goal calculation
     getRecentWithdrawals(5),
+    getWithdrawals(), // Get ALL withdrawals for first withdrawal detection
     getPendingWithdrawals(),
     getMonthlyStats(), // Get current month stats
   ])
@@ -123,6 +124,7 @@ export default async function DashboardPage() {
         <PendingWithdrawalsCard
           pendingWithdrawals={pendingWithdrawals}
           totalPending={totalPending}
+          allWithdrawals={allWithdrawals}
         />
 
         <Card className="relative overflow-hidden bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0 shadow-lg shadow-purple-200/50 transform transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-purple-300/60 cursor-pointer">

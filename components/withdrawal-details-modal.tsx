@@ -297,16 +297,16 @@ export function WithdrawalDetailsModal({
                             </div>
                         </div>
 
-                        {/* Info Card - Mobile Optimized */}
-                        <Card className="border border-slate-200 bg-slate-50 mb-4">
+                        {/* Info Card - Note Style */}
+                        <Card className="border border-blue-200 bg-blue-50 mb-4">
                             <CardContent className="p-3">
                                 <div className="flex items-start gap-3">
                                     <div className="w-5 h-5 sm:w-6 sm:h-6 bg-blue-100 rounded-full flex items-center justify-center shrink-0">
                                         <Clock className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-blue-600" />
                                     </div>
                                     <div className="min-w-0">
-                                        <h4 className="font-medium text-slate-800 mb-1 text-sm">Expected Processing Time</h4>
-                                        <p className="text-xs text-slate-600">
+                                        <h4 className="font-medium text-blue-800 mb-1 text-sm">Expected Processing Time</h4>
+                                        <p className="text-xs text-blue-700">
                                             {isFirstWithdrawal
                                                 ? "First withdrawals: 25-30 business days"
                                                 : "Subsequent withdrawals: 12-15 business days"
@@ -332,7 +332,7 @@ export function WithdrawalDetailsModal({
                                     </span>
                                 </div>
                             </div>
-                            <div>
+                            <div className="flex items-center justify-between gap-1">
                                 <label className="text-xs font-medium text-slate-600">Processing Time</label>
                                 <div className={`inline-flex items-center gap-2 px-2 py-1 rounded-full text-xs font-medium border mt-1 ${statusInfo.color}`}>
                                     <StatusIcon className="w-3 h-3" />
