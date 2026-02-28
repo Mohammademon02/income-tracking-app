@@ -9,11 +9,11 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { 
-  Bell, 
-  BellRing, 
-  CheckCircle, 
-  Clock, 
+import {
+  Bell,
+  BellRing,
+  CheckCircle,
+  Clock,
   Wallet,
   X,
   Settings,
@@ -78,7 +78,7 @@ export function NotificationCenter({ className }: NotificationCenterProps) {
     }
 
     fetchNotifications()
-    
+
     // Refresh notifications every 2 minutes
     const interval = setInterval(fetchNotifications, 2 * 60 * 1000)
     return () => clearInterval(interval)
@@ -87,8 +87,8 @@ export function NotificationCenter({ className }: NotificationCenterProps) {
   // Update notification states when localStorage state changes
   useEffect(() => {
     if (!notificationState.isLoaded) return
-    
-    setNotifications(prev => 
+
+    setNotifications(prev =>
       prev
         .filter(n => !notificationState.isDeleted(n.id))
         .map(n => ({
@@ -104,7 +104,7 @@ export function NotificationCenter({ className }: NotificationCenterProps) {
     try {
       // Update local state immediately for instant feedback
       notificationState.markAsRead(id)
-      setNotifications(prev => 
+      setNotifications(prev =>
         prev.map(n => n.id === id ? { ...n, read: true } : n)
       )
 
@@ -120,10 +120,10 @@ export function NotificationCenter({ className }: NotificationCenterProps) {
   const markAllAsRead = async () => {
     try {
       const notificationIds = notifications.map(n => n.id)
-      
+
       // Update local state immediately for instant feedback
       notificationState.markAllAsRead(notificationIds)
-      setNotifications(prev => 
+      setNotifications(prev =>
         prev.map(n => ({ ...n, read: true }))
       )
 
@@ -160,7 +160,7 @@ export function NotificationCenter({ className }: NotificationCenterProps) {
       // Clear local state
       notificationState.clearAll()
       setNotifications([])
-      
+
       // Also clear any server-side state if needed
       await fetch('/api/notifications/clear-all', {
         method: 'POST'
@@ -199,13 +199,13 @@ export function NotificationCenter({ className }: NotificationCenterProps) {
   const getNotificationIcon = (type: Notification['type']) => {
     switch (type) {
       case 'WITHDRAWAL':
-        return <Wallet className="w-4 h-4 text-green-600" />
+        return <Wallet className="w-4 h-4" />
       case 'GOAL':
-        return <CheckCircle className="w-4 h-4 text-blue-600" />
+        return <CheckCircle className="w-4 h-4" />
       case 'SYSTEM':
-        return <Bell className="w-4 h-4 text-slate-600" />
+        return <Bell className="w-4 h-4" />
       default:
-        return <Bell className="w-4 h-4 text-slate-600" />
+        return <Bell className="w-4 h-4" />
     }
   }
 
@@ -242,7 +242,8 @@ export function NotificationCenter({ className }: NotificationCenterProps) {
           variant="ghost"
           size="icon"
           className={cn(
-            "relative hover:bg-blue-100 transition-colors",
+            "relative hover:bg-blue-100/80 transition-all duration-200 rounded-xl",
+            unreadCount > 0 && "animate-pulse",
             className
           )}
           disabled={loading}
@@ -250,39 +251,40 @@ export function NotificationCenter({ className }: NotificationCenterProps) {
           {unreadCount > 0 ? (
             <BellRing className="h-5 w-5 text-blue-600" />
           ) : (
-            <Bell className="h-5 w-5" />
+            <Bell className="h-5 w-5 text-slate-600" />
           )}
           {unreadCount > 0 && (
-            <Badge 
-              className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 bg-red-500 text-white text-xs"
-            >
+            <div className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs font-bold rounded-full shadow-lg">
               {unreadCount > 9 ? '9+' : unreadCount}
-            </Badge>
+            </div>
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent 
-        className="w-96 p-0 shadow-xl border-0" 
+      <PopoverContent
+        className="w-80 sm:w-96 p-0 shadow-2xl border border-slate-200/50 rounded-2xl backdrop-blur-sm bg-white/95 max-w-[calc(100vw-2rem)]"
         align="end"
-        sideOffset={8}
+        sideOffset={12}
       >
-        <Card className="border-0 shadow-none">
-          <CardHeader className="pb-3 bg-linear-to-r from-blue-50 to-indigo-50 border-b">
+        <div className="overflow-hidden rounded-2xl">
+          {/* Modern Header */}
+          <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 px-4 py-4">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Bell className="w-5 h-5 text-blue-600" />
-                Notifications
-                {unreadCount > 0 && (
-                  <Badge variant="secondary" className="bg-blue-100 text-blue-700">
-                    {unreadCount} new
-                  </Badge>
-                )}
-              </CardTitle>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-white/20 rounded-xl backdrop-blur-sm">
+                  <Bell className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-white font-semibold text-lg">Notifications</h3>
+                  {unreadCount > 0 && (
+                    <p className="text-blue-100 text-sm">{unreadCount} new notification{unreadCount > 1 ? 's' : ''}</p>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 hover:bg-blue-100"
+                  className="h-8 w-8 hover:bg-white/20 text-white"
                   disabled={loading}
                   onClick={refreshNotifications}
                   title="Refresh notifications"
@@ -294,103 +296,120 @@ export function NotificationCenter({ className }: NotificationCenterProps) {
                     variant="ghost"
                     size="sm"
                     onClick={markAllAsRead}
-                    className="text-xs hover:bg-blue-100"
+                    className="text-xs hover:bg-white/20 text-white px-3 py-1 h-8 hidden sm:inline-flex"
                     disabled={loading}
                   >
                     Mark all read
                   </Button>
                 )}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 hover:bg-blue-100"
-                  disabled={loading}
-                  onClick={() => {
-                    setIsOpen(false)
-                    router.push('/settings/notifications')
-                  }}
-                >
-                  <Settings className="w-4 h-4" />
-                </Button>
               </div>
             </div>
-          </CardHeader>
-          <CardContent className="p-0 max-h-96 overflow-y-auto">
+          </div>
+          {/* Content Area */}
+          <div className="max-h-80 sm:max-h-96 overflow-y-auto bg-white">
             {loading ? (
-              <div className="text-center py-8 text-slate-500">
-                <div className="animate-spin w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-3"></div>
-                <p className="text-sm">Loading notifications...</p>
+              <div className="text-center py-12 text-slate-500">
+                <div className="relative mx-auto mb-4 w-12 h-12">
+                  <div className="absolute inset-0 rounded-full border-4 border-blue-100"></div>
+                  <div className="absolute inset-0 rounded-full border-4 border-blue-500 border-t-transparent animate-spin"></div>
+                </div>
+                <p className="text-sm font-medium">Loading notifications...</p>
               </div>
             ) : error ? (
-              <div className="text-center py-8 text-red-500">
-                <Bell className="w-12 h-12 mx-auto mb-3 text-red-300" />
-                <p className="font-medium">Error loading notifications</p>
-                <p className="text-sm">{error}</p>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="mt-3"
+              <div className="text-center py-12 text-red-500">
+                <div className="w-16 h-16 mx-auto mb-4 bg-red-50 rounded-2xl flex items-center justify-center">
+                  <Bell className="w-8 h-8 text-red-400" />
+                </div>
+                <p className="font-semibold mb-1">Error loading notifications</p>
+                <p className="text-sm text-slate-600 mb-4">{error}</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="rounded-xl"
                   onClick={() => window.location.reload()}
                 >
-                  Retry
+                  Try Again
                 </Button>
               </div>
             ) : notifications.length === 0 ? (
-              <div className="text-center py-8 text-slate-500">
-                <Bell className="w-12 h-12 mx-auto mb-3 text-slate-300" />
-                <p className="font-medium">No notifications</p>
-                <p className="text-sm">You're all caught up!</p>
+              <div className="text-center py-12 text-slate-500">
+                <div className="w-16 h-16 mx-auto mb-4 bg-slate-50 rounded-2xl flex items-center justify-center">
+                  <Bell className="w-8 h-8 text-slate-300" />
+                </div>
+                <p className="font-semibold mb-1">All caught up!</p>
+                <p className="text-sm text-slate-600">No new notifications</p>
               </div>
             ) : (
-              <div className="divide-y divide-slate-100">
-                {notifications.map((notification) => (
+              <div className="p-2">
+                {notifications.map((notification, index) => (
                   <div
                     key={notification.id}
                     className={cn(
-                      "group p-4 hover:bg-slate-50 transition-colors border-l-4 cursor-pointer",
-                      getPriorityColor(notification.priority),
-                      !notification.read && "bg-blue-50/30"
+                      "group relative rounded-xl p-4 mb-2 transition-all duration-200 cursor-pointer hover:shadow-md",
+                      !notification.read
+                        ? "bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200/50 shadow-sm"
+                        : "bg-slate-50/50 hover:bg-slate-100/80 border border-transparent",
+                      index === notifications.length - 1 && "mb-0"
                     )}
                     onClick={(e) => {
                       e.preventDefault()
                       markAsRead(notification.id)
                       if (notification.actionUrl) {
                         setIsOpen(false)
-                        // Use Next.js router instead of window.location to avoid reload
-                        // For now, just close the popover without navigation
                       }
                     }}
                   >
-                    <div className="flex items-start gap-3">
-                      <div className="shrink-0 mt-0.5">
+                    {/* Priority indicator */}
+                    <div className={cn(
+                      "absolute left-0 top-4 bottom-4 w-1 rounded-r-full",
+                      notification.priority === 'HIGH' && "bg-red-500",
+                      notification.priority === 'MEDIUM' && "bg-orange-500",
+                      notification.priority === 'LOW' && "bg-blue-500"
+                    )} />
+
+                    <div className="flex items-start gap-3 pl-3">
+                      {/* Icon */}
+                      <div className={cn(
+                        "shrink-0 p-2 rounded-xl",
+                        notification.type === 'WITHDRAWAL' && "bg-green-100 text-green-600",
+                        notification.type === 'GOAL' && "bg-blue-100 text-blue-600",
+                        notification.type === 'SYSTEM' && "bg-slate-100 text-slate-600"
+                      )}>
                         {getNotificationIcon(notification.type)}
                       </div>
+
+                      {/* Content */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex-1">
-                            <p className={cn(
-                              "text-sm font-medium text-slate-900",
-                              !notification.read && "font-semibold"
+                            <h4 className={cn(
+                              "text-sm font-semibold text-slate-900 mb-1 leading-tight",
+                              !notification.read && "text-slate-900"
                             )}>
                               {notification.title}
-                            </p>
-                            <p className="text-sm text-slate-600 mt-1">
+                            </h4>
+                            <p className="text-sm text-slate-600 leading-relaxed mb-3">
                               {notification.message}
                             </p>
-                            <div className="flex items-center gap-2 mt-2">
-                              <span className="text-xs text-slate-500 flex items-center gap-1">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-slate-500 flex items-center gap-1 font-medium">
                                 <Clock className="w-3 h-3" />
                                 {formatTimestamp(notification.timestamp)}
                               </span>
                               {!notification.read && (
-                                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                <div className="flex items-center gap-1">
+                                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                                  <span className="text-xs text-blue-600 font-medium">New</span>
+                                </div>
                               )}
                             </div>
                           </div>
+
+                          {/* Delete button */}
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-6 w-6 hover:bg-red-100 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                            className="h-7 w-7 hover:bg-red-100 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-all duration-200 rounded-lg"
                             onClick={(e) => {
                               e.stopPropagation()
                               deleteNotification(notification.id)
@@ -405,12 +424,13 @@ export function NotificationCenter({ className }: NotificationCenterProps) {
                 ))}
               </div>
             )}
-          </CardContent>
+          </div>
+          {/* Footer */}
           {notifications.length > 0 && (
-            <div className="border-t p-3 bg-slate-50">
+            <div className="border-t border-slate-200/50 bg-slate-50/50 p-3">
               <Button
                 variant="ghost"
-                className="w-full text-sm text-slate-600 hover:text-slate-800"
+                className="w-full text-sm text-slate-600 hover:text-slate-800 hover:bg-white rounded-xl font-medium py-2"
                 onClick={(e) => {
                   e.preventDefault()
                   setIsOpen(false)
@@ -421,7 +441,7 @@ export function NotificationCenter({ className }: NotificationCenterProps) {
               </Button>
             </div>
           )}
-        </Card>
+        </div>
       </PopoverContent>
     </Popover>
   )
