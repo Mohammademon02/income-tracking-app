@@ -25,6 +25,7 @@ import { getAvatarGradient } from "@/lib/avatar-utils"
 import { Plus } from "lucide-react"
 import { createWithdrawal } from "@/app/actions/withdrawals"
 import { toast } from "sonner"
+import { enhancedToast } from "@/components/ui/enhanced-toast"
 
 type Account = {
   id: string
@@ -51,13 +52,13 @@ export function AddWithdrawalDialog({ accounts }: { accounts: Account[] }) {
     if (result?.error) {
       setError(result.error)
       setLoading(false)
-      toast.error(result.error)
+      enhancedToast.error(result.error)
     } else {
       setOpen(false)
       setLoading(false)
       setSelectedAccountId("")
       router.refresh()
-      toast.success("Withdrawal added successfully!")
+      enhancedToast.withdrawal("Withdrawal added successfully!")
     }
   }
 

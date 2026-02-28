@@ -50,6 +50,7 @@ import { getAvatarGradient } from "@/lib/avatar-utils"
 import { MoreHorizontal, Pencil, Trash2, Wallet, Clock, Filter, X, Calendar, DollarSign, Eye } from "lucide-react"
 import { updateWithdrawal, deleteWithdrawal } from "@/app/actions/withdrawals"
 import { toast } from "sonner"
+import { enhancedToast } from "@/components/ui/enhanced-toast"
 import { WithdrawalDetailsModal } from "@/components/withdrawal-details-modal"
 
 type Withdrawal = {
@@ -183,7 +184,7 @@ export function WithdrawalsTable({ withdrawals, accounts }: { withdrawals: Withd
     setEditingWithdrawal(null)
     setLoading(false)
     router.refresh()
-    toast.success("Withdrawal updated successfully!")
+    enhancedToast.withdrawal("Withdrawal updated successfully!")
   }
 
   async function handleDelete() {
@@ -193,7 +194,7 @@ export function WithdrawalsTable({ withdrawals, accounts }: { withdrawals: Withd
     setDeletingWithdrawal(null)
     setLoading(false)
     router.refresh()
-    toast.success("Withdrawal deleted")
+    enhancedToast.remove("Withdrawal deleted")
   }
 
   if (withdrawals.length === 0) {

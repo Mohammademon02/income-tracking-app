@@ -52,9 +52,12 @@ export default function RootLayout({
             <Analytics />
             <Toaster
               position="top-right"
-              richColors
+              richColors={false}
               closeButton
-              duration={3000}
+              duration={4000}
+              expand={true}
+              visibleToasts={5}
+              gap={12}
             />
           </ErrorBoundary>
         </AccessibilityProvider>

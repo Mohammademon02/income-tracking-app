@@ -20,10 +20,10 @@ const navigation = [
   { name: "Settings", href: "/settings", icon: Settings },
 ]
 
-const NavigationItem = memo(({ item, isActive, onClick }: { 
-  item: typeof navigation[0], 
-  isActive: boolean, 
-  onClick?: () => void 
+const NavigationItem = memo(({ item, isActive, onClick }: {
+  item: typeof navigation[0],
+  isActive: boolean,
+  onClick?: () => void
 }) => (
   <Link
     key={item.name}
@@ -49,7 +49,7 @@ NavigationItem.displayName = 'NavigationItem'
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  
+
   // Simple notification system
   useNotifications({
     enableDailyGoalAlerts: true,
@@ -62,10 +62,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-white/20 shadow-lg">
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-2">
-            <Image 
-              src="/Logo.png" 
-              alt="SurvTrack Logo" 
-              width={120} 
+            <Image
+              src="/Logo.png"
+              alt="SurvTrack Logo"
+              width={120}
               height={32}
               className="h-8 w-auto"
             />
@@ -111,10 +111,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="flex items-center h-16 px-6 border-b border-white/20">
             <div className="flex items-center justify-between w-full">
               <div className="flex items-center gap-3">
-                <Image 
-                  src="/Logo.png" 
-                  alt="SurvTrack Logo" 
-                  width={160} 
+                <Image
+                  src="/Logo.png"
+                  alt="SurvTrack Logo"
+                  width={160}
                   height={40}
                   className="h-10 w-auto"
                 />
