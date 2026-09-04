@@ -1,29 +1,20 @@
-import { getWithdrawals } from "@/app/actions/withdrawals"
 import { getAccounts } from "@/app/actions/accounts"
-import { WithdrawalsTable } from "@/components/withdrawals-table"
+import { getWithdrawals } from "@/app/actions/withdrawals"
 import { AddWithdrawalDialog } from "@/components/add-withdrawal-dialog"
+import { PageContainer, PageHeader } from "@/components/page-shell"
+import { WithdrawalsTable } from "@/components/withdrawals-table"
 
 export default async function WithdrawalsPage() {
-  const [withdrawals, accounts] = await Promise.all([
-    getWithdrawals(),
-    getAccounts(),
-  ])
+  const [withdrawals, accounts] = await Promise.all([getWithdrawals(), getAccounts()])
 
   return (
-    <div className="px-3 py-6 sm:px-6 space-y-8 bg-gradient-to-br from-slate-50/50 to-blue-50/30 min-h-screen">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
-            Withdrawals
-          </h1>
-          <p className="text-slate-600 mt-1 text-sm sm:text-base">Track your withdrawal requests</p>
-        </div>
-        <AddWithdrawalDialog accounts={accounts} />
-      </div>
-
-      <div className="bg-white/80 backdrop-blur-sm border border-white/60 shadow-lg rounded-lg">
-        <WithdrawalsTable withdrawals={withdrawals} accounts={accounts} />
-      </div>
-    </div>
+    <PageContainer>
+      <PageHeader
+        title="Withdrawals"
+        description="Payout requests and how long each took to clear."
+        actions={<AddWithdrawalDialog accounts={accounts} />}
+      />
+      <WithdrawalsTable withdrawals={withdrawals} accounts={accounts} />
+    </PageContainer>
   )
 }

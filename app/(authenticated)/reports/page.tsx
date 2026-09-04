@@ -1,111 +1,98 @@
-import { getEntries } from "@/app/actions/entries"
-import { getAccounts } from "@/app/actions/accounts"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { TrendingUp, Calendar, DollarSign, ArrowLeft, ChevronDown } from "lucide-react"
+import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
-import { getAvatarGradient } from "@/lib/avatar-utils"
+
+import { getAccounts } from "@/app/actions/accounts"
+import { getEntries } from "@/app/actions/entries"
 import { MonthlyIncomeClient } from "@/components/monthly-income-client"
+import { PageContainer, PageHeader } from "@/components/page-shell"
+import { Button } from "@/components/ui/button"
+import { formatDate, toDateKey, todayKey } from "@/lib/date-utils"
 
 export default async function ReportsPage() {
-    const [entries, accounts] = await Promise.all([
-        getEntries(),
-        getAccounts(),
-    ])
+  const [entries] = await Promise.all([getEntries(), getAccounts()])
 
-    // Group entries by month and year
-    const monthlyData = entries.reduce((acc, entry) => {
-        const date = new Date(entry.date)
-        const monthYear = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
-        const monthName = date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+  // Group by calendar month read from the UTC parts. Using local getMonth() on
+  // a UTC-midnight marker files the 1st of each month into the previous one on
+  // any server west of UTC.
+  const monthlyData = entries.reduce(
+    (acc, entry) => {
+      const dateKey = toDateKey(new Date(entry.date))
+      const monthYear = dateKey.slice(0, 7)
 
-        if (!acc[monthYear]) {
-            acc[monthYear] = {
-                monthName,
-                totalPoints: 0,
-                totalEntries: 0,
-                accounts: {},
-                date: date
-            }
+      if (!acc[monthYear]) {
+        acc[monthYear] = {
+          monthName: formatDate(`${monthYear}-01`, { month: "long", year: "numeric" }),
+          totalPoints: 0,
+          totalEntries: 0,
+          accounts: {} as Record<string, any>,
+          date: new Date(entry.date),
         }
+      }
 
-        acc[monthYear].totalPoints += entry.points
-        acc[monthYear].totalEntries += 1
+      acc[monthYear].totalPoints += entry.points
+      acc[monthYear].totalEntries += 1
 
-        if (!acc[monthYear].accounts[entry.accountId]) {
-            acc[monthYear].accounts[entry.accountId] = {
-                name: entry.accountName,
-                color: entry.accountColor,
-                points: 0,
-                entries: 0
-            }
+      if (!acc[monthYear].accounts[entry.accountId]) {
+        acc[monthYear].accounts[entry.accountId] = {
+          name: entry.accountName,
+          color: entry.accountColor,
+          points: 0,
+          entries: 0,
         }
+      }
 
-        acc[monthYear].accounts[entry.accountId].points += entry.points
-        acc[monthYear].accounts[entry.accountId].entries += 1
+      acc[monthYear].accounts[entry.accountId].points += entry.points
+      acc[monthYear].accounts[entry.accountId].entries += 1
 
-        return acc
-    }, {} as Record<string, any>)
+      return acc
+    },
+    {} as Record<string, any>
+  )
 
-    // Sort months by date (newest first) and prepare for selector
-    const sortedMonths = Object.entries(monthlyData)
-        .sort(([a], [b]) => b.localeCompare(a))
-        .map(([key, data]) => ({
-            key,
-            name: data.monthName,
-            data
-        }))
+  const sortedMonths = Object.entries(monthlyData)
+    .sort(([a], [b]) => b.localeCompare(a))
+    .map(([key, data]) => ({ key, name: (data as any).monthName, data }))
 
-    // Get current month as default and ensure it's always available
-    const currentDate = new Date()
-    const currentMonthKey = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`
-    const currentMonthName = currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+  const currentMonthKey = todayKey().slice(0, 7)
+  const currentMonthName = formatDate(`${currentMonthKey}-01`, {
+    month: "long",
+    year: "numeric",
+  })
 
-    // Add current month to the list if it doesn't exist
-    if (!sortedMonths.find(m => m.key === currentMonthKey)) {
-        sortedMonths.unshift({
-            key: currentMonthKey,
-            name: currentMonthName,
-            data: {
-                monthName: currentMonthName,
-                totalPoints: 0,
-                totalEntries: 0,
-                accounts: {},
-                date: currentDate
-            }
-        })
-    }
+  // The current month is always offered, even before anything is logged in it.
+  if (!sortedMonths.some((month) => month.key === currentMonthKey)) {
+    sortedMonths.unshift({
+      key: currentMonthKey,
+      name: currentMonthName,
+      data: {
+        monthName: currentMonthName,
+        totalPoints: 0,
+        totalEntries: 0,
+        accounts: {},
+        date: new Date(),
+      },
+    })
+  }
 
-    return (
-        <div className="px-3 py-6 sm:px-6 space-y-8 bg-gradient-to-br from-slate-50/50 to-blue-50/30 min-h-screen">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                    <Link
-                        href="/dashboard"
-                        className="flex items-center gap-2 text-slate-600 hover:text-slate-800 transition-colors"
-                    >
-                        <ArrowLeft className="w-5 h-5" />
-                        <span className="hidden sm:inline">Back to Dashboard</span>
-                        <span className="sm:hidden">Back</span>
-                    </Link>
-                </div>
-            </div>
+  return (
+    <PageContainer>
+      <Button variant="ghost" size="sm" asChild className="-ml-2 w-fit">
+        <Link href="/dashboard">
+          <ArrowLeft className="mr-1.5 size-4" />
+          Back to dashboard
+        </Link>
+      </Button>
 
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                <div>
-                    <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
-                        Monthly Income History
-                    </h1>
-                    <p className="text-slate-600 mt-1 text-sm sm:text-base">Track your earnings for the selected month</p>
-                </div>
-            </div>
+      <PageHeader
+        title="Monthly income"
+        description="Points earned per month, broken down by account."
+      />
 
-            {/* Monthly Income Display */}
-            <MonthlyIncomeClient
-                monthlyData={monthlyData}
-                availableMonths={sortedMonths}
-                currentMonthKey={currentMonthKey}
-            />
-        </div>
-    )
+      <MonthlyIncomeClient
+        monthlyData={monthlyData}
+        availableMonths={sortedMonths}
+        currentMonthKey={currentMonthKey}
+      />
+    </PageContainer>
+  )
 }
