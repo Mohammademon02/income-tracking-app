@@ -1,77 +1,74 @@
-"use server";
+"use server"
 
-import { prisma } from "@/lib/prisma";
-import { verifySession } from "@/lib/auth";
+import { formatDate, monthRange, todayKey } from "@/lib/date-utils"
+import { sumDollarsAsPoints } from "@/lib/money"
+import { prisma } from "@/lib/prisma"
+import { requireSession } from "@/lib/server-utils"
 
 export async function getMonthlyStats(year?: number, month?: number) {
-  const session = await verifySession();
-  if (!session) throw new Error("Unauthorized");
+  await requireSession()
 
-  const now = new Date();
-  const targetYear = year || now.getFullYear();
-  const targetMonth = month || now.getMonth() + 1; // getMonth() returns 0-11
+  // "Which month is it" is answered in the app's business timezone, not the
+  // server's — see lib/date-utils. Building the range with local-time helpers
+  // is what used to push the 1st of the month out of its own month and pull
+  // the next month's 1st in.
+  const today = todayKey()
+  const [currentYear, currentMonth] = today.split("-").map(Number)
 
-  // Start and end of the target month
-  const startOfMonth = new Date(targetYear, targetMonth - 1, 1);
-  const endOfMonth = new Date(targetYear, targetMonth, 0, 23, 59, 59, 999);
+  const targetYear = year || currentYear
+  const targetMonth = month || currentMonth
 
-  // Get entries for the month
-  const monthlyEntries = await prisma.dailyEntry.findMany({
-    where: {
-      date: {
-        gte: startOfMonth,
-        lte: endOfMonth,
-      },
-    },
-    include: {
-      account: {
-        select: {
-          name: true,
-          color: true,
+  const range = monthRange(targetYear, targetMonth)
+
+  const [monthlyEntries, monthlyCompletedWithdrawals] = await Promise.all([
+    prisma.dailyEntry.findMany({
+      where: { date: range },
+      include: {
+        account: {
+          select: {
+            name: true,
+            color: true,
+          },
         },
       },
-    },
-  });
-
-  // Get withdrawals completed in the month
-  const monthlyCompletedWithdrawals = await prisma.withdrawal.findMany({
-    where: {
-      status: "COMPLETED",
-      completedAt: {
-        gte: startOfMonth,
-        lte: endOfMonth,
+      orderBy: { date: "asc" },
+    }),
+    prisma.withdrawal.findMany({
+      where: {
+        status: "COMPLETED",
+        completedAt: range,
       },
-    },
-    include: {
-      account: {
-        select: {
-          name: true,
-          color: true,
+      include: {
+        account: {
+          select: {
+            name: true,
+            color: true,
+          },
         },
       },
-    },
-  });
+      orderBy: { completedAt: "asc" },
+    }),
+  ])
 
-  // Calculate totals
-  const totalMonthlyPoints = monthlyEntries.reduce(
-    (sum, entry) => sum + entry.points,
-    0,
-  );
+  const totalMonthlyPoints = monthlyEntries.reduce((sum, entry) => sum + entry.points, 0)
+
   const totalMonthlyWithdrawals = monthlyCompletedWithdrawals.reduce(
     (sum, withdrawal) => sum + withdrawal.amount,
     0,
-  );
-  const totalEntriesCount = monthlyEntries.length;
-  const totalWithdrawalsCount = monthlyCompletedWithdrawals.length;
+  )
 
   return {
     month: targetMonth,
     year: targetYear,
-    monthName: startOfMonth.toLocaleDateString("en-US", { month: "long" }),
+    monthName: formatDate(range.gte, { month: "long" }),
     totalPoints: totalMonthlyPoints,
     totalWithdrawals: totalMonthlyWithdrawals,
-    entriesCount: totalEntriesCount,
-    withdrawalsCount: totalWithdrawalsCount,
+    /** The same payout expressed in points, rounded once. */
+    totalWithdrawalPoints: sumDollarsAsPoints(
+      monthlyCompletedWithdrawals.map((withdrawal) => withdrawal.amount),
+    ),
+    entriesCount: monthlyEntries.length,
+    withdrawalsCount: monthlyCompletedWithdrawals.length,
     entries: monthlyEntries.map((entry) => ({
       id: entry.id,
       date: entry.date,
@@ -87,5 +84,5 @@ export async function getMonthlyStats(year?: number, month?: number) {
       accountName: withdrawal.account.name,
       accountColor: withdrawal.account.color || "blue",
     })),
-  };
+  }
 }

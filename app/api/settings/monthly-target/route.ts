@@ -1,54 +1,64 @@
 import { NextResponse } from "next/server"
-import { verifySession } from "@/lib/auth"
+import { z } from "zod"
 
-// For now, we'll use a simple in-memory storage
-// In production, this should be stored in database
-let userTargets = new Map<string, { points: number; earnings: number; lastUpdated: Date }>()
+import { badRequest, getApiSession, serverError, unauthorized } from "@/lib/api-utils"
+import { pointsToDollars } from "@/lib/money"
+import { getSettings, updateSettings } from "@/lib/settings"
+import { formatZodError } from "@/lib/validation"
+
+/**
+ * The monthly target used to live in a module-level `Map`, so it vanished on
+ * every redeploy and differed between instances. It is the same value as
+ * `UserSettings.monthlyGoalPoints`, so it is stored there now.
+ *
+ * `earnings` is not stored — it is always points at 100 to the dollar, and
+ * keeping a second copy invites the two drifting apart.
+ */
+
+const targetSchema = z.object({
+  points: z.coerce.number().int().min(1000).max(1_000_000),
+})
 
 export async function GET() {
   try {
-    const session = await verifySession()
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
+    const session = await getApiSession()
+    if (!session) return unauthorized()
 
-    const userTarget = userTargets.get(session.username) || {
-      points: 14000,
-      earnings: 140,
-      lastUpdated: new Date()
-    }
+    const settings = await getSettings()
 
-    return NextResponse.json(userTarget)
+    return NextResponse.json({
+      points: settings.monthlyGoalPoints,
+      earnings: pointsToDollars(settings.monthlyGoalPoints),
+      lastUpdated: settings.updatedAt,
+    })
   } catch (error) {
-    console.error("Error fetching monthly target:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return serverError("get monthly target", error)
   }
 }
 
 export async function POST(request: Request) {
   try {
-    const session = await verifySession()
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    const session = await getApiSession()
+    if (!session) return unauthorized()
+
+    const body = await request.json().catch(() => null)
+    const parsed = targetSchema.safeParse(body)
+
+    if (!parsed.success) {
+      return badRequest(formatZodError(parsed.error))
     }
 
-    const { points, earnings } = await request.json()
+    const settings = await updateSettings({ monthlyGoalPoints: parsed.data.points })
 
-    if (!points || !earnings || points < 1000 || earnings < 10 || points > 100000 || earnings > 1000) {
-      return NextResponse.json({ error: "Invalid target values. Points: 1000-100000, Earnings: $10-$1000" }, { status: 400 })
-    }
-
-    const target = {
-      points: parseInt(points),
-      earnings: parseFloat(earnings),
-      lastUpdated: new Date()
-    }
-
-    userTargets.set(session.username, target)
-
-    return NextResponse.json({ success: true, target })
+    return NextResponse.json({
+      success: true,
+      target: {
+        points: settings.monthlyGoalPoints,
+        earnings: pointsToDollars(settings.monthlyGoalPoints),
+        lastUpdated: settings.updatedAt,
+      },
+    })
   } catch (error) {
-    console.error("Error saving monthly target:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return serverError("save monthly target", error)
   }
 }

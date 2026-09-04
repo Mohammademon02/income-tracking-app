@@ -1,69 +1,45 @@
-import { NextResponse } from "next/server";
-import { verifySession } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { NextResponse } from "next/server"
+
+import { badRequest, getApiSession, serverError, unauthorized } from "@/lib/api-utils"
+import { dayRange, isDateKey, todayKey } from "@/lib/date-utils"
+import { prisma } from "@/lib/prisma"
+
+const DEFAULT_DAILY_GOAL = 2000
 
 export async function GET(request: Request) {
   try {
-    const session = await verifySession();
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const session = await getApiSession()
+    if (!session) return unauthorized()
+
+    const { searchParams } = new URL(request.url)
+    const dateParam = searchParams.get("date")
+
+    // `new Date(dateParam)` used to accept anything; "?date=abc" produced an
+    // Invalid Date that reached Prisma as a filter and threw a 500.
+    if (dateParam && !isDateKey(dateParam)) {
+      return badRequest("date must be in YYYY-MM-DD format")
     }
 
-    const { searchParams } = new URL(request.url);
-    const dateParam = searchParams.get("date");
-    const targetDate = dateParam ? new Date(dateParam) : new Date();
+    const targetDate = dateParam ?? todayKey()
 
-    // Set to start and end of the day
-    const startOfDay = new Date(targetDate);
-    startOfDay.setHours(0, 0, 0, 0);
-
-    const endOfDay = new Date(targetDate);
-    endOfDay.setHours(23, 59, 59, 999);
-
-    // Get entries for the specified date
     const todayEntries = await prisma.dailyEntry.findMany({
-      where: {
-        date: {
-          gte: startOfDay,
-          lte: endOfDay,
-        },
-      },
-      select: {
-        points: true,
-      },
-    });
+      where: { date: dayRange(targetDate) },
+      select: { points: true },
+    })
 
-    const todayPoints = todayEntries.reduce(
-      (sum, entry) => sum + entry.points,
-      0,
-    );
+    const todayPoints = todayEntries.reduce((sum, entry) => sum + entry.points, 0)
 
-    // Get user's daily goal from settings
-    let dailyGoalPoints = 2000; // Default fallback
-    try {
-      const userSettings = await prisma.userSettings.findFirst();
-      if (userSettings) {
-        dailyGoalPoints = userSettings.dailyGoalPoints;
-      }
-    } catch (error) {
-      // Settings not available, using default daily goal
-    }
-
-    const achieved = todayPoints >= dailyGoalPoints;
-    const progress = Math.min((todayPoints / dailyGoalPoints) * 100, 100);
+    const userSettings = await prisma.userSettings.findFirst()
+    const dailyGoalPoints = userSettings?.dailyGoalPoints ?? DEFAULT_DAILY_GOAL
 
     return NextResponse.json({
       todayPoints,
       goalPoints: dailyGoalPoints,
-      achieved,
-      progress,
-      date: targetDate.toISOString().split("T")[0],
-    });
+      achieved: todayPoints >= dailyGoalPoints,
+      progress: dailyGoalPoints > 0 ? Math.min((todayPoints / dailyGoalPoints) * 100, 100) : 0,
+      date: targetDate,
+    })
   } catch (error) {
-    console.error("Error fetching daily goal:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    return serverError("daily-goal", error)
   }
 }

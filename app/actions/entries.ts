@@ -1,22 +1,31 @@
 "use server"
 
-import { prisma } from "@/lib/prisma"
-import { verifySession } from "@/lib/auth"
 import { revalidatePath } from "next/cache"
 
+import { dateKeyToDate } from "@/lib/date-utils"
+import { prisma } from "@/lib/prisma"
+import { type ActionResult, requireSession, toActionError } from "@/lib/server-utils"
+import { createEntrySchema, parseFormData, updateEntrySchema } from "@/lib/validation"
+
+/** Pages whose data changes whenever an entry does. */
+const ENTRY_PATHS = ["/dashboard", "/entries", "/daily-earnings", "/reports"] as const
+
+function revalidateEntryPaths() {
+  for (const path of ENTRY_PATHS) revalidatePath(path, "page")
+}
+
 export async function getEntries(accountId?: string) {
-  const session = await verifySession()
-  if (!session) throw new Error("Unauthorized")
+  await requireSession()
 
   const entries = await prisma.dailyEntry.findMany({
     where: accountId ? { accountId } : undefined,
-    include: { 
-      account: { 
-        select: { 
-          name: true, 
-          color: true 
-        } 
-      } 
+    include: {
+      account: {
+        select: {
+          name: true,
+          color: true,
+        },
+      },
     },
     orderBy: { date: "desc" },
   })
@@ -34,8 +43,7 @@ export async function getEntries(accountId?: string) {
 
 /** Fetch ALL entries for goal tracking and analytics */
 export async function getAllEntries() {
-  const session = await verifySession()
-  if (!session) throw new Error("Unauthorized")
+  await requireSession()
 
   const entries = await prisma.dailyEntry.findMany({
     include: { account: { select: { name: true, color: true } } },
@@ -54,8 +62,7 @@ export async function getAllEntries() {
 
 /** Fetch only the N most recent entries — used by the dashboard. */
 export async function getRecentEntries(take = 5) {
-  const session = await verifySession()
-  if (!session) throw new Error("Unauthorized")
+  await requireSession()
 
   const entries = await prisma.dailyEntry.findMany({
     take,
@@ -73,72 +80,70 @@ export async function getRecentEntries(take = 5) {
   }))
 }
 
-export async function createEntry(formData: FormData) {
-  const session = await verifySession()
-  if (!session) throw new Error("Unauthorized")
+export async function createEntry(formData: FormData): Promise<ActionResult> {
+  await requireSession()
 
-  const accountId = formData.get("accountId") as string
-  const date = formData.get("date") as string
-  const points = parseFloat(formData.get("points") as string)
+  const parsed = parseFormData(createEntrySchema, formData)
+  if (!parsed.ok) return { success: false, error: parsed.error }
 
-  if (!accountId || !date || isNaN(points)) {
-    return { error: "All fields are required" }
+  const { accountId, date, points } = parsed.data
+
+  try {
+    await prisma.dailyEntry.create({
+      data: {
+        accountId,
+        // Stored as a UTC date marker so every range query lines up. See lib/date-utils.
+        date: dateKeyToDate(date),
+        points,
+      },
+    })
+  } catch (error) {
+    return toActionError(error, "Failed to save the entry.")
   }
 
-  await prisma.dailyEntry.create({
-    data: {
-      accountId,
-      date: new Date(date),
-      points,
-    },
-  })
-
-  revalidatePath("/dashboard", "page")
-  revalidatePath("/entries", "page")
-  revalidatePath("/daily-earnings", "page")
+  revalidateEntryPaths()
 
   return { success: true }
 }
 
-export async function updateEntry(id: string, formData: FormData) {
-  const session = await verifySession()
-  if (!session) throw new Error("Unauthorized")
+export async function updateEntry(id: string, formData: FormData): Promise<ActionResult> {
+  await requireSession()
 
-  const accountId = formData.get("accountId") as string
-  const date = formData.get("date") as string
-  const points = parseFloat(formData.get("points") as string)
+  const parsed = parseFormData(updateEntrySchema, formData)
+  if (!parsed.ok) return { success: false, error: parsed.error }
 
-  if (!accountId || !date || isNaN(points)) {
-    return { error: "All fields are required" }
+  const { accountId, date, points } = parsed.data
+
+  try {
+    await prisma.dailyEntry.update({
+      where: { id },
+      data: {
+        accountId,
+        date: dateKeyToDate(date),
+        points,
+      },
+    })
+  } catch (error) {
+    return toActionError(error, "Failed to update the entry.")
   }
 
-  await prisma.dailyEntry.update({
-    where: { id },
-    data: {
-      accountId,
-      date: new Date(date),
-      points,
-    },
-  })
-
-  revalidatePath("/dashboard", "page")
-  revalidatePath("/entries", "page")
-  revalidatePath("/daily-earnings", "page")
+  revalidateEntryPaths()
 
   return { success: true }
 }
 
-export async function deleteEntry(id: string) {
-  const session = await verifySession()
-  if (!session) throw new Error("Unauthorized")
+export async function deleteEntry(id: string): Promise<ActionResult> {
+  await requireSession()
 
-  await prisma.dailyEntry.delete({
-    where: { id },
-  })
+  try {
+    await prisma.dailyEntry.delete({
+      where: { id },
+    })
+  } catch (error) {
+    return toActionError(error, "Failed to delete the entry.")
+  }
 
-  revalidatePath("/dashboard", "page")
-  revalidatePath("/entries", "page")
-  revalidatePath("/daily-earnings", "page")
+  revalidateEntryPaths()
 
   return { success: true }
 }

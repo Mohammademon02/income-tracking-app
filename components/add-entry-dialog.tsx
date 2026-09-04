@@ -22,6 +22,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { getAvatarGradient } from "@/lib/avatar-utils"
+import { todayKey } from "@/lib/date-utils"
 import { Plus } from "lucide-react"
 import { createEntry } from "@/app/actions/entries"
 import { enhancedToast, commonToasts } from "@/components/ui/enhanced-toast"
@@ -41,7 +42,11 @@ export function AddEntryDialog({ accounts }: { accounts: Account[] }) {
   const [selectedAccountId, setSelectedAccountId] = useState("")
 
   const selectedAccount = accounts.find(acc => acc.id === selectedAccountId)
-  const today = new Date().toISOString().split("T")[0]
+  // `new Date().toISOString()` is UTC, so for anyone east of UTC this used to
+  // pre-fill yesterday's date in the small hours — and filed the entry against
+  // the wrong day. todayKey() resolves in the app's timezone on both the server
+  // render and the client, so there is no hydration mismatch either.
+  const today = todayKey()
 
   async function handleSubmit(formData: FormData) {
     setLoading(true)

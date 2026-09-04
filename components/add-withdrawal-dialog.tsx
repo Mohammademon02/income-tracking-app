@@ -22,6 +22,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { getAvatarGradient } from "@/lib/avatar-utils"
+import { todayKey } from "@/lib/date-utils"
 import { Plus } from "lucide-react"
 import { createWithdrawal } from "@/app/actions/withdrawals"
 import { toast } from "sonner"
@@ -41,7 +42,8 @@ export function AddWithdrawalDialog({ accounts }: { accounts: Account[] }) {
   const [selectedAccountId, setSelectedAccountId] = useState("")
 
   const selectedAccount = accounts.find(acc => acc.id === selectedAccountId)
-  const today = new Date().toISOString().split("T")[0]
+  // Resolved in the app's timezone rather than UTC — see add-entry-dialog.
+  const today = todayKey()
 
   async function handleSubmit(formData: FormData) {
     setLoading(true)

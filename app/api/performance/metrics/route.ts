@@ -1,149 +1,162 @@
 import { NextResponse } from "next/server"
-import { verifySession } from "@/lib/auth"
+
+import { getApiSession, serverError, unauthorized } from "@/lib/api-utils"
+import {
+  addDays,
+  daysElapsedInMonth,
+  lastNDays,
+  monthRangeOf,
+  toDateKey,
+  todayKey,
+} from "@/lib/date-utils"
 import { prisma } from "@/lib/prisma"
+import { getSettings } from "@/lib/settings"
+
+const STREAK_LOOKBACK_DAYS = 30
+const CONSISTENCY_TARGET_DAYS = 7
 
 export async function GET() {
   try {
-    const session = await verifySession()
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
+    const session = await getApiSession()
+    if (!session) return unauthorized()
 
-    // Get date ranges
-    const now = new Date()
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-    const lastWeek = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000)
-    const twoWeeksAgo = new Date(today.getTime() - 14 * 24 * 60 * 60 * 1000)
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+    const today = todayKey()
 
-    // Get all entries for calculations
-    const [
-      allEntries,
-      thisWeekEntries,
-      lastWeekEntries,
-      thisMonthEntries,
-      accounts
-    ] = await Promise.all([
-      prisma.dailyEntry.findMany({
-        include: { account: { select: { name: true } } },
-        orderBy: { date: 'desc' }
-      }),
-      prisma.dailyEntry.findMany({
-        where: { date: { gte: lastWeek } },
-        select: { points: true, date: true }
-      }),
-      prisma.dailyEntry.findMany({
-        where: { 
-          date: { 
-            gte: twoWeeksAgo,
-            lt: lastWeek
-          }
-        },
-        select: { points: true }
-      }),
-      prisma.dailyEntry.findMany({
-        where: { date: { gte: monthStart } },
-        select: { points: true }
-      }),
-      prisma.account.findMany({
-        include: {
-          entries: {
-            select: { points: true }
-          }
-        }
-      })
-    ])
+    // Two 7-day windows that do not overlap and are both closed at the top.
+    // The previous version compared `>= lastWeek` (7 days plus today plus any
+    // future-dated rows) against an exactly-7-day window, which gave the
+    // weekly trend a permanent upward bias.
+    const thisWeek = lastNDays(7, today)
+    const previousWeek = lastNDays(7, addDays(today, -7))
 
-    // Calculate daily average (last 30 days) - Simple approach
-    const last30Days = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
-    const last30DaysEntries = allEntries.filter(entry => 
-      new Date(entry.date) >= last30Days
+    const [dailyTotals, accountTotals, thisMonthAgg, thisWeekAgg, previousWeekAgg, settings] =
+      await Promise.all([
+        // One row per date, rather than every entry — enough for the streak,
+        // the 30-day average and the active-day count.
+        prisma.dailyEntry.groupBy({
+          by: ["date"],
+          _sum: { points: true },
+          orderBy: { date: "desc" },
+        }),
+        prisma.dailyEntry.groupBy({
+          by: ["accountId"],
+          _sum: { points: true },
+        }),
+        prisma.dailyEntry.aggregate({
+          where: { date: monthRangeOf(today) },
+          _sum: { points: true },
+        }),
+        prisma.dailyEntry.aggregate({
+          where: { date: thisWeek },
+          _sum: { points: true },
+        }),
+        prisma.dailyEntry.aggregate({
+          where: { date: previousWeek },
+          _sum: { points: true },
+        }),
+        getSettings(),
+      ])
+
+    /** Points keyed by calendar date, newest first. */
+    const totalsByDate = new Map(
+      dailyTotals.map((row) => [toDateKey(row.date), row._sum.points ?? 0])
     )
-    
-    // Simple calculation: Total points in last 30 days ÷ 30
-    const totalPointsLast30Days = last30DaysEntries.reduce((sum, entry) => sum + entry.points, 0)
-    const dailyAverage = Math.round(totalPointsLast30Days / 30)
-    
-    // Calculate active days for efficiency calculation
-    const activeDaysInLast30 = new Set(
-      last30DaysEntries.map(entry => entry.date.toISOString().split('T')[0])
-    ).size
 
-    // Calculate weekly trend
-    const thisWeekTotal = thisWeekEntries.reduce((sum, entry) => sum + entry.points, 0)
-    const lastWeekTotal = lastWeekEntries.reduce((sum, entry) => sum + entry.points, 0)
-    const weeklyTrend = lastWeekTotal > 0 
-      ? ((thisWeekTotal - lastWeekTotal) / lastWeekTotal) * 100
-      : 0
+    // --- Daily average over the last 30 days ------------------------------
+    const window = lastNDays(30, today)
+    const windowStartKey = toDateKey(window.gte)
 
-    // Calculate monthly goal progress (default target, can be customized in settings)
-    const monthlyGoal = 14000 // This will be overridden by frontend with user's custom target
-    const thisMonthTotal = thisMonthEntries.reduce((sum, entry) => sum + entry.points, 0)
-    const monthlyGoalProgress = Math.min((thisMonthTotal / monthlyGoal) * 100, 100)
-
-    // Calculate streak days
-    const sortedEntries = allEntries.sort((a, b) => 
-      new Date(b.date).getTime() - new Date(a.date).getTime()
-    )
-    
-    let streakDays = 0
-    let currentDate = new Date(today)
-    
-    for (let i = 0; i < 30; i++) { // Check last 30 days max
-      const dateKey = currentDate.toISOString().split('T')[0]
-      const hasEntry = sortedEntries.some(entry => 
-        entry.date.toISOString().split('T')[0] === dateKey
-      )
-      
-      if (hasEntry) {
-        streakDays++
-        currentDate.setDate(currentDate.getDate() - 1)
-      } else {
-        break
+    let pointsInWindow = 0
+    let activeDaysInWindow = 0
+    for (const [dateKey, points] of totalsByDate) {
+      if (dateKey >= windowStartKey && dateKey <= today) {
+        pointsInWindow += points
+        activeDaysInWindow += 1
       }
     }
 
-    // Find top performing account
-    const accountTotals = accounts.map(account => ({
-      name: account.name,
-      total: account.entries.reduce((sum, entry) => sum + entry.points, 0)
-    }))
-    
-    const topPerformingAccount = accountTotals.length > 0
-      ? accountTotals.reduce((max, account) => 
-          account.total > max.total ? account : max
-        ).name
-      : "No accounts"
+    // Divide by the days the user has actually been tracking, capped at the
+    // window. Always dividing by 30 made a brand-new account with three good
+    // days look like it was averaging almost nothing.
+    const earliestKey = dailyTotals.length
+      ? toDateKey(dailyTotals[dailyTotals.length - 1].date)
+      : null
+    const daysTracked = earliestKey
+      ? Math.min(30, Math.max(1, daySpan(maxKey(earliestKey, windowStartKey), today)))
+      : 0
+    const dailyAverage = daysTracked > 0 ? Math.round(pointsInWindow / daysTracked) : 0
 
-    // Calculate efficiency score (based on consistency, goal achievement, etc.)
-    const consistencyScore = Math.min((streakDays / 7) * 100, 100) // Max 7 days for full score
-    const goalScore = monthlyGoalProgress
-    
-    // Calculate activity score based on entries in last 30 days
-    const activityScore = Math.min((activeDaysInLast30 / 30) * 100, 100)
-    
-    const efficiency = Math.round((consistencyScore + goalScore + activityScore) / 3)
+    // --- Weekly trend ------------------------------------------------------
+    const thisWeekTotal = thisWeekAgg._sum.points ?? 0
+    const previousWeekTotal = previousWeekAgg._sum.points ?? 0
+    const weeklyTrend =
+      previousWeekTotal > 0
+        ? ((thisWeekTotal - previousWeekTotal) / previousWeekTotal) * 100
+        : 0
+
+    // --- Monthly goal ------------------------------------------------------
+    // Read from settings instead of the hardcoded 14000 that used to sit here,
+    // which matched neither the schema default (60000) nor whatever the user
+    // had configured — so this number and the dashboard disagreed.
+    const monthlyGoal = settings.monthlyGoalPoints
+    const thisMonthTotal = thisMonthAgg._sum.points ?? 0
+    const monthlyGoalProgress =
+      monthlyGoal > 0 ? Math.min((thisMonthTotal / monthlyGoal) * 100, 100) : 0
+
+    // --- Streak ------------------------------------------------------------
+    let streakDays = 0
+    let cursor = today
+    for (let i = 0; i < STREAK_LOOKBACK_DAYS; i++) {
+      if (!totalsByDate.has(cursor)) break
+      streakDays += 1
+      cursor = addDays(cursor, -1)
+    }
+
+    // --- Top performing account -------------------------------------------
+    // "Performing" means points earned, so this is lifetime points and not the
+    // available balance — a different question with a different answer.
+    let topPerformingAccount = "No accounts"
+    if (accountTotals.length > 0) {
+      const best = accountTotals.reduce((max, row) =>
+        (row._sum.points ?? 0) > (max._sum.points ?? 0) ? row : max
+      )
+      const account = await prisma.account.findUnique({
+        where: { id: best.accountId },
+        select: { name: true },
+      })
+      topPerformingAccount = account?.name ?? "No accounts"
+    }
+
+    // --- Efficiency --------------------------------------------------------
+    const consistencyScore = Math.min((streakDays / CONSISTENCY_TARGET_DAYS) * 100, 100)
+    const activityScore =
+      daysTracked > 0 ? Math.min((activeDaysInWindow / daysTracked) * 100, 100) : 0
+    const efficiency = Math.round((consistencyScore + monthlyGoalProgress + activityScore) / 3)
 
     return NextResponse.json({
-      dailyAverage: dailyAverage,
-      weeklyTrend: Math.round(weeklyTrend * 10) / 10, // Round to 1 decimal
+      dailyAverage,
+      weeklyTrend: Math.round(weeklyTrend * 10) / 10,
       monthlyGoalProgress: Math.round(monthlyGoalProgress),
+      monthlyGoal,
+      thisMonthPoints: thisMonthTotal,
+      daysElapsedThisMonth: daysElapsedInMonth(today),
       streakDays,
       topPerformingAccount,
-      efficiency
+      efficiency,
     })
-
   } catch (error) {
-    console.error("Error fetching performance metrics:", error)
-    
-    // Return default values if there's an error
-    return NextResponse.json({
-      dailyAverage: 0,
-      weeklyTrend: 0,
-      monthlyGoalProgress: 0,
-      streakDays: 0,
-      topPerformingAccount: "No data",
-      efficiency: 0
-    })
+    // A failure is reported as a failure. Returning zeros here, as this used
+    // to, renders a database outage as "you earned nothing".
+    return serverError("performance metrics", error)
   }
+}
+
+/** Inclusive day count between two calendar dates. */
+function daySpan(from: string, to: string): number {
+  const ms = Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)
+  return Math.round(ms / (24 * 60 * 60 * 1000)) + 1
+}
+
+function maxKey(a: string, b: string): string {
+  return a > b ? a : b
 }

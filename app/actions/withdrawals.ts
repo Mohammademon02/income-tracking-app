@@ -1,12 +1,27 @@
 "use server"
 
-import { prisma } from "@/lib/prisma"
-import { verifySession } from "@/lib/auth"
 import { revalidatePath } from "next/cache"
 
+import { dateKeyToDate, todayKey } from "@/lib/date-utils"
+import { pointsToDollars } from "@/lib/money"
+import { prisma } from "@/lib/prisma"
+import { type ActionResult, requireSession, toActionError } from "@/lib/server-utils"
+import { createWithdrawalSchema, parseFormData, updateWithdrawalSchema } from "@/lib/validation"
+
+/** Pages whose data changes whenever a withdrawal does. */
+const WITHDRAWAL_PATHS = [
+  "/dashboard",
+  "/withdrawals",
+  "/withdrawals-reports",
+  "/reports",
+] as const
+
+function revalidateWithdrawalPaths() {
+  for (const path of WITHDRAWAL_PATHS) revalidatePath(path, "page")
+}
+
 export async function getWithdrawals(accountId?: string) {
-  const session = await verifySession()
-  if (!session) throw new Error("Unauthorized")
+  await requireSession()
 
   const withdrawals = await prisma.withdrawal.findMany({
     where: accountId ? { accountId } : undefined,
@@ -28,8 +43,7 @@ export async function getWithdrawals(accountId?: string) {
 
 /** Fetch only the N most recent withdrawals — used by the dashboard. */
 export async function getRecentWithdrawals(take = 5) {
-  const session = await verifySession()
-  if (!session) throw new Error("Unauthorized")
+  await requireSession()
 
   const withdrawals = await prisma.withdrawal.findMany({
     take,
@@ -51,8 +65,7 @@ export async function getRecentWithdrawals(take = 5) {
 
 /** Fetch only pending withdrawals — used by the dashboard pending card. */
 export async function getPendingWithdrawals() {
-  const session = await verifySession()
-  if (!session) throw new Error("Unauthorized")
+  await requireSession()
 
   const withdrawals = await prisma.withdrawal.findMany({
     where: { status: "PENDING" },
@@ -72,112 +85,109 @@ export async function getPendingWithdrawals() {
   }))
 }
 
-export async function createWithdrawal(formData: FormData) {
-  const session = await verifySession()
-  if (!session) throw new Error("Unauthorized")
+export async function createWithdrawal(formData: FormData): Promise<ActionResult> {
+  await requireSession()
 
-  const accountId = formData.get("accountId") as string
-  const date = formData.get("date") as string
-  const pointsAmount = parseFloat(formData.get("amount") as string)
-  const status = (formData.get("status") as "PENDING" | "COMPLETED") || "PENDING"
+  const parsed = parseFormData(createWithdrawalSchema, formData)
+  if (!parsed.ok) return { success: false, error: parsed.error }
 
-  if (!accountId || !date || isNaN(pointsAmount)) {
-    return { error: "All fields are required" }
+  const { accountId, date, amount, status, completedDate } = parsed.data
+
+  // The form collects points; the column stores dollars.
+  const dollarAmount = pointsToDollars(amount)
+
+  // A withdrawal created as COMPLETED still needs completedAt — every monthly
+  // report filters on that column, so leaving it null (as this used to) meant
+  // the withdrawal never appeared in any report at all.
+  //
+  // When no completion date is given, the request date is used rather than
+  // today: creating an already-completed withdrawal is back-filling history,
+  // and dating it today would file an old payout into the current month.
+  const completedAt =
+    status === "COMPLETED" ? dateKeyToDate(completedDate ?? date) : null
+
+  try {
+    await prisma.withdrawal.create({
+      data: {
+        accountId,
+        date: dateKeyToDate(date),
+        amount: dollarAmount,
+        status,
+        completedAt,
+      },
+    })
+  } catch (error) {
+    return toActionError(error, "Failed to save the withdrawal.")
   }
 
-  // Convert points to dollars (100 points = $1)
-  const dollarAmount = pointsAmount / 100
-
-  await prisma.withdrawal.create({
-    data: {
-      accountId,
-      date: new Date(date),
-      amount: dollarAmount,
-      status,
-    },
-  })
-
-  revalidatePath("/dashboard", "page")
-  revalidatePath("/withdrawals", "page")
-  revalidatePath("/withdrawals-reports", "page")
+  revalidateWithdrawalPaths()
 
   return { success: true }
 }
 
-export async function updateWithdrawal(id: string, formData: FormData) {
-  const session = await verifySession()
-  if (!session) throw new Error("Unauthorized")
+export async function updateWithdrawal(id: string, formData: FormData): Promise<ActionResult> {
+  await requireSession()
 
-  const accountId = formData.get("accountId") as string
-  const date = formData.get("date") as string
-  const pointsAmount = parseFloat(formData.get("amount") as string)
-  const status = formData.get("status") as "PENDING" | "COMPLETED"
-  const completedDate = formData.get("completedDate") as string
+  const parsed = parseFormData(updateWithdrawalSchema, formData)
+  if (!parsed.ok) return { success: false, error: parsed.error }
 
-  if (!accountId || !date || isNaN(pointsAmount) || !status) {
-    return { error: "All fields are required" }
-  }
+  const { accountId, date, amount, status, completedDate } = parsed.data
 
-  // Convert points to dollars (100 points = $1)
-  const dollarAmount = pointsAmount / 100
+  const dollarAmount = pointsToDollars(amount)
 
-  // Get current withdrawal only to check status change for completedAt logic
-  const currentWithdrawal = await prisma.withdrawal.findUnique({
+  const current = await prisma.withdrawal.findUnique({
     where: { id },
-    select: { status: true },
+    select: { status: true, completedAt: true },
   })
 
-  if (!currentWithdrawal) {
-    return { error: "Withdrawal not found" }
+  if (!current) {
+    return { success: false, error: "Withdrawal not found" }
   }
 
-  const updateData: {
-    accountId: string
-    date: Date
-    amount: number
-    status: "PENDING" | "COMPLETED"
-    completedAt?: Date | null
-  } = {
-    accountId,
-    date: new Date(date),
-    amount: dollarAmount,
-    status,
-  }
-
-  // Handle completion date logic
+  let completedAt: Date | null = current.completedAt
   if (status === "COMPLETED") {
     if (completedDate) {
-      updateData.completedAt = new Date(completedDate)
-    } else if (currentWithdrawal.status !== "COMPLETED") {
-      updateData.completedAt = new Date()
+      completedAt = dateKeyToDate(completedDate)
+    } else if (current.status !== "COMPLETED") {
+      // Newly completed with no date supplied: it landed today.
+      completedAt = dateKeyToDate(todayKey())
     }
-  } else if (status === "PENDING") {
-    updateData.completedAt = null
+  } else {
+    completedAt = null
   }
 
-  await prisma.withdrawal.update({
-    where: { id },
-    data: updateData,
-  })
+  try {
+    await prisma.withdrawal.update({
+      where: { id },
+      data: {
+        accountId,
+        date: dateKeyToDate(date),
+        amount: dollarAmount,
+        status,
+        completedAt,
+      },
+    })
+  } catch (error) {
+    return toActionError(error, "Failed to update the withdrawal.")
+  }
 
-  revalidatePath("/dashboard", "page")
-  revalidatePath("/withdrawals", "page")
-  revalidatePath("/withdrawals-reports", "page")
+  revalidateWithdrawalPaths()
 
   return { success: true }
 }
 
-export async function deleteWithdrawal(id: string) {
-  const session = await verifySession()
-  if (!session) throw new Error("Unauthorized")
+export async function deleteWithdrawal(id: string): Promise<ActionResult> {
+  await requireSession()
 
-  await prisma.withdrawal.delete({
-    where: { id },
-  })
+  try {
+    await prisma.withdrawal.delete({
+      where: { id },
+    })
+  } catch (error) {
+    return toActionError(error, "Failed to delete the withdrawal.")
+  }
 
-  revalidatePath("/dashboard", "page")
-  revalidatePath("/withdrawals", "page")
-  revalidatePath("/withdrawals-reports", "page")
+  revalidateWithdrawalPaths()
 
   return { success: true }
 }

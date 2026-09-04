@@ -1,12 +1,33 @@
 "use server"
 
-import { prisma } from "@/lib/prisma"
-import { verifySession } from "@/lib/auth"
 import { revalidatePath } from "next/cache"
 
+import { computeBalance } from "@/lib/money"
+import { prisma } from "@/lib/prisma"
+import { type ActionResult, requireSession, toActionError } from "@/lib/server-utils"
+import { createAccountSchema, parseFormData, updateAccountSchema } from "@/lib/validation"
+
+/**
+ * Deleting an account cascades to its entries and withdrawals (see the
+ * `onDelete: Cascade` relations in schema.prisma), so every page that reads
+ * either of those has to be revalidated too — not just the account pages.
+ */
+const ACCOUNT_PATHS = [
+  "/dashboard",
+  "/accounts",
+  "/entries",
+  "/daily-earnings",
+  "/withdrawals",
+  "/withdrawals-reports",
+  "/reports",
+] as const
+
+function revalidateAccountPaths() {
+  for (const path of ACCOUNT_PATHS) revalidatePath(path, "page")
+}
+
 export async function getAccounts() {
-  const session = await verifySession()
-  if (!session) throw new Error("Unauthorized")
+  await requireSession()
 
   // Use aggregation instead of loading all entries/withdrawals into memory
   const accounts = await prisma.account.findMany({
@@ -44,100 +65,83 @@ export async function getAccounts() {
   }
 
   return accounts.map((account) => {
-    const totalPoints = entryPointsMap.get(account.id) ?? 0
     const completedWithdrawals = completedMap.get(account.id) ?? 0
     const pendingWithdrawals = pendingMap.get(account.id) ?? 0
 
-    const completedWithdrawalsInPoints = completedWithdrawals * 100
-    const pendingWithdrawalsInPoints = pendingWithdrawals * 100
+    // One shared definition of balance, so this page, insights and the
+    // performance card can no longer disagree about the same account.
+    const balance = computeBalance({
+      lifetimePoints: entryPointsMap.get(account.id) ?? 0,
+      completedDollars: completedWithdrawals,
+      pendingDollars: pendingWithdrawals,
+    })
 
     return {
       id: account.id,
       name: account.name,
       color: account.color || "blue",
-      totalPoints,
+      totalPoints: balance.lifetimePoints,
       completedWithdrawals,
       pendingWithdrawals,
-      currentBalance: totalPoints - completedWithdrawalsInPoints - pendingWithdrawalsInPoints,
+      currentBalance: balance.availablePoints,
+      entriesCount: account._count.entries,
+      withdrawalsCount: account._count.withdrawals,
       createdAt: account.createdAt,
     }
   })
 }
 
-export async function createAccount(formData: FormData) {
-  const session = await verifySession()
-  if (!session) throw new Error("Unauthorized")
+export async function createAccount(formData: FormData): Promise<ActionResult> {
+  await requireSession()
 
-  const name = formData.get("name") as string
-  const color = (formData.get("color") as string) || "blue"
+  const parsed = parseFormData(createAccountSchema, formData)
+  if (!parsed.ok) return { success: false, error: parsed.error }
 
-  if (!name || name.trim() === "") {
-    return { error: "Account name is required" }
+  try {
+    await prisma.account.create({
+      data: parsed.data,
+    })
+  } catch (error) {
+    return toActionError(error, "Failed to create the account.")
   }
 
-  await prisma.account.create({
-    data: {
-      name: name.trim(),
-      color,
-    },
-  })
-
-  revalidatePath("/dashboard", "page")
-  revalidatePath("/accounts", "page")
-  revalidatePath("/entries", "page")
+  revalidateAccountPaths()
 
   return { success: true }
 }
 
-export async function updateAccount(id: string, formData: FormData) {
-  const session = await verifySession()
-  if (!session) throw new Error("Unauthorized")
+export async function updateAccount(id: string, formData: FormData): Promise<ActionResult> {
+  await requireSession()
 
-  const name = formData.get("name") as string
-  const color = (formData.get("color") as string) || "blue"
-
-  if (!name || name.trim() === "") {
-    return { error: "Account name is required" }
-  }
+  const parsed = parseFormData(updateAccountSchema, formData)
+  if (!parsed.ok) return { success: false, error: parsed.error }
 
   try {
     await prisma.account.update({
       where: { id },
-      data: {
-        name: name.trim(),
-        color,
-      },
+      data: parsed.data,
     })
-
-    revalidatePath("/dashboard", "page")
-    revalidatePath("/accounts", "page")
-    revalidatePath("/entries", "page")
-
-    return { success: true }
   } catch (error) {
-    // Prisma error code P2025 = record not found
-    if (
-      error instanceof Error &&
-      (error.message.includes("P2025") || error.message.includes("not found"))
-    ) {
-      return { error: "Account not found" }
-    }
-    return {
-      error: `Failed to update account: ${error instanceof Error ? error.message : "Unknown error"
-        }`,
-    }
+    return toActionError(error, "Failed to update the account.")
   }
+
+  revalidateAccountPaths()
+
+  return { success: true }
 }
 
-export async function deleteAccount(id: string) {
-  const session = await verifySession()
-  if (!session) throw new Error("Unauthorized")
+export async function deleteAccount(id: string): Promise<ActionResult> {
+  await requireSession()
 
-  await prisma.account.delete({
-    where: { id },
-  })
+  try {
+    await prisma.account.delete({
+      where: { id },
+    })
+  } catch (error) {
+    return toActionError(error, "Failed to delete the account.")
+  }
 
-  revalidatePath("/dashboard", "page")
-  revalidatePath("/accounts", "page")
+  revalidateAccountPaths()
+
   return { success: true }
 }
