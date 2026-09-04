@@ -1,6 +1,6 @@
 import React from "react"
 import type { Metadata, Viewport } from 'next'
-import { Geist, Geist_Mono } from 'next/font/google'
+import { Geist, Geist_Mono, Instrument_Sans } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { Toaster } from 'sonner'
 import './globals.css'
@@ -21,12 +21,28 @@ const geistMono = Geist_Mono({
   display: "swap",
 })
 
+/**
+ * The display face, used only by headings and by the number scale in
+ * globals.css. It is loaded at two weights rather than as a variable range
+ * because nothing in the app sets a display weight between them, and the two
+ * static cuts are a smaller download than the full axis.
+ */
+const instrumentSans = Instrument_Sans({
+  subsets: ["latin"],
+  weight: ["500", "600"],
+  variable: "--font-instrument-sans",
+  display: "swap",
+})
+
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
-    { media: '(prefers-color-scheme: dark)', color: '#111113' },
+    // The browser chrome and the PWA splash have to match --surface-0, or the
+    // app opens with a seam across the top. These are the sRGB equivalents of
+    // the two oklch values in globals.css; they need updating together.
+    { media: '(prefers-color-scheme: light)', color: '#fafbfc' },
+    { media: '(prefers-color-scheme: dark)', color: '#0e1116' },
   ],
   viewportFit: 'cover',
 }
@@ -62,7 +78,11 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={`${geist.variable} ${geistMono.variable}`} suppressHydrationWarning>
+    <html
+      lang="en"
+      className={`${geist.variable} ${geistMono.variable} ${instrumentSans.variable}`}
+      suppressHydrationWarning
+    >
       <head>
         <meta name="application-name" content="SurvTrack" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -70,7 +90,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="SurvTrack" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="msapplication-config" content="/browserconfig.xml" />
-        <meta name="msapplication-TileColor" content="#2563eb" />
+        <meta name="msapplication-TileColor" content="#0e1116" />
         <meta name="msapplication-tap-highlight" content="no" />
         
         <link rel="apple-touch-icon" href="/icon-192x192.png" />
@@ -84,7 +104,10 @@ export default function RootLayout({
         <link rel="shortcut icon" href="/favicon.ico" />
       </head>
       <body className="font-sans antialiased">
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+        {/* Dark is the default a first-time visitor lands on, not the only
+            option: `enableSystem` keeps "System" selectable in the theme menu,
+            and a stored choice still wins over this. */}
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
           <AccessibilityProvider>
           <ErrorBoundary>
             {children}

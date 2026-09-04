@@ -45,7 +45,7 @@ export function StatCard({
     <Card className={cn("py-0", className)}>
       <CardContent className="flex items-start justify-between gap-4 p-5">
         <div className="min-w-0 space-y-1.5">
-          <p className="text-sm font-medium text-muted-foreground">{label}</p>
+          <p className="label-caps">{label}</p>
           <p className={cn("metric", TONE_CLASS[tone])}>{value}</p>
           {hint ? <p className="text-xs text-muted-foreground">{hint}</p> : null}
           {typeof trend === "number" ? (

@@ -11,124 +11,195 @@
  * carried 1,645 hardcoded Tailwind palette classes against 17 semantic ones.
  *
  * Everything visual now resolves from these tokens, which is what makes dark
- * mode work at all.
+ * mode work at all — and what makes a redesign a change to this file rather
+ * than a change to eighty components.
+ *
+ * The palette is dark-first. Not because light mode is an afterthought, but
+ * because the decisions it encodes — a surface ladder instead of borders, a
+ * single high-chroma accent — are made against ink and then mirrored into
+ * light, rather than the other way around.
  */
 
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Surfaces. A very slightly warm off-white reads softer than pure #fff
-     without looking tinted. */
-  --background: oklch(0.994 0.001 106);
-  --foreground: oklch(0.21 0.006 285);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.21 0.006 285);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.21 0.006 285);
+  /*
+   * Surfaces.
+   *
+   * A four-step ladder replaces the old background/card/popover trio. The old
+   * set had no way to express "raised above a card" — hover states and modals
+   * both landed on --card and were separated by drawing a border around them.
+   * Depth now comes from lightness, which is how depth reads in dark mode; the
+   * border is a hairline that finishes an edge, not the thing that creates it.
+   *
+   * Light mode is a cool white rather than a warm one, so that switching themes
+   * moves along one hue family instead of crossing from warm paper to cool ink.
+   */
+  --surface-0: oklch(0.986 0.003 265);
+  --surface-1: oklch(1 0 0);
+  --surface-2: oklch(0.966 0.005 265);
+  --surface-3: oklch(1 0 0);
 
-  /* Brand. The token set shipped as neutral greyscale, which is precisely why
-     every component reached for blue-500 by hand. Giving --primary a real hue
-     removes that reason. */
-  --primary: oklch(0.55 0.196 264);
-  --primary-foreground: oklch(0.985 0 0);
+  --background: var(--surface-0);
+  --foreground: oklch(0.21 0.015 265);
+  --card: var(--surface-1);
+  --card-foreground: oklch(0.21 0.015 265);
+  --popover: var(--surface-3);
+  --popover-foreground: oklch(0.21 0.015 265);
 
-  --secondary: oklch(0.968 0.002 286);
-  --secondary-foreground: oklch(0.21 0.006 285);
-  --muted: oklch(0.968 0.002 286);
-  --muted-foreground: oklch(0.552 0.014 286);
-  --accent: oklch(0.968 0.002 286);
-  --accent-foreground: oklch(0.21 0.006 285);
+  /*
+   * Brand.
+   *
+   * Mint, not blue. Blue is what a component library ships when it has not
+   * decided anything, and every dashboard on the internet is wearing it. Mint
+   * reads as money without being the literal spreadsheet green, and it is the
+   * one saturated hue in the system — reserved for money-positive values, the
+   * active nav item, and the primary action. Spending it anywhere else is what
+   * makes an accent look cheap.
+   *
+   * Light mode drops it to L 0.52 so white text on a primary button clears AA.
+   * The bright L 0.82 version below only works against ink.
+   */
+  --primary: oklch(0.52 0.125 160);
+  --primary-foreground: oklch(0.99 0 0);
 
-  /* Status. Withdrawal state was expressed as literal green/orange in dozens
-     of places; naming it means one edit changes it everywhere, and dark mode
-     can adjust the lightness without touching a single component. */
-  --success: oklch(0.596 0.145 163);
-  --success-foreground: oklch(0.985 0 0);
-  --success-muted: oklch(0.955 0.035 163);
-  --warning: oklch(0.685 0.162 65);
-  --warning-foreground: oklch(0.21 0.006 285);
-  --warning-muted: oklch(0.96 0.045 80);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.966 0.005 265);
+  --secondary-foreground: oklch(0.21 0.015 265);
+  --muted: oklch(0.966 0.005 265);
+  --muted-foreground: oklch(0.53 0.018 265);
+  --accent: oklch(0.966 0.005 265);
+  --accent-foreground: oklch(0.21 0.015 265);
+
+  /*
+   * Status.
+   *
+   * Success sits in the same hue family as the brand deliberately: in an
+   * earnings app the primary action and the positive outcome are the same idea.
+   * It carries less chroma than --primary so a "Completed" badge does not
+   * compete with a call to action sitting beside it.
+   */
+  --success: oklch(0.55 0.115 160);
+  --success-foreground: oklch(0.99 0 0);
+  --success-muted: oklch(0.955 0.035 160);
+  --warning: oklch(0.66 0.145 72);
+  --warning-foreground: oklch(0.21 0.015 265);
+  --warning-muted: oklch(0.958 0.045 82);
+  --destructive: oklch(0.575 0.225 25);
+  --destructive-foreground: oklch(0.99 0 0);
   --destructive-muted: oklch(0.955 0.03 25);
 
-  --border: oklch(0.918 0.004 286);
-  --input: oklch(0.918 0.004 286);
-  --ring: oklch(0.55 0.196 264);
+  /*
+   * Borders. --border is a hairline that finishes an edge; --border-strong is
+   * for the places that genuinely need to read as a rule — a table header
+   * underline, an input outline — which were previously done either by stacking
+   * two --border values or by reaching into the Tailwind greys.
+   */
+  --border: oklch(0.926 0.005 265);
+  --border-strong: oklch(0.872 0.007 265);
+  --input: oklch(0.9 0.006 265);
+  --ring: oklch(0.52 0.125 160);
 
-  /* Charts. A single hue family with varying lightness reads as one system,
-     rather than the seven unrelated hex values the charts used before. */
-  --chart-1: oklch(0.55 0.196 264);
-  --chart-2: oklch(0.596 0.145 163);
-  --chart-3: oklch(0.685 0.162 65);
-  --chart-4: oklch(0.627 0.203 304);
-  --chart-5: oklch(0.645 0.19 16);
+  /*
+   * Charts. Anchored on the brand mint, then stepped far enough around the
+   * wheel to stay separable — including for the red/green confusions, which is
+   * why the second series is a blue rather than another green.
+   */
+  --chart-1: oklch(0.55 0.13 160);
+  --chart-2: oklch(0.55 0.16 255);
+  --chart-3: oklch(0.66 0.145 72);
+  --chart-4: oklch(0.58 0.2 305);
+  --chart-5: oklch(0.62 0.17 25);
 
-  --sidebar: oklch(0.988 0.001 106);
-  --sidebar-foreground: oklch(0.21 0.006 285);
-  --sidebar-primary: oklch(0.55 0.196 264);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.968 0.002 286);
-  --sidebar-accent-foreground: oklch(0.21 0.006 285);
-  --sidebar-border: oklch(0.918 0.004 286);
-  --sidebar-ring: oklch(0.55 0.196 264);
+  --sidebar: oklch(0.973 0.004 265);
+  --sidebar-foreground: oklch(0.21 0.015 265);
+  --sidebar-primary: oklch(0.52 0.125 160);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.94 0.006 265);
+  --sidebar-accent-foreground: oklch(0.21 0.015 265);
+  --sidebar-border: oklch(0.926 0.005 265);
+  --sidebar-ring: oklch(0.52 0.125 160);
 
-  --radius: 0.625rem;
+  --radius: 0.75rem;
 }
 
 .dark {
-  --background: oklch(0.166 0.004 286);
-  --foreground: oklch(0.967 0.001 286);
-  --card: oklch(0.204 0.005 286);
-  --card-foreground: oklch(0.967 0.001 286);
-  --popover: oklch(0.204 0.005 286);
-  --popover-foreground: oklch(0.967 0.001 286);
+  /*
+   * Ink, not grey. The previous dark palette was hue-neutral (chroma 0.004),
+   * which flattens: with no hue there is nothing for the eye to read depth
+   * against, so every surface looked like the same sheet at a different
+   * exposure. A small blue cast — enough to feel, not enough to name — gives
+   * the ladder somewhere to go.
+   */
+  --surface-0: oklch(0.148 0.011 265);
+  --surface-1: oklch(0.186 0.012 265);
+  --surface-2: oklch(0.222 0.013 265);
+  --surface-3: oklch(0.248 0.014 265);
 
-  /* Lifted, not just inverted: a mid-tone blue on a dark ground loses contrast,
-     so the brand hue moves up in lightness while keeping its chroma. */
-  --primary: oklch(0.68 0.166 264);
-  --primary-foreground: oklch(0.166 0.004 286);
+  --background: var(--surface-0);
+  --foreground: oklch(0.965 0.004 265);
+  --card: var(--surface-1);
+  --card-foreground: oklch(0.965 0.004 265);
+  --popover: var(--surface-3);
+  --popover-foreground: oklch(0.965 0.004 265);
 
-  --secondary: oklch(0.268 0.006 286);
-  --secondary-foreground: oklch(0.967 0.001 286);
-  --muted: oklch(0.268 0.006 286);
-  --muted-foreground: oklch(0.712 0.013 286);
-  --accent: oklch(0.284 0.007 286);
-  --accent-foreground: oklch(0.967 0.001 286);
+  /* Lifted, not inverted: a mid-tone accent on a dark ground loses contrast, so
+     the hue climbs in lightness while keeping its chroma. At L 0.82 the mint
+     clears AA against every surface in the ladder. */
+  --primary: oklch(0.82 0.175 160);
+  --primary-foreground: oklch(0.17 0.03 160);
 
-  --success: oklch(0.7 0.14 163);
-  --success-foreground: oklch(0.166 0.004 286);
-  --success-muted: oklch(0.28 0.05 163);
-  --warning: oklch(0.78 0.145 70);
-  --warning-foreground: oklch(0.166 0.004 286);
-  --warning-muted: oklch(0.3 0.05 70);
-  --destructive: oklch(0.674 0.19 22);
-  --destructive-foreground: oklch(0.166 0.004 286);
-  --destructive-muted: oklch(0.29 0.06 22);
+  --secondary: oklch(0.222 0.013 265);
+  --secondary-foreground: oklch(0.965 0.004 265);
+  --muted: oklch(0.222 0.013 265);
+  --muted-foreground: oklch(0.705 0.016 265);
+  --accent: oklch(0.248 0.014 265);
+  --accent-foreground: oklch(0.965 0.004 265);
 
-  --border: oklch(0.29 0.006 286);
-  --input: oklch(0.31 0.006 286);
-  --ring: oklch(0.68 0.166 264);
+  --success: oklch(0.79 0.155 160);
+  --success-foreground: oklch(0.17 0.03 160);
+  --success-muted: oklch(0.28 0.055 160);
+  --warning: oklch(0.81 0.15 78);
+  --warning-foreground: oklch(0.17 0.02 78);
+  --warning-muted: oklch(0.3 0.05 78);
+  --destructive: oklch(0.7 0.185 22);
+  --destructive-foreground: oklch(0.17 0.02 22);
+  --destructive-muted: oklch(0.3 0.07 22);
 
-  --chart-1: oklch(0.68 0.166 264);
-  --chart-2: oklch(0.7 0.14 163);
-  --chart-3: oklch(0.78 0.145 70);
-  --chart-4: oklch(0.72 0.176 304);
-  --chart-5: oklch(0.71 0.17 16);
+  --border: oklch(0.262 0.012 265);
+  --border-strong: oklch(0.335 0.013 265);
+  --input: oklch(0.3 0.013 265);
+  --ring: oklch(0.82 0.175 160);
 
-  --sidebar: oklch(0.186 0.004 286);
-  --sidebar-foreground: oklch(0.967 0.001 286);
-  --sidebar-primary: oklch(0.68 0.166 264);
-  --sidebar-primary-foreground: oklch(0.166 0.004 286);
-  --sidebar-accent: oklch(0.268 0.006 286);
-  --sidebar-accent-foreground: oklch(0.967 0.001 286);
-  --sidebar-border: oklch(0.29 0.006 286);
-  --sidebar-ring: oklch(0.68 0.166 264);
+  --chart-1: oklch(0.82 0.175 160);
+  --chart-2: oklch(0.7 0.16 255);
+  --chart-3: oklch(0.81 0.15 78);
+  --chart-4: oklch(0.73 0.17 305);
+  --chart-5: oklch(0.72 0.16 25);
+
+  --sidebar: oklch(0.166 0.012 265);
+  --sidebar-foreground: oklch(0.965 0.004 265);
+  --sidebar-primary: oklch(0.82 0.175 160);
+  --sidebar-primary-foreground: oklch(0.17 0.03 160);
+  --sidebar-accent: oklch(0.238 0.014 265);
+  --sidebar-accent-foreground: oklch(0.965 0.004 265);
+  --sidebar-border: oklch(0.245 0.012 265);
+  --sidebar-ring: oklch(0.82 0.175 160);
 }
 
 @theme inline {
   --font-sans: var(--font-geist-sans), 'Geist', ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), 'Geist Mono', ui-monospace, monospace;
+  /* A second face, for numbers and headings only. Geist is a fine interface
+     font and an anonymous display one; money set at 56px needs a face with an
+     opinion about its own numerals. */
+  --font-display:
+    var(--font-instrument-sans), 'Instrument Sans', var(--font-geist-sans), ui-sans-serif,
+    system-ui, sans-serif;
+
+  --color-surface-0: var(--surface-0);
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -156,6 +227,7 @@
   --color-destructive-muted: var(--destructive-muted);
 
   --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-chart-1: var(--chart-1);
@@ -172,12 +244,13 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  /* Three radii, all derived. The app previously used fifteen distinct
+  /* Four radii, all derived. The app previously used fifteen distinct
      rounded-* values that ignored --radius entirely. */
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-sm: calc(var(--radius) - 6px);
+  --radius-md: calc(var(--radius) - 4px);
+  --radius-lg: calc(var(--radius) - 2px);
+  --radius-xl: var(--radius);
+  --radius-2xl: calc(var(--radius) + 6px);
 }
 
 @layer base {
@@ -198,24 +271,57 @@
    * dashboard had no h1 at all.
    */
   h1 {
-    @apply text-2xl font-semibold tracking-tight text-foreground sm:text-3xl;
+    @apply font-display text-2xl font-semibold tracking-tight text-foreground sm:text-3xl;
   }
 
   h2 {
-    @apply text-lg font-semibold tracking-tight text-foreground sm:text-xl;
+    @apply font-display text-lg font-semibold tracking-tight text-foreground sm:text-xl;
   }
 
   h3 {
     @apply text-base font-semibold tracking-tight text-foreground;
   }
+}
 
-  /* Numbers in a financial UI are read as a column, not as prose. */
+@layer components {
+  /*
+   * The number scale.
+   *
+   * Numbers in a financial UI are read as a column, not as prose — and not all
+   * at one size. The app previously had two tiers, which meant the headline
+   * "total earned" and the count of active accounts were set identically: the
+   * page offered no opinion about what mattered. Three tiers, with one hero per
+   * page, is that opinion.
+   */
+  .metric-hero {
+    @apply font-display text-[2.75rem] leading-[1.05] font-semibold tracking-[-0.035em] tabular-nums sm:text-6xl;
+  }
+
   .metric {
-    @apply text-2xl font-semibold tracking-tight tabular-nums sm:text-3xl;
+    @apply font-display text-[1.75rem] leading-[1.1] font-semibold tracking-[-0.025em] tabular-nums sm:text-[2rem];
   }
 
   .metric-sm {
-    @apply text-lg font-semibold tracking-tight tabular-nums;
+    @apply font-display text-lg leading-[1.2] font-semibold tracking-[-0.015em] tabular-nums;
+  }
+
+  /*
+   * The unit that trails a number — "pts", a currency, a percentage. Set on the
+   * same baseline at a smaller size and lighter weight so that "1,248,300 pts"
+   * reads as one value rather than two competing ones, which is what happened
+   * when the points and the dollar figure were stacked at equal weight.
+   */
+  .metric-unit {
+    @apply text-[0.5em] font-medium tracking-normal text-muted-foreground;
+  }
+
+  /*
+   * Field labels. Small caps with open tracking is the convention for a data
+   * label precisely because it cannot be mistaken for the value beneath it —
+   * which text-sm, the previous treatment, frequently was.
+   */
+  .label-caps {
+    @apply text-[0.6875rem] font-medium tracking-[0.08em] text-muted-foreground uppercase;
   }
 }
 
