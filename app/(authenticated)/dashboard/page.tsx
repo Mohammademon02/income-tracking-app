@@ -19,6 +19,7 @@ import { ProcessingTimeBadge } from "@/components/processing-time-badge"
 import { SmartInsights } from "@/components/smart-insights"
 import { StatCard } from "@/components/stat-card"
 import { UnifiedNotificationSetup } from "@/components/unified-notification-setup"
+import { UsTimeClock } from "@/components/us-time-clock"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ExportButton } from "@/components/ui/export-button"
@@ -79,6 +80,8 @@ export default async function DashboardPage() {
           />
         }
       />
+
+      <UsTimeClock />
 
       {/* Headline numbers */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

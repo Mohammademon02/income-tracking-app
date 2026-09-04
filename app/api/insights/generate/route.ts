@@ -4,7 +4,6 @@ import { getApiSession, serverError, unauthorized } from "@/lib/api-utils"
 import {
   addDays,
   businessDaysBetween,
-  hourInTimeZone,
   isWeekend,
   lastNDays,
   toDateKey,
@@ -17,6 +16,7 @@ import {
   formatPoints,
   pointsToDollars,
 } from "@/lib/money"
+import { findPeakHour } from "@/lib/peak-hour"
 import { prisma } from "@/lib/prisma"
 
 interface Insight {
@@ -208,33 +208,24 @@ export async function GET() {
       })
     }
 
-    // 7. Peak earning hour
+    // 7. Peak earning hour.
     //
-    // `createdAt` is a real instant, so the hour is read in the app's business
-    // timezone rather than whatever timezone the server happens to run in.
-    if (last30Entries.length >= 10) {
-      const hourlyTotals = new Map<number, number>()
-      for (const entry of last30Entries) {
-        const hour = hourInTimeZone(entry.createdAt)
-        hourlyTotals.set(hour, (hourlyTotals.get(hour) ?? 0) + entry.points)
-      }
+    // The statistics live in lib/peak-hour so their thresholds can be tested
+    // with data; this only phrases the result.
+    const peak = findPeakHour(last30Entries)
 
-      if (hourlyTotals.size >= 3) {
-        const sortedHours = [...hourlyTotals.entries()].sort((a, b) => b[1] - a[1])
-        const [bestHour, bestPoints] = sortedHours[0]
-        const avgOtherHours = average(sortedHours.slice(1).map(([, points]) => points))
-
-        if (avgOtherHours > 0 && bestPoints > avgOtherHours * 1.5) {
-          insights.push({
-            id: "peak-time-optimization",
-            type: "opportunity",
-            title: "Optimize Your Peak Hours",
-            description: `You log noticeably more around ${formatHour(bestHour)}. Consider focusing your survey time there.`,
-            priority: "medium",
-            impact: `+${Math.round(((bestPoints - avgOtherHours) / avgOtherHours) * 100)}% in that hour`,
-          })
-        }
-      }
+    if (peak) {
+      insights.push({
+        id: "peak-time-optimization",
+        type: "opportunity",
+        title: "Optimize Your Peak Hours",
+        description:
+          `Entries you log around ${formatHour(peak.hour)} average ` +
+          `${formatPoints(Math.round(peak.perEntry))} points, against ` +
+          `${formatPoints(Math.round(peak.otherPerEntry))} the rest of the day.`,
+        priority: "medium",
+        impact: `${peak.multiple.toFixed(1)}× per entry at ${formatHour(peak.hour)}`,
+      })
     }
 
     const priorityOrder = { high: 3, medium: 2, low: 1 }
