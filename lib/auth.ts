@@ -12,6 +12,28 @@ import { SignJWT, jwtVerify } from "jose"
  * deliberately NOT reused here — a login password and a signing key must not
  * be the same material.
  */
+
+/**
+ * Catches a value copied straight out of .env.example.
+ *
+ * A fake secret long enough to pass the length test fails confusingly rather
+ * than obviously: every request 401s, because tokens were signed with a
+ * different secret than the one verifying them.
+ *
+ * Deliberately narrow: it looks for the <angle-bracket> form and for a value
+ * carrying neither an uppercase letter nor a digit, which no generated base64
+ * or hex secret does. Guessing at wording instead — rejecting anything
+ * containing "your", say — turned out to reject roughly one real secret in
+ * 645, which is worse than the problem it solves.
+ *
+ * A template value that happens to pass both tests will not be caught here.
+ * The env-shadowing note in .env.example covers that case.
+ */
+function looksLikePlaceholder(secret: string): boolean {
+  if (/<[^>]*>/.test(secret)) return true
+  return !/[A-Z]/.test(secret) && !/[0-9]/.test(secret)
+}
+
 function getSecretKey() {
   const secret = process.env.JWT_SECRET
 
@@ -19,6 +41,14 @@ function getSecretKey() {
     throw new Error(
       "JWT_SECRET is missing or too short. Set a random value of at least 32 characters " +
         "in your environment (generate one with: openssl rand -base64 32)."
+    )
+  }
+
+  if (looksLikePlaceholder(secret)) {
+    throw new Error(
+      "JWT_SECRET still holds a placeholder value. Note that .env.production " +
+        "overrides .env in production, so a placeholder there wins over a real " +
+        "value in .env."
     )
   }
 
