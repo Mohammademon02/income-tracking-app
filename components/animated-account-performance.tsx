@@ -5,7 +5,6 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { getAvatarGradient } from "@/lib/avatar-utils"
 import { Activity, Users, Star, Zap, Crown, TrendingUp } from "lucide-react"
-import { WaterWaveEffect } from "./water-wave-effect"
 
 type Account = {
     id: string
@@ -117,7 +116,7 @@ export function AnimatedAccountPerformance({ accounts, totalPoints }: AnimatedAc
         }
     }
 
-    const sparkleVariants = {
+    const Variants = {
         hidden: { scale: 0, opacity: 0, rotate: 0 },
         visible: {
             scale: [0, 1, 0],
@@ -179,7 +178,7 @@ export function AnimatedAccountPerformance({ accounts, totalPoints }: AnimatedAc
     }
 
     return (
-        <Card className="lg:col-span-2 bg-white/80 border border-white/60 shadow-xl transform-3d">
+        <Card className="lg:col-span-2 bg-white/80 border border-white/60 shadow-xl">
             <motion.div
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -218,32 +217,26 @@ export function AnimatedAccountPerformance({ accounts, totalPoints }: AnimatedAc
                                     variants={cardVariants}
                                     className={`relative cursor-pointer overflow-hidden ${index < 5 ? `stagger-${index + 1}` : ''}`}
                                 >
-                                    {/* Water Wave Effect for Withdrawal Ready Cards */}
-                                    <WaterWaveEffect
-                                        isActive={isWithdrawalReady}
-                                        className="rounded-lg"
-                                    />
-
                                     <div className="relative rounded-lg p-4 z-20 border border-slate-200/60 bg-white/80 backdrop-blur-sm shadow-sm">{/* Increased z-index and background opacity */}
 
                                         {/* Animated Background Particles */}
                                         {isWithdrawalReady && (
                                             <>
                                                 <motion.div
-                                                    className="absolute top-2 right-4 w-1 h-1 bg-green-400 rounded-full particle-1"
-                                                    variants={sparkleVariants}
+                                                    className="absolute top-2 right-4 w-1 h-1 bg-green-400 rounded-full"
+                                                    variants={Variants}
                                                     initial="hidden"
                                                     animate="visible"
                                                 />
                                                 <motion.div
-                                                    className="absolute top-6 right-8 w-1.5 h-1.5 bg-emerald-400 rounded-full particle-2"
-                                                    variants={sparkleVariants}
+                                                    className="absolute top-6 right-8 w-1.5 h-1.5 bg-emerald-400 rounded-full"
+                                                    variants={Variants}
                                                     initial="hidden"
                                                     animate="visible"
                                                 />
                                                 <motion.div
-                                                    className="absolute top-4 right-12 w-0.5 h-0.5 bg-green-300 rounded-full particle-3"
-                                                    variants={sparkleVariants}
+                                                    className="absolute top-4 right-12 w-0.5 h-0.5 bg-green-300 rounded-full"
+                                                    variants={Variants}
                                                     initial="hidden"
                                                     animate="visible"
                                                 />
@@ -262,7 +255,7 @@ export function AnimatedAccountPerformance({ accounts, totalPoints }: AnimatedAc
                                                         variants={avatarVariants}
                                                     >
                                                         <motion.div
-                                                            className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-white font-bold text-xs sm:text-sm shadow-lg ring-2 ring-white/20 ${getAvatarGradient(account.color || "blue")} ${account.currentBalance >= 1000 ? 'shadow-xl shadow-orange-200/50 status-glow' :
+                                                            className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-white font-bold text-xs sm:text-sm shadow-lg ring-2 ring-white/20 ${getAvatarGradient(account.color || "blue")} ${account.currentBalance >= 1000 ? 'shadow-xl shadow-orange-200/50 ' :
                                                                 account.currentBalance >= 500 ? 'shadow-lg shadow-emerald-200/50' : ''
                                                                 }`}
                                                         >
@@ -324,7 +317,7 @@ export function AnimatedAccountPerformance({ accounts, totalPoints }: AnimatedAc
                                                     variants={numberVariants}
                                                 >
                                                     <motion.p
-                                                        className={`text-xl sm:text-3xl font-bold number-animate drop-shadow-sm ${isWithdrawalReady ? 'text-green-600' : 'text-slate-800'}`}
+                                                        className={`text-xl sm:text-3xl font-bold  drop-shadow-sm ${isWithdrawalReady ? 'text-green-600' : 'text-slate-800'}`}
                                                         style={{ textShadow: '0 1px 2px rgba(255,255,255,0.8)' }}
                                                     >
                                                         {account.currentBalance.toLocaleString()}
@@ -393,7 +386,7 @@ export function AnimatedAccountPerformance({ accounts, totalPoints }: AnimatedAc
                                                         index % 4 === 1 ? 'bg-gradient-to-r from-green-500 to-emerald-500' :
                                                             index % 4 === 2 ? 'bg-gradient-to-r from-orange-500 to-red-500' :
                                                                 'bg-gradient-to-r from-purple-500 to-pink-500'
-                                                    } gradient-animated`}
+                                                    } `}
                                                 initial="hidden"
                                                 animate="visible"
                                                 variants={progressVariants}

@@ -242,12 +242,12 @@ export function AccountsTable({ accounts }: { accounts: Account[] }) {
                       </div>
                       {/* Performance indicator dot with animations */}
                       {account.totalPoints >= 1000 && (
-                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-linear-to-r from-yellow-400 to-amber-500 rounded-full border-2 border-white shadow-sm flex items-center justify-center wave-pulse">
+                        <div className="absolute -top-1 -right-1 w-4 h-4 bg-linear-to-r from-yellow-400 to-amber-500 rounded-full border-2 border-white shadow-sm flex items-center justify-center">
                           <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
                         </div>
                       )}
                       {account.totalPoints >= 500 && account.totalPoints < 1000 && (
-                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-linear-to-r from-green-400 to-emerald-500 rounded-full border-2 border-white shadow-sm wave-pulse"></div>
+                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-linear-to-r from-green-400 to-emerald-500 rounded-full border-2 border-white shadow-sm"></div>
                       )}
                       
                       {/* Ready to withdraw indicator */}
@@ -284,7 +284,7 @@ export function AccountsTable({ accounts }: { accounts: Account[] }) {
                   {account.pendingWithdrawals > 0 ? (
                     <div className="flex flex-col items-end">
                       <Badge variant="secondary" className="bg-orange-100 text-orange-700 border-orange-200 relative overflow-hidden">
-                        <div className="absolute inset-0 shimmer-effect opacity-20"></div>
+                        <div className="absolute inset-0 opacity-20"></div>
                         <span className="relative z-10">{(account.pendingWithdrawals * 100).toLocaleString()} pts</span>
                       </Badge>
                       <span className="text-xs text-muted-foreground">${account.pendingWithdrawals.toFixed(2)}</span>

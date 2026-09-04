@@ -7,6 +7,7 @@ import './globals.css'
 import { ErrorBoundary } from "@/lib/error-boundary"
 import { AccessibilityProvider } from "@/components/accessibility-provider"
 import { PWAInstallPrompt } from "@/components/pwa-install-prompt"
+import { ThemeProvider } from "@/components/theme-provider"
 
 const geist = Geist({
   subsets: ["latin"],
@@ -23,7 +24,10 @@ const geistMono = Geist_Mono({
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  themeColor: '#3b82f6',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+    { media: '(prefers-color-scheme: dark)', color: '#111113' },
+  ],
   viewportFit: 'cover',
 }
 
@@ -58,7 +62,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={`${geist.variable} ${geistMono.variable}`}>
+    <html lang="en" className={`${geist.variable} ${geistMono.variable}`} suppressHydrationWarning>
       <head>
         <meta name="application-name" content="SurvTrack" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -66,7 +70,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="SurvTrack" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="msapplication-config" content="/browserconfig.xml" />
-        <meta name="msapplication-TileColor" content="#3b82f6" />
+        <meta name="msapplication-TileColor" content="#2563eb" />
         <meta name="msapplication-tap-highlight" content="no" />
         
         <link rel="apple-touch-icon" href="/icon-192x192.png" />
@@ -80,7 +84,8 @@ export default function RootLayout({
         <link rel="shortcut icon" href="/favicon.ico" />
       </head>
       <body className="font-sans antialiased">
-        <AccessibilityProvider>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+          <AccessibilityProvider>
           <ErrorBoundary>
             {children}
             <PWAInstallPrompt />
@@ -95,7 +100,8 @@ export default function RootLayout({
               gap={12}
             />
           </ErrorBoundary>
-        </AccessibilityProvider>
+          </AccessibilityProvider>
+        </ThemeProvider>
       </body>
     </html>
   )
