@@ -10,7 +10,13 @@ import {
   toDateKey,
   todayKey,
 } from "@/lib/date-utils"
-import { computeBalance, formatDollars, formatPoints, pointsToDollars } from "@/lib/money"
+import {
+  WITHDRAWAL_READY_POINTS,
+  computeBalance,
+  formatDollars,
+  formatPoints,
+  pointsToDollars,
+} from "@/lib/money"
 import { prisma } from "@/lib/prisma"
 
 interface Insight {
@@ -28,8 +34,6 @@ interface Insight {
 
 /** A withdrawal is flagged once it has been pending this many business days. */
 const WITHDRAWAL_DELAY_THRESHOLD = 15
-/** Points at which an account is worth withdrawing from ($25). */
-const WITHDRAWAL_READY_THRESHOLD = 2500
 
 export async function GET() {
   try {
@@ -177,7 +181,7 @@ export async function GET() {
         pendingDollars: pendingByAccount.get(account.id) ?? 0,
       })
 
-      if (balance.availablePoints >= WITHDRAWAL_READY_THRESHOLD) {
+      if (balance.availablePoints >= WITHDRAWAL_READY_POINTS) {
         insights.push({
           id: `withdrawal-ready-${account.id}`,
           type: "opportunity",

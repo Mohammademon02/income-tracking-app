@@ -17,6 +17,18 @@
 
 export const POINTS_PER_DOLLAR = 100
 
+/**
+ * The balance at which an account can actually be withdrawn from — the payout
+ * minimum on the survey platforms this tracks.
+ *
+ * The redesign set this to 2,500 points ($25) in two separate files, guessing
+ * at a figure rather than taking the one the app already used: the pre-redesign
+ * dashboard marked an account "Withdrawal Ready" at 1,000 and flagged 500 as
+ * worth watching. 500 is the real minimum, and at 2,500 the marker simply never
+ * appeared — every account sat below it.
+ */
+export const WITHDRAWAL_READY_POINTS = 500
+
 /** Convert a dollar amount to whole points. */
 export function dollarsToPoints(dollars: number): number {
   return Math.round(dollars * POINTS_PER_DOLLAR)

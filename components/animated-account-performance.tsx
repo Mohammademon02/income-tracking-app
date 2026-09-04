@@ -6,7 +6,12 @@ import { AccountAvatar } from "@/components/account-avatar"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
-import { formatDollars, formatPoints, pointsToDollars } from "@/lib/money"
+import {
+  WITHDRAWAL_READY_POINTS,
+  formatDollars,
+  formatPoints,
+  pointsToDollars,
+} from "@/lib/money"
 
 /**
  * Account performance, ranked.
@@ -28,9 +33,6 @@ type Account = {
   currentBalance: number
   createdAt: Date
 }
-
-/** Points at which an account is worth withdrawing from ($25). */
-const WITHDRAWAL_READY_THRESHOLD = 2500
 
 export function AnimatedAccountPerformance({
   accounts,
@@ -61,7 +63,7 @@ export function AnimatedAccountPerformance({
           <ul className="space-y-4">
             {ranked.map((account) => {
               const share = totalPoints > 0 ? (account.totalPoints / totalPoints) * 100 : 0
-              const ready = account.currentBalance >= WITHDRAWAL_READY_THRESHOLD
+              const ready = account.currentBalance >= WITHDRAWAL_READY_POINTS
 
               return (
                 <li key={account.id} className="space-y-2">
@@ -70,7 +72,10 @@ export function AnimatedAccountPerformance({
                       <AccountAvatar name={account.name} color={account.color} size="sm" />
                       <span className="truncate text-sm font-medium">{account.name}</span>
                       {ready ? (
-                        <Badge variant="secondary" className="bg-success-muted text-success">
+                        <Badge
+                          variant="secondary"
+                          className="shrink-0 bg-success-muted text-success"
+                        >
                           Ready
                         </Badge>
                       ) : null}
@@ -88,7 +93,9 @@ export function AnimatedAccountPerformance({
                   <Progress value={share} />
 
                   <div className="flex justify-between text-xs text-muted-foreground tabular-nums">
-                    <span>
+                    {/* The available figure is the one being acted on, so it
+                        carries the "ready" state rather than only the badge. */}
+                    <span className={ready ? "font-medium text-success" : undefined}>
                       Available {formatDollars(pointsToDollars(account.currentBalance))}
                     </span>
                     {account.pendingWithdrawals > 0 ? (
