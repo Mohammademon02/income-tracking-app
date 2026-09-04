@@ -1,11 +1,11 @@
 "use client"
 
-import React, { memo, useState } from "react"
+import React, { memo } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion"
-import { LayoutDashboard, Users, Calendar, Wallet, LogOut, Menu, X, Settings } from "lucide-react"
+import { motion, useReducedMotion } from "framer-motion"
+import { LayoutDashboard, Users, Calendar, Wallet, LogOut, Settings } from "lucide-react"
 
 import { logout } from "@/app/actions/auth"
 import { NotificationCenter } from "@/components/notification-center"
@@ -15,15 +15,15 @@ import { useNotifications } from "@/hooks/use-notifications"
 import { cn } from "@/lib/utils"
 
 const navigation = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Accounts", href: "/accounts", icon: Users },
-  { name: "Daily Entries", href: "/entries", icon: Calendar },
-  { name: "Withdrawals", href: "/withdrawals", icon: Wallet },
-  { name: "Settings", href: "/settings", icon: Settings },
+  { name: "Dashboard", short: "Home", href: "/dashboard", icon: LayoutDashboard },
+  { name: "Accounts", short: "Accounts", href: "/accounts", icon: Users },
+  { name: "Daily Entries", short: "Entries", href: "/entries", icon: Calendar },
+  { name: "Withdrawals", short: "Payouts", href: "/withdrawals", icon: Wallet },
+  { name: "Settings", short: "Settings", href: "/settings", icon: Settings },
 ]
 
 /**
- * One nav row.
+ * One nav row in the sidebar.
  *
  * The active state used to be a background colour that simply appeared on
  * whichever row you had navigated to. Here it is a single element that travels:
@@ -31,28 +31,24 @@ const navigation = [
  * on the new one as the same object and animate between them, so the chrome
  * shows you where you came from.
  *
- * `group` is required because the two navs — desktop sidebar and mobile sheet —
- * are both mounted at wide-then-narrow breakpoints. Two highlights sharing one
- * layoutId would be treated as one object and fly across the screen between
- * them.
+ * `group` exists because the sidebar and the bottom bar are both mounted across
+ * breakpoints. Two highlights sharing one layoutId would be treated as one
+ * object and fly across the screen between them.
  */
 const NavigationItem = memo(function NavigationItem({
   item,
   isActive,
   group,
-  onClick,
 }: {
   item: (typeof navigation)[0]
   isActive: boolean
   group: string
-  onClick?: () => void
 }) {
   const reduced = useReducedMotion()
 
   return (
     <Link
       href={item.href}
-      onClick={onClick}
       aria-current={isActive ? "page" : undefined}
       className={cn(
         "relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
@@ -80,16 +76,48 @@ const NavigationItem = memo(function NavigationItem({
   )
 })
 
-export function AppShell({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname()
-  const [menuOpenedAt, setMenuOpenedAt] = useState<string | null>(null)
+/**
+ * One tab in the phone-width bar.
+ *
+ * This replaces a hamburger that opened a five-item sheet. The app installs as
+ * a PWA and is opened one-handed on a phone; a menu that has to be opened
+ * before it can be read is the wrong shape for five destinations that all fit
+ * on screen at once.
+ */
+const NavigationTab = memo(function NavigationTab({
+  item,
+  isActive,
+}: {
+  item: (typeof navigation)[0]
+  isActive: boolean
+}) {
   const reduced = useReducedMotion()
 
-  // The menu belongs to the page it was opened on. Deriving that from the
-  // pathname closes it on navigation — including browser back and forward —
-  // without an effect that sets state on every route change.
-  const mobileMenuOpen = menuOpenedAt === pathname
-  const setMobileMenuOpen = (open: boolean) => setMenuOpenedAt(open ? pathname : null)
+  return (
+    <Link
+      href={item.href}
+      aria-current={isActive ? "page" : undefined}
+      className={cn(
+        "relative flex flex-1 flex-col items-center gap-1 py-2 text-[0.6875rem] font-medium transition-colors",
+        isActive ? "text-primary" : "text-muted-foreground"
+      )}
+    >
+      {isActive ? (
+        <motion.span
+          layoutId={reduced ? undefined : "tab-active"}
+          aria-hidden="true"
+          className="absolute inset-x-2 top-0 h-0.5 rounded-full bg-primary"
+          transition={{ type: "spring", stiffness: 420, damping: 34 }}
+        />
+      ) : null}
+      <item.icon className="size-5 shrink-0" />
+      {item.short}
+    </Link>
+  )
+})
+
+export function AppShell({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname()
 
   // Simple notification system
   useNotifications({
@@ -105,8 +133,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <span />
       </div>
 
-      {/* Mobile header */}
-      <div className="fixed inset-x-0 top-0 z-50 border-b border-border/60 bg-background/70 backdrop-blur-xl lg:hidden">
+      {/* Phone header. Brand and utilities only — navigation lives in the bar
+          at the bottom, where a thumb can reach it. */}
+      <header className="fixed inset-x-0 top-0 z-50 border-b border-border/60 bg-background/70 backdrop-blur-xl lg:hidden">
         <div className="flex items-center justify-between px-4 py-3">
           <Image
             src="/Logo.png"
@@ -119,54 +148,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="flex items-center gap-1">
             <NotificationCenter />
             <ThemeToggle />
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
-              aria-expanded={mobileMenuOpen}
-              aria-controls="mobile-nav"
-            >
-              {mobileMenuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
-            </Button>
+            <form action={logout}>
+              <Button
+                variant="ghost"
+                size="icon"
+                type="submit"
+                aria-label="Sign out"
+                className="text-muted-foreground hover:text-destructive"
+              >
+                <LogOut className="size-4" />
+              </Button>
+            </form>
           </div>
         </div>
-        {/* The panel is measured rather than given a height, so adding a nav
-            item does not silently clip it the way a fixed max-height would. */}
-        <AnimatePresence initial={false}>
-          {mobileMenuOpen && (
-            <motion.nav
-              id="mobile-nav"
-              className="overflow-hidden border-t border-border/60"
-              initial={reduced ? false : { height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={reduced ? { opacity: 0 } : { height: 0, opacity: 0 }}
-              transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
-            >
-              <div className="space-y-1 p-3">
-                {navigation.map((item) => (
-                  <NavigationItem
-                    key={item.name}
-                    item={item}
-                    group="mobile-nav"
-                    isActive={pathname === item.href}
-                    onClick={() => setMobileMenuOpen(false)}
-                  />
-                ))}
-                <form action={logout}>
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-start gap-3 text-muted-foreground hover:text-destructive"
-                  >
-                    <LogOut className="size-4" />
-                    Sign Out
-                  </Button>
-                </form>
-              </div>
-            </motion.nav>
-          )}
-        </AnimatePresence>
-      </div>
+      </header>
 
       {/* Desktop sidebar. Its lg:w-64 pairs with the main column's lg:pl-64
           below — keep the two in step if either changes. */}
@@ -210,10 +205,28 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      {/* Main content */}
-      <main id="main-content" className="relative pt-14 lg:pt-0 lg:pl-64">
+      {/*
+        The bottom padding clears the tab bar, and the safe-area inset clears
+        the home indicator on a phone running this as an installed app — without
+        it the last row of every list sits under the bar.
+      */}
+      <main
+        id="main-content"
+        className="relative pt-14 pb-[calc(4.25rem+env(safe-area-inset-bottom))] lg:pt-0 lg:pr-0 lg:pb-0 lg:pl-64"
+      >
         {children}
       </main>
+
+      <nav
+        aria-label="Primary"
+        className="fixed inset-x-0 bottom-0 z-50 border-t border-border/60 bg-background/80 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden"
+      >
+        <div className="flex items-stretch">
+          {navigation.map((item) => (
+            <NavigationTab key={item.name} item={item} isActive={pathname === item.href} />
+          ))}
+        </div>
+      </nav>
     </div>
   )
 }

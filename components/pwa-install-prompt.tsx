@@ -51,7 +51,7 @@ export function PWAInstallPrompt() {
   }
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 z-50 panel rounded-xl p-4 shadow-lg flex items-center justify-between">
+    <div className="panel fixed inset-x-4 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-50 flex items-center justify-between rounded-xl p-4 shadow-lg lg:bottom-4">
       <div className="flex items-center space-x-3">
         <Download className="h-5 w-5 text-primary" />
         <div>
