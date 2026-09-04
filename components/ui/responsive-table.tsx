@@ -23,8 +23,12 @@ export function TableShell({
   className?: string
 }) {
   return (
-    <div className={cn("hidden overflow-x-auto rounded-lg border bg-card md:block", className)}>
-      {children}
+    // The panel and the scroll container are separate elements on purpose.
+    // `.panel` draws its stroke with an absolutely positioned pseudo-element,
+    // and on a horizontally scrolling box that pseudo-element scrolls with the
+    // content — so a wide table would carry its own border off the right edge.
+    <div className={cn("panel hidden overflow-hidden rounded-xl md:block", className)}>
+      <div className="overflow-x-auto">{children}</div>
     </div>
   )
 }
@@ -55,7 +59,7 @@ export function DataCard({
   className?: string
 }) {
   return (
-    <div className={cn("rounded-lg border bg-card p-4", className)}>
+    <div className={cn("panel rounded-xl p-4", className)}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 space-y-0.5">
           <div className="truncate font-medium">{title}</div>

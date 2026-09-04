@@ -371,8 +371,8 @@ export function WithdrawalsTable({
   return (
     <div className="space-y-6">
       {/* This month */}
-      <div className="rounded-lg border bg-card p-5">
-        <p className="text-sm font-medium text-muted-foreground">
+      <div className="panel rounded-xl p-5">
+        <p className="label-caps">
           Approved in {formatDate(`${currentMonthKey}-01`, { month: "long", year: "numeric" })}
         </p>
         <p className="metric mt-1 text-success">{formatDollars(monthSummary.dollars)}</p>
@@ -383,7 +383,7 @@ export function WithdrawalsTable({
       </div>
 
       {/* Filters */}
-      <div className="rounded-lg border bg-card">
+      <div className="panel rounded-xl">
         <div className="flex items-center justify-between gap-3 border-b px-4 py-3">
           <div className="flex items-center gap-2">
             <Filter className="size-4 text-muted-foreground" />
@@ -588,7 +588,7 @@ export function WithdrawalsTable({
           </CardList>
 
           {/* Pagination */}
-          <div className="flex flex-col gap-4 rounded-lg border bg-card p-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-col gap-4 panel rounded-xl p-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
               <p className="text-sm text-muted-foreground">
                 Showing {startIndex + 1}–

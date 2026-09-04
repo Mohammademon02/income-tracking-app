@@ -392,6 +392,22 @@
   }
 
   /*
+   * A panel that floats above the page — a dialog, not a card. Same stroke and
+   * sheen, one more step up the surface ladder, which is the whole reason the
+   * ladder has four rungs. Modals were painted in --background, so a dialog sat
+   * at exactly the lightness of the page it was covering.
+   *
+   * Composed: `panel panel-raised`. Not used for dropdowns and selects, whose
+   * content scrolls — .panel's ring is positioned against the padding box and
+   * would scroll away with it.
+   */
+  .panel-raised {
+    background:
+      linear-gradient(180deg, var(--sheen), transparent 55%),
+      var(--surface-3);
+  }
+
+  /*
    * An interactive panel. The lift is 1px and the shadow spreads — enough that
    * the hand knows the surface responded, not so much that a grid of them
    * bounces. The old dashboard used hover:scale-105 on cards that were not

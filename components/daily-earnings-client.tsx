@@ -5,6 +5,8 @@ import { Calendar, Clock, TrendingUp } from "lucide-react"
 
 import { AccountAvatar } from "@/components/account-avatar"
 import { DatePicker } from "@/components/date-picker"
+import { CountUp } from "@/components/motion/count-up"
+import { SectionIcon } from "@/components/page-shell"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Select,
@@ -91,7 +93,7 @@ export function DailyEarningsClient({
         <button
           type="button"
           onClick={() => setIsCalendarOpen(true)}
-          className="flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 shadow-sm transition-colors hover:bg-muted"
+          className="panel panel-interactive flex items-center gap-2 rounded-lg px-4 py-2"
           aria-label="Open calendar"
         >
           <Calendar className="size-4 text-muted-foreground" />
@@ -126,29 +128,30 @@ export function DailyEarningsClient({
         <CardHeader>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="size-5 text-primary" />
+              <SectionIcon icon={TrendingUp} tone="primary" />
               {data.dateDisplay}
             </CardTitle>
             <div className="text-right">
-              <div className="text-2xl font-bold text-primary">
-                {formatPoints(data.totalPoints)} <span className="text-sm">pts</span>
-              </div>
-              <div className="text-sm text-muted-foreground">
+              <p className="metric text-primary">
+                <CountUp value={data.totalPoints} format="points" />
+                <span className="metric-unit ml-1.5">pts</span>
+              </p>
+              <p className="text-sm text-muted-foreground tabular-nums">
                 {formatDollars(pointsToDollars(data.totalPoints))}
-              </div>
+              </p>
             </div>
           </div>
         </CardHeader>
 
         <CardContent>
           <div className="mb-6 grid gap-4 sm:grid-cols-2">
-            <div className="rounded-xl border border-border bg-muted/50 p-4 text-center">
-              <div className="text-xl font-bold text-foreground">{data.totalEntries}</div>
-              <p className="text-sm text-muted-foreground">Total entries</p>
+            <div className="panel rounded-xl p-4 text-center">
+              <p className="metric-sm">{data.totalEntries}</p>
+              <p className="label-caps mt-1">Total entries</p>
             </div>
-            <div className="rounded-xl border border-border bg-muted/50 p-4 text-center">
-              <div className="text-xl font-bold text-foreground">{activeAccounts}</div>
-              <p className="text-sm text-muted-foreground">Active accounts</p>
+            <div className="panel rounded-xl p-4 text-center">
+              <p className="metric-sm">{activeAccounts}</p>
+              <p className="label-caps mt-1">Active accounts</p>
             </div>
           </div>
 
@@ -174,7 +177,7 @@ export function DailyEarningsClient({
                 return (
                   <div
                     key={entry.id}
-                    className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border p-3"
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border/60 p-3 transition-colors hover:bg-surface-2/60"
                   >
                     <div className="flex items-center gap-3">
                       <AccountAvatar name={entry.accountName} color={entry.accountColor} />
@@ -193,11 +196,11 @@ export function DailyEarningsClient({
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-lg font-bold text-foreground">
-                        +{formatPoints(entry.points)}{" "}
-                        <span className="text-sm text-muted-foreground">pts</span>
+                      <p className="metric-sm text-success">
+                        +{formatPoints(entry.points)}
+                        <span className="metric-unit ml-1">pts</span>
                       </p>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-sm text-muted-foreground tabular-nums">
                         {formatDollars(pointsToDollars(entry.points))}
                       </p>
                     </div>

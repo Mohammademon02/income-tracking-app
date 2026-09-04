@@ -223,7 +223,7 @@ export function EntriesTable({ entries, accounts }: { entries: Entry[]; accounts
   return (
     <div className="space-y-6">
       {/* Filters */}
-      <div className="rounded-lg border bg-card">
+      <div className="panel rounded-xl">
         <div className="flex items-center justify-between gap-3 border-b px-4 py-3">
           <div className="flex items-center gap-2">
             <Filter className="size-4 text-muted-foreground" />
@@ -394,7 +394,7 @@ export function EntriesTable({ entries, accounts }: { entries: Entry[]; accounts
           </CardList>
 
           {/* Pagination */}
-          <div className="flex flex-col gap-4 rounded-lg border bg-card p-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-col gap-4 panel rounded-xl p-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
               <p className="text-sm text-muted-foreground">
                 Showing {startIndex + 1}–{Math.min(endIndex, filteredEntries.length)} of{" "}

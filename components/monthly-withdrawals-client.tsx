@@ -4,6 +4,8 @@ import { useState } from "react"
 import { Wallet } from "lucide-react"
 
 import { AccountAvatar } from "@/components/account-avatar"
+import { CountUp } from "@/components/motion/count-up"
+import { SectionIcon } from "@/components/page-shell"
 import { ProcessingTimeBadge } from "@/components/processing-time-badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -110,29 +112,29 @@ export function MonthlyWithdrawalsClient({
         <CardHeader>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <CardTitle className="flex items-center gap-2">
-              <Wallet className="size-5 text-primary" />
+              <SectionIcon icon={Wallet} tone="success" />
               {data.monthName} — approved withdrawals
             </CardTitle>
             <div className="text-right">
-              <div className="text-2xl font-bold text-primary">
-                {formatDollars(data.totalAmount)}
-              </div>
-              <div className="text-sm text-muted-foreground">
+              <p className="metric text-success">
+                <CountUp value={data.totalAmount} format="dollars" />
+              </p>
+              <p className="text-sm text-muted-foreground tabular-nums">
                 {formatPoints(dollarsToPoints(data.totalAmount))} pts
-              </div>
+              </p>
             </div>
           </div>
         </CardHeader>
 
         <CardContent>
           <div className="mb-6 grid gap-4 sm:grid-cols-2">
-            <div className="rounded-xl border border-border bg-muted/50 p-4 text-center">
-              <div className="text-xl font-bold text-foreground">{data.totalWithdrawals}</div>
-              <p className="text-sm text-muted-foreground">Total approved</p>
+            <div className="panel rounded-xl p-4 text-center">
+              <p className="metric-sm">{data.totalWithdrawals}</p>
+              <p className="label-caps mt-1">Total approved</p>
             </div>
-            <div className="rounded-xl border border-border bg-muted/50 p-4 text-center">
-              <div className="text-xl font-bold text-foreground">{activeAccounts}</div>
-              <p className="text-sm text-muted-foreground">Active accounts</p>
+            <div className="panel rounded-xl p-4 text-center">
+              <p className="metric-sm">{activeAccounts}</p>
+              <p className="label-caps mt-1">Active accounts</p>
             </div>
           </div>
 
@@ -151,7 +153,7 @@ export function MonthlyWithdrawalsClient({
               sortedWithdrawals.map((withdrawal) => (
                 <div
                   key={withdrawal.id}
-                  className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border p-3"
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border/60 p-3 transition-colors hover:bg-surface-2/60"
                 >
                   <div className="flex items-center gap-3">
                     <AccountAvatar name={withdrawal.accountName} color={withdrawal.accountColor} />
@@ -170,10 +172,10 @@ export function MonthlyWithdrawalsClient({
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-lg font-bold text-foreground">
+                    <p className="metric-sm text-success">
                       {formatDollars(withdrawal.amount)}
                     </p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-muted-foreground tabular-nums">
                       {formatPoints(dollarsToPoints(withdrawal.amount))} pts
                     </p>
                   </div>

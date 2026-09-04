@@ -33,7 +33,7 @@ export function PageSkeleton({
         </div>
       ) : null}
 
-      <div className="space-y-3 rounded-lg border bg-card p-4">
+      <div className="space-y-3 panel rounded-xl p-4">
         {Array.from({ length: rows }).map((_, index) => (
           <div key={index} className="flex items-center gap-4">
             <Skeleton className="size-9 shrink-0 rounded-full" />
