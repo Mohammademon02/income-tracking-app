@@ -1,31 +1,23 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+  CheckCircle2,
+  Clock,
+  Eye,
+  Filter,
+  MoreHorizontal,
+  Pencil,
+  RotateCcw,
+  Trash2,
+  Wallet,
+  X,
+} from "lucide-react"
+
+import { deleteWithdrawal, updateWithdrawal } from "@/app/actions/withdrawals"
+import { AccountAvatar } from "@/components/account-avatar"
+import { WithdrawalDetailsModal } from "@/components/withdrawal-details-modal"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,6 +28,33 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { enhancedToast } from "@/components/ui/enhanced-toast"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Pagination } from "@/components/ui/pagination"
+import {
+  CardList,
+  DataCard,
+  DataRow,
+  EmptyState,
+  TableShell,
+} from "@/components/ui/responsive-table"
 import {
   Select,
   SelectContent,
@@ -43,15 +62,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card } from "@/components/ui/card"
-import { getAvatarGradient } from "@/lib/avatar-utils"
-import { MoreHorizontal, Pencil, Trash2, Wallet, Clock, Filter, X, Calendar, DollarSign, Eye } from "lucide-react"
-import { updateWithdrawal, deleteWithdrawal } from "@/app/actions/withdrawals"
-import { toast } from "sonner"
-import { enhancedToast } from "@/components/ui/enhanced-toast"
-import { WithdrawalDetailsModal } from "@/components/withdrawal-details-modal"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { daysBetween, formatDate, toDateKey, todayKey } from "@/lib/date-utils"
+import { dollarsToPoints, formatDollars, formatPoints } from "@/lib/money"
+import { cn } from "@/lib/utils"
 
 type Withdrawal = {
   id: string
@@ -70,14 +91,34 @@ type Account = {
   color: string
 }
 
-export function WithdrawalsTable({ withdrawals, accounts }: { withdrawals: Withdrawal[]; accounts: Account[] }) {
+/** How a completion time reads, by number of days from request to payout. */
+function speedOf(days: number): { label: string; className: string } {
+  if (days <= 7) return { label: "Fast", className: "bg-success-muted text-success" }
+  if (days <= 15) return { label: "Normal", className: "bg-muted text-muted-foreground" }
+  if (days <= 25) return { label: "Slow", className: "bg-warning-muted text-warning" }
+  return { label: "Very slow", className: "bg-destructive-muted text-destructive" }
+}
+
+/** Days from request to completion, compared as calendar dates. */
+function processingDays(withdrawal: Withdrawal): number | null {
+  if (!withdrawal.completedAt) return null
+  return daysBetween(toDateKey(new Date(withdrawal.date)), toDateKey(new Date(withdrawal.completedAt)))
+}
+
+export function WithdrawalsTable({
+  withdrawals,
+  accounts,
+}: {
+  withdrawals: Withdrawal[]
+  accounts: Account[]
+}) {
   const router = useRouter()
   const [editingWithdrawal, setEditingWithdrawal] = useState<Withdrawal | null>(null)
   const [deletingWithdrawal, setDeletingWithdrawal] = useState<Withdrawal | null>(null)
   const [selectedWithdrawal, setSelectedWithdrawal] = useState<Withdrawal | null>(null)
   const [loading, setLoading] = useState(false)
+  const [togglingId, setTogglingId] = useState<string | null>(null)
 
-  // Filter states
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [accountFilter, setAccountFilter] = useState<string>("all")
   const [dateFromFilter, setDateFromFilter] = useState<string>("")
@@ -85,64 +126,70 @@ export function WithdrawalsTable({ withdrawals, accounts }: { withdrawals: Withd
   const [minAmountFilter, setMinAmountFilter] = useState<string>("")
   const [maxAmountFilter, setMaxAmountFilter] = useState<string>("")
 
-  // Calculate current month's approved withdrawals based on completion date
-  const currentDate = new Date()
-  const currentMonth = currentDate.getMonth()
-  const currentYear = currentDate.getFullYear()
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(25)
 
-  const currentMonthApprovedWithdrawals = withdrawals.filter(withdrawal => {
-    if (withdrawal.status !== "COMPLETED" || !withdrawal.completedAt) return false
+  // The month label and totals are derived from a stable calendar date rather
+  // than `new Date()` read during render, which produced a server/client
+  // mismatch at month boundaries and went stale in a long-lived tab.
+  const today = todayKey()
+  const currentMonthKey = today.slice(0, 7)
 
-    const completionDate = new Date(withdrawal.completedAt)
-    return completionDate.getMonth() === currentMonth &&
-      completionDate.getFullYear() === currentYear
-  })
+  const monthSummary = useMemo(() => {
+    const completedThisMonth = withdrawals.filter(
+      (withdrawal) =>
+        withdrawal.status === "COMPLETED" &&
+        withdrawal.completedAt &&
+        toDateKey(new Date(withdrawal.completedAt)).startsWith(currentMonthKey)
+    )
 
-  const totalApprovedAmount = currentMonthApprovedWithdrawals.reduce((sum, withdrawal) => sum + withdrawal.amount, 0)
-  const totalApprovedPoints = totalApprovedAmount * 100
+    const dollars = completedThisMonth.reduce((sum, withdrawal) => sum + withdrawal.amount, 0)
 
-  const monthNames = ["January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December"]
+    return {
+      count: completedThisMonth.length,
+      dollars,
+      points: dollarsToPoints(dollars),
+    }
+  }, [withdrawals, currentMonthKey])
 
-  // Filter withdrawals based on current filters
   const filteredWithdrawals = useMemo(() => {
-    return withdrawals.filter(withdrawal => {
-      // Status filter
-      if (statusFilter !== "all" && withdrawal.status !== statusFilter) {
-        return false
-      }
+    return withdrawals.filter((withdrawal) => {
+      if (statusFilter !== "all" && withdrawal.status !== statusFilter) return false
+      if (accountFilter !== "all" && withdrawal.accountId !== accountFilter) return false
 
-      // Account filter
-      if (accountFilter !== "all" && withdrawal.accountId !== accountFilter) {
-        return false
-      }
+      const dateKey = toDateKey(new Date(withdrawal.date))
+      if (dateFromFilter && dateKey < dateFromFilter) return false
+      if (dateToFilter && dateKey > dateToFilter) return false
 
-      // Date range filter
-      const withdrawalDate = new Date(withdrawal.date)
-      if (dateFromFilter) {
-        const fromDate = new Date(dateFromFilter)
-        if (withdrawalDate < fromDate) return false
-      }
-      if (dateToFilter) {
-        const toDate = new Date(dateToFilter)
-        if (withdrawalDate > toDate) return false
-      }
-
-      // Amount range filter
       if (minAmountFilter) {
-        const minAmount = parseFloat(minAmountFilter)
-        if (withdrawal.amount < minAmount) return false
+        const min = Number(minAmountFilter)
+        if (Number.isFinite(min) && withdrawal.amount < min) return false
       }
       if (maxAmountFilter) {
-        const maxAmount = parseFloat(maxAmountFilter)
-        if (withdrawal.amount > maxAmount) return false
+        const max = Number(maxAmountFilter)
+        if (Number.isFinite(max) && withdrawal.amount > max) return false
       }
 
       return true
     })
-  }, [withdrawals, statusFilter, accountFilter, dateFromFilter, dateToFilter, minAmountFilter, maxAmountFilter])
+  }, [
+    withdrawals,
+    statusFilter,
+    accountFilter,
+    dateFromFilter,
+    dateToFilter,
+    minAmountFilter,
+    maxAmountFilter,
+  ])
 
-  // Clear all filters
+  const totalPages = Math.max(1, Math.ceil(filteredWithdrawals.length / itemsPerPage))
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const paginated = filteredWithdrawals.slice(startIndex, startIndex + itemsPerPage)
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [statusFilter, accountFilter, dateFromFilter, dateToFilter, minAmountFilter, maxAmountFilter, itemsPerPage])
+
   const clearFilters = () => {
     setStatusFilter("all")
     setAccountFilter("all")
@@ -152,426 +199,480 @@ export function WithdrawalsTable({ withdrawals, accounts }: { withdrawals: Withd
     setMaxAmountFilter("")
   }
 
-  // Check if any filters are active
-  const hasActiveFilters = statusFilter !== "all" || accountFilter !== "all" ||
-    dateFromFilter || dateToFilter || minAmountFilter || maxAmountFilter
+  const hasActiveFilters =
+    statusFilter !== "all" ||
+    accountFilter !== "all" ||
+    Boolean(dateFromFilter || dateToFilter || minAmountFilter || maxAmountFilter)
 
-  // Helper function to check if this is the first withdrawal for an account
+  /** Whether this is the earliest withdrawal on its account. */
   const isFirstWithdrawal = (withdrawal: Withdrawal) => {
-    // Get all withdrawals for this account
-    const accountWithdrawals = withdrawals.filter(w => w.accountId === withdrawal.accountId)
+    const forAccount = withdrawals.filter((w) => w.accountId === withdrawal.accountId)
+    if (forAccount.length <= 1) return true
 
-    // If only one withdrawal for this account, it's the first
-    if (accountWithdrawals.length === 1) {
-      return true
-    }
+    // Copy before sorting. `.sort()` mutates, and this array is derived from a
+    // prop, so sorting it in place reordered the caller's data mid-render.
+    const earliest = [...forAccount].sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    )[0]
 
-    // Sort by date (earliest first)
-    const sortedWithdrawals = accountWithdrawals.sort((a, b) => {
-      const dateA = new Date(a.date).getTime()
-      const dateB = new Date(b.date).getTime()
-      return dateA - dateB
-    })
-
-    // Check if this withdrawal is the first one
-    return sortedWithdrawals[0].id === withdrawal.id
+    return earliest.id === withdrawal.id
   }
 
   async function handleUpdate(formData: FormData) {
     if (!editingWithdrawal) return
     setLoading(true)
-    await updateWithdrawal(editingWithdrawal.id, formData)
-    setEditingWithdrawal(null)
+
+    const result = await updateWithdrawal(editingWithdrawal.id, formData)
     setLoading(false)
+
+    if (result?.error) {
+      enhancedToast.error(result.error)
+      return
+    }
+
+    setEditingWithdrawal(null)
     router.refresh()
-    enhancedToast.withdrawal("Withdrawal updated successfully!")
+    enhancedToast.withdrawal("Withdrawal updated")
+  }
+
+  /**
+   * Flip a withdrawal between pending and completed.
+   *
+   * The menu item used to only pre-fill the edit dialog with a flipped status,
+   * so "Mark as Approved" silently required a second confirmation step that its
+   * label did not mention. It now performs the change.
+   */
+  async function toggleStatus(withdrawal: Withdrawal) {
+    const nextStatus = withdrawal.status === "PENDING" ? "COMPLETED" : "PENDING"
+    setTogglingId(withdrawal.id)
+
+    const formData = new FormData()
+    formData.set("accountId", withdrawal.accountId)
+    formData.set("date", toDateKey(new Date(withdrawal.date)))
+    formData.set("amount", String(dollarsToPoints(withdrawal.amount)))
+    formData.set("status", nextStatus)
+
+    const result = await updateWithdrawal(withdrawal.id, formData)
+    setTogglingId(null)
+
+    if (result?.error) {
+      enhancedToast.error(result.error)
+      return
+    }
+
+    router.refresh()
+    enhancedToast.withdrawal(
+      nextStatus === "COMPLETED" ? "Marked as approved" : "Moved back to pending"
+    )
   }
 
   async function handleDelete() {
     if (!deletingWithdrawal) return
     setLoading(true)
-    await deleteWithdrawal(deletingWithdrawal.id)
-    setDeletingWithdrawal(null)
+
+    const result = await deleteWithdrawal(deletingWithdrawal.id)
     setLoading(false)
+
+    if (result?.error) {
+      enhancedToast.error(result.error)
+      return
+    }
+
+    setDeletingWithdrawal(null)
     router.refresh()
     enhancedToast.remove("Withdrawal deleted")
   }
 
   if (withdrawals.length === 0) {
     return (
-      <div className="text-center py-12">
-        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <Wallet className="w-8 h-8 text-green-600" />
-        </div>
-        <p className="text-slate-500 text-lg">No withdrawals yet</p>
-        <p className="text-slate-400 text-sm">Add your first withdrawal to start tracking requests</p>
-      </div>
+      <EmptyState
+        icon={<Wallet className="size-5" />}
+        title="No withdrawals yet"
+        description="Add your first withdrawal request to start tracking payouts."
+      />
     )
   }
 
+  const statusBadge = (withdrawal: Withdrawal) => (
+    <Badge
+      variant="secondary"
+      className={cn(
+        withdrawal.status === "COMPLETED"
+          ? "bg-success-muted text-success"
+          : "bg-warning-muted text-warning"
+      )}
+    >
+      {withdrawal.status === "COMPLETED" ? "Approved" : "Pending"}
+    </Badge>
+  )
+
+  const processingBadge = (withdrawal: Withdrawal) => {
+    const days = processingDays(withdrawal)
+
+    if (days === null) {
+      return (
+        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+          <Clock className="size-3" />
+          Processing
+        </span>
+      )
+    }
+
+    const speed = speedOf(days)
+    return (
+      <span
+        className={cn(
+          "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium",
+          speed.className
+        )}
+      >
+        <Clock className="size-3" />
+        {days} {days === 1 ? "day" : "days"} · {speed.label}
+      </span>
+    )
+  }
+
+  const rowActions = (withdrawal: Withdrawal) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-8"
+          onClick={(e) => e.stopPropagation()}
+          disabled={togglingId === withdrawal.id}
+        >
+          <MoreHorizontal className="size-4" />
+          <span className="sr-only">Actions for {withdrawal.accountName} withdrawal</span>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-52">
+        <DropdownMenuItem
+          onClick={(e) => {
+            e.stopPropagation()
+            setSelectedWithdrawal(withdrawal)
+          }}
+        >
+          <Eye className="mr-2 size-4" />
+          View details
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={(e) => {
+            e.stopPropagation()
+            setEditingWithdrawal(withdrawal)
+          }}
+        >
+          <Pencil className="mr-2 size-4" />
+          Edit details
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={(e) => {
+            e.stopPropagation()
+            void toggleStatus(withdrawal)
+          }}
+        >
+          {withdrawal.status === "PENDING" ? (
+            <>
+              <CheckCircle2 className="mr-2 size-4 text-success" />
+              Mark as approved
+            </>
+          ) : (
+            <>
+              <RotateCcw className="mr-2 size-4 text-warning" />
+              Move back to pending
+            </>
+          )}
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          variant="destructive"
+          onClick={(e) => {
+            e.stopPropagation()
+            setDeletingWithdrawal(withdrawal)
+          }}
+        >
+          <Trash2 className="mr-2 size-4" />
+          Delete
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+
   return (
-    <>
-      {/* Monthly Summary Card */}
-      <div className="mb-6">
-        <div className="bg-gradient-to-br from-teal-50 to-cyan-50 border border-teal-200 rounded-xl p-6 shadow-sm">
-          <div className="text-center">
-            <div className="text-3xl font-bold text-teal-700 mb-2">
-              ${totalApprovedAmount.toFixed(2)}
+    <div className="space-y-6">
+      {/* This month */}
+      <div className="rounded-lg border bg-card p-5">
+        <p className="text-sm font-medium text-muted-foreground">
+          Approved in {formatDate(`${currentMonthKey}-01`, { month: "long", year: "numeric" })}
+        </p>
+        <p className="metric mt-1 text-success">{formatDollars(monthSummary.dollars)}</p>
+        <p className="mt-1 text-xs text-muted-foreground tabular-nums">
+          {formatPoints(monthSummary.points)} points across {monthSummary.count}{" "}
+          {monthSummary.count === 1 ? "withdrawal" : "withdrawals"}
+        </p>
+      </div>
+
+      {/* Filters */}
+      <div className="rounded-lg border bg-card">
+        <div className="flex items-center justify-between gap-3 border-b px-4 py-3">
+          <div className="flex items-center gap-2">
+            <Filter className="size-4 text-muted-foreground" />
+            <span className="text-sm font-medium">Filters</span>
+            {hasActiveFilters ? (
+              <Badge variant="secondary">
+                {filteredWithdrawals.length} of {withdrawals.length}
+              </Badge>
+            ) : null}
+          </div>
+          {hasActiveFilters ? (
+            <Button variant="ghost" size="sm" onClick={clearFilters}>
+              <X className="mr-1.5 size-4" />
+              Clear
+            </Button>
+          ) : null}
+        </div>
+
+        <div className="grid gap-4 p-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="space-y-2">
+            <Label htmlFor="filter-status">Status</Label>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger id="filter-status" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All statuses</SelectItem>
+                <SelectItem value="PENDING">Pending</SelectItem>
+                <SelectItem value="COMPLETED">Approved</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="filter-account">Account</Label>
+            <Select value={accountFilter} onValueChange={setAccountFilter}>
+              <SelectTrigger id="filter-account" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All accounts</SelectItem>
+                {accounts.map((account) => (
+                  <SelectItem key={account.id} value={account.id}>
+                    {account.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="filter-date-from">Request date</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                id="filter-date-from"
+                type="date"
+                value={dateFromFilter}
+                onChange={(e) => setDateFromFilter(e.target.value)}
+                aria-label="From date"
+              />
+              <span className="text-sm text-muted-foreground">to</span>
+              <Input
+                type="date"
+                value={dateToFilter}
+                onChange={(e) => setDateToFilter(e.target.value)}
+                aria-label="To date"
+              />
             </div>
-            <div className="text-teal-600 font-medium mb-1">
-              {monthNames[currentMonth]} Withdrawals
-            </div>
-            <div className="text-sm text-teal-500">
-              {totalApprovedPoints.toLocaleString()} pts
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="filter-amount-min">Amount ($)</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                id="filter-amount-min"
+                type="number"
+                step="0.01"
+                inputMode="decimal"
+                value={minAmountFilter}
+                onChange={(e) => setMinAmountFilter(e.target.value)}
+                placeholder="Min"
+                aria-label="Minimum amount"
+              />
+              <span className="text-sm text-muted-foreground">–</span>
+              <Input
+                type="number"
+                step="0.01"
+                inputMode="decimal"
+                value={maxAmountFilter}
+                onChange={(e) => setMaxAmountFilter(e.target.value)}
+                placeholder="Max"
+                aria-label="Maximum amount"
+              />
             </div>
           </div>
         </div>
       </div>
 
-      {/* Modern Filter Bar */}
-      <div className="mb-8">
-        <div className="bg-white border border-slate-200 rounded-xl shadow-sm">
-          <div className="px-6 py-4 border-b border-slate-100">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2">
-                  <div className="p-1.5 bg-slate-100 rounded-lg">
-                    <Filter className="h-4 w-4 text-slate-600" />
-                  </div>
-                  <span className="font-semibold text-slate-800">Filters</span>
-                </div>
-                {hasActiveFilters && (
-                  <div className="flex items-center gap-2">
-                    <Badge className="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-50">
-                      {filteredWithdrawals.length} of {withdrawals.length} results
-                    </Badge>
-                  </div>
-                )}
-              </div>
-              {hasActiveFilters && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={clearFilters}
-                  className="text-slate-500 hover:text-slate-700 hover:bg-slate-50"
+      {filteredWithdrawals.length === 0 ? (
+        <EmptyState
+          title="No withdrawals match these filters"
+          description="Try a different status or a wider date range."
+          action={
+            <Button variant="outline" onClick={clearFilters}>
+              Clear filters
+            </Button>
+          }
+        />
+      ) : (
+        <>
+          {/* Desktop */}
+          <TableShell>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Requested</TableHead>
+                  <TableHead>Account</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Approved</TableHead>
+                  <TableHead>Processing</TableHead>
+                  <TableHead className="w-12" />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginated.map((withdrawal) => (
+                  <TableRow
+                    key={withdrawal.id}
+                    className="cursor-pointer"
+                    onClick={() => setSelectedWithdrawal(withdrawal)}
+                  >
+                    <TableCell className="font-medium">
+                      {formatDate(new Date(withdrawal.date))}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2.5">
+                        <AccountAvatar
+                          name={withdrawal.accountName}
+                          color={withdrawal.accountColor}
+                          size="sm"
+                        />
+                        <span className="font-medium">{withdrawal.accountName}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="font-semibold tabular-nums">
+                        {formatDollars(withdrawal.amount)}
+                      </div>
+                      <div className="text-xs text-muted-foreground tabular-nums">
+                        {formatPoints(dollarsToPoints(withdrawal.amount))} pts
+                      </div>
+                    </TableCell>
+                    <TableCell>{statusBadge(withdrawal)}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {withdrawal.completedAt
+                        ? formatDate(new Date(withdrawal.completedAt))
+                        : "—"}
+                    </TableCell>
+                    <TableCell>{processingBadge(withdrawal)}</TableCell>
+                    <TableCell>{rowActions(withdrawal)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableShell>
+
+          {/* Mobile */}
+          <CardList>
+            {paginated.map((withdrawal) => (
+              <DataCard
+                key={withdrawal.id}
+                title={
+                  <span className="flex items-center gap-2">
+                    <AccountAvatar
+                      name={withdrawal.accountName}
+                      color={withdrawal.accountColor}
+                      size="sm"
+                    />
+                    {withdrawal.accountName}
+                  </span>
+                }
+                subtitle={`Requested ${formatDate(new Date(withdrawal.date))}`}
+                actions={rowActions(withdrawal)}
+              >
+                <DataRow label="Amount" value={formatDollars(withdrawal.amount)} />
+                <DataRow
+                  label="Points"
+                  value={formatPoints(dollarsToPoints(withdrawal.amount))}
+                />
+                <DataRow label="Status" value={statusBadge(withdrawal)} />
+                <DataRow
+                  label="Approved"
+                  value={
+                    withdrawal.completedAt
+                      ? formatDate(new Date(withdrawal.completedAt))
+                      : "—"
+                  }
+                />
+                <DataRow label="Processing" value={processingBadge(withdrawal)} />
+              </DataCard>
+            ))}
+          </CardList>
+
+          {/* Pagination */}
+          <div className="flex flex-col gap-4 rounded-lg border bg-card p-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
+              <p className="text-sm text-muted-foreground">
+                Showing {startIndex + 1}–
+                {Math.min(startIndex + itemsPerPage, filteredWithdrawals.length)} of{" "}
+                {filteredWithdrawals.length}
+              </p>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="withdrawal-rows" className="whitespace-nowrap text-sm">
+                  Rows
+                </Label>
+                <Select
+                  value={itemsPerPage.toString()}
+                  onValueChange={(value) => setItemsPerPage(Number(value))}
                 >
-                  <X className="h-4 w-4 mr-2" />
-                  Clear filters
-                </Button>
-              )}
-            </div>
-          </div>
-
-          <div className="px-6 py-5">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {/* Status Filter */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-slate-700">Status</Label>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="h-10 bg-slate-50 border-slate-200 hover:bg-white transition-colors">
-                    <SelectValue placeholder="All statuses" />
+                  <SelectTrigger id="withdrawal-rows" className="w-20">
+                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All statuses</SelectItem>
-                    <SelectItem value="PENDING">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-orange-500"></div>
-                        Pending
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="COMPLETED">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                        Completed
-                      </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Account Filter */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-slate-700">Account</Label>
-                <Select value={accountFilter} onValueChange={setAccountFilter}>
-                  <SelectTrigger className="h-10 bg-slate-50 border-slate-200 hover:bg-white transition-colors">
-                    <SelectValue placeholder="All accounts" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All accounts</SelectItem>
-                    {accounts.map((account) => (
-                      <SelectItem key={account.id} value={account.id}>
-                        {account.name}
+                    {[10, 25, 50, 100].map((size) => (
+                      <SelectItem key={size} value={size.toString()}>
+                        {size}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-
-              {/* Date Range */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-slate-700">Date Range</Label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="date"
-                    value={dateFromFilter}
-                    onChange={(e) => setDateFromFilter(e.target.value)}
-                    className="h-10 bg-slate-50 border-slate-200 hover:bg-white transition-colors flex-1"
-                  />
-                  <span className="text-slate-400 text-sm px-1">to</span>
-                  <Input
-                    type="date"
-                    value={dateToFilter}
-                    onChange={(e) => setDateToFilter(e.target.value)}
-                    className="h-10 bg-slate-50 border-slate-200 hover:bg-white transition-colors flex-1"
-                  />
-                </div>
-              </div>
-
-              {/* Amount Range */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-slate-700">Amount Range ($)</Label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={minAmountFilter}
-                    onChange={(e) => setMinAmountFilter(e.target.value)}
-                    placeholder="Min"
-                    className="h-10 bg-slate-50 border-slate-200 hover:bg-white transition-colors flex-1"
-                  />
-                  <span className="text-slate-400 text-sm px-1">-</span>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={maxAmountFilter}
-                    onChange={(e) => setMaxAmountFilter(e.target.value)}
-                    placeholder="Max"
-                    className="h-10 bg-slate-50 border-slate-200 hover:bg-white transition-colors flex-1"
-                  />
-                </div>
-              </div>
             </div>
+
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+            />
           </div>
-        </div>
-      </div>
+        </>
+      )}
 
-      <div className="rounded-lg overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Request Date</TableHead>
-              <TableHead>Account</TableHead>
-              <TableHead className="text-right">Amount</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Approved Date</TableHead>
-              <TableHead>Processing Time</TableHead>
-              <TableHead className="w-[50px]">
-                <div className="flex items-center gap-1">
-                  <span className="text-xs text-slate-500">Click row for details</span>
-                </div>
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredWithdrawals.map((withdrawal) => (
-              <TableRow
-                key={withdrawal.id}
-                className="cursor-pointer hover:bg-slate-50 transition-colors group"
-                onClick={() => setSelectedWithdrawal(withdrawal)}
-              >
-                <TableCell>{new Date(withdrawal.date).toLocaleDateString('en-GB', {
-                  day: 'numeric',
-                  month: 'short',
-                  year: 'numeric'
-                })}</TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-3">
-                    <div className="relative">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-xs shadow-md ring-1 ring-white/30 ${getAvatarGradient(withdrawal.accountColor)}`}>
-                        {withdrawal.accountName.charAt(0).toUpperCase()}
-                      </div>
-                      {/* Status indicator */}
-                      <div className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border border-white shadow-sm ${withdrawal.status === 'COMPLETED'
-                        ? 'bg-gradient-to-r from-green-400 to-emerald-500'
-                        : 'bg-gradient-to-r from-orange-400 to-amber-500'
-                        }`}></div>
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="font-semibold text-slate-800 group-hover:text-blue-600 transition-colors">{withdrawal.accountName}</span>
-                      <span className="text-xs text-slate-500">Survey Platform</span>
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell className="text-right font-medium">
-                  <div className="flex flex-col items-end">
-                    <span className="text-lg font-bold">{(withdrawal.amount * 100).toLocaleString()} pts</span>
-                    <span className="text-xs text-muted-foreground">${withdrawal.amount.toFixed(2)}</span>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${withdrawal.status === "COMPLETED" ? "bg-green-500" : "bg-orange-500"
-                      }`}></div>
-                    <Badge
-                      variant="secondary"
-                      className={withdrawal.status === "COMPLETED"
-                        ? "bg-green-100 text-green-700 border-green-200 hover:bg-green-100"
-                        : "bg-orange-100 text-orange-700 border-orange-200 hover:bg-orange-100"
-                      }
-                    >
-                      {withdrawal.status === "COMPLETED" ? "Approved" : "Pending"}
-                    </Badge>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  {withdrawal.completedAt ? (
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                        <span className="font-semibold text-green-700">
-                          {new Date(withdrawal.completedAt).toLocaleDateString('en-GB', {
-                            day: 'numeric',
-                            month: 'short',
-                            year: 'numeric'
-                          })}
-                        </span>
-                      </div>
-                      <div className="text-xs text-slate-500 ml-4">
-                        at {new Date(withdrawal.completedAt).toLocaleTimeString('en-GB', {
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </div>
-                    </div>
-                  ) : withdrawal.status === "COMPLETED" ? (
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                        <span className="font-semibold text-green-700">
-                          {new Date(withdrawal.date).toLocaleDateString('en-GB', {
-                            day: 'numeric',
-                            month: 'short',
-                            year: 'numeric'
-                          })}
-                        </span>
-                      </div>
-                      <div className="text-xs text-slate-400 ml-4 italic">
-                        (Same day completion)
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-orange-400 rounded-full animate-pulse"></div>
-                      <span className="text-slate-400 text-sm">Pending...</span>
-                    </div>
-                  )}
-                </TableCell>
-                <TableCell>
-                  {withdrawal.completedAt ? (
-                    <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${Math.ceil((new Date(withdrawal.completedAt).getTime() - new Date(withdrawal.date).getTime()) / (1000 * 60 * 60 * 24)) <= 7
-                      ? 'bg-green-100 text-green-700 border border-green-200' :
-                      Math.ceil((new Date(withdrawal.completedAt).getTime() - new Date(withdrawal.date).getTime()) / (1000 * 60 * 60 * 24)) <= 15
-                        ? 'bg-blue-100 text-blue-700 border border-blue-200' :
-                        Math.ceil((new Date(withdrawal.completedAt).getTime() - new Date(withdrawal.date).getTime()) / (1000 * 60 * 60 * 24)) <= 25
-                          ? 'bg-orange-100 text-orange-700 border border-orange-200' :
-                          'bg-red-100 text-red-700 border border-red-200'
-                      }`}>
-                      <Clock className="w-3 h-3" />
-                      {Math.ceil((new Date(withdrawal.completedAt).getTime() - new Date(withdrawal.date).getTime()) / (1000 * 60 * 60 * 24))} days
-                      <span className="ml-1">
-                        {Math.ceil((new Date(withdrawal.completedAt).getTime() - new Date(withdrawal.date).getTime()) / (1000 * 60 * 60 * 24)) <= 7 ? '⚡ Fast' :
-                          Math.ceil((new Date(withdrawal.completedAt).getTime() - new Date(withdrawal.date).getTime()) / (1000 * 60 * 60 * 24)) <= 15 ? '✅ Normal' :
-                            Math.ceil((new Date(withdrawal.completedAt).getTime() - new Date(withdrawal.date).getTime()) / (1000 * 60 * 60 * 24)) <= 25 ? '🐌 Slow' : '🔴 Very Slow'}
-                      </span>
-                    </div>
-                  ) : withdrawal.status === "COMPLETED" ? (
-                    <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 border border-green-200">
-                      <Clock className="w-3 h-3" />
-                      0 days
-                      <span className="ml-1">⚡ Fast</span>
-                    </div>
-                  ) : (
-                    <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-slate-100 text-slate-500 border border-slate-200">
-                      <Clock className="w-3 h-3" />
-                      <span>Processing</span>
-                    </div>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
-                        <MoreHorizontal className="h-4 w-4" />
-                        <span className="sr-only">Open menu</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48">
-                      <DropdownMenuItem onClick={(e) => {
-                        e.stopPropagation()
-                        setSelectedWithdrawal(withdrawal)
-                      }} className="cursor-pointer">
-                        <Eye className="mr-2 h-4 w-4" />
-                        View Details
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={(e) => {
-                        e.stopPropagation()
-                        setEditingWithdrawal(withdrawal)
-                      }} className="cursor-pointer">
-                        <Pencil className="mr-2 h-4 w-4" />
-                        Edit Details
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          const updatedWithdrawal = { ...withdrawal, status: withdrawal.status === "PENDING" ? "COMPLETED" : "PENDING" as "PENDING" | "COMPLETED" }
-                          setEditingWithdrawal(updatedWithdrawal)
-                        }}
-                        className="cursor-pointer"
-                      >
-                        {withdrawal.status === "PENDING" ? (
-                          <>
-                            <div className="mr-2 h-4 w-4 rounded-full bg-green-500"></div>
-                            Mark as Approved
-                          </>
-                        ) : (
-                          <>
-                            <div className="mr-2 h-4 w-4 rounded-full bg-orange-500"></div>
-                            Mark as Pending
-                          </>
-                        )}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setDeletingWithdrawal(withdrawal)
-                        }}
-                        className="text-destructive cursor-pointer"
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-
-      {/* Edit Dialog */}
-      <Dialog open={!!editingWithdrawal} onOpenChange={() => setEditingWithdrawal(null)}>
+      {/* Edit */}
+      <Dialog
+        open={!!editingWithdrawal}
+        onOpenChange={(open) => {
+          if (!open) setEditingWithdrawal(null)
+        }}
+      >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit Withdrawal</DialogTitle>
-            <DialogDescription>Update the withdrawal details.</DialogDescription>
+            <DialogTitle>Edit withdrawal</DialogTitle>
+            <DialogDescription>Update this withdrawal request.</DialogDescription>
           </DialogHeader>
           <form action={handleUpdate}>
-            <div className="space-y-4 py-4">
+            <div className="space-y-4 py-2">
               <div className="space-y-2">
-                <Label htmlFor="edit-account">Account</Label>
+                <Label htmlFor="edit-w-account">Account</Label>
                 <Select name="accountId" defaultValue={editingWithdrawal?.accountId}>
-                  <SelectTrigger>
+                  <SelectTrigger id="edit-w-account" className="w-full">
                     <SelectValue placeholder="Select account" />
                   </SelectTrigger>
                   <SelectContent>
@@ -584,107 +685,120 @@ export function WithdrawalsTable({ withdrawals, accounts }: { withdrawals: Withd
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-date">Date</Label>
+                <Label htmlFor="edit-w-date">Request date</Label>
                 <Input
-                  id="edit-date"
+                  id="edit-w-date"
                   name="date"
                   type="date"
-                  defaultValue={editingWithdrawal ? new Date(editingWithdrawal.date).toISOString().split("T")[0] : ""}
+                  defaultValue={
+                    editingWithdrawal ? toDateKey(new Date(editingWithdrawal.date)) : ""
+                  }
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-amount">Amount (Points)</Label>
+                <Label htmlFor="edit-w-amount">Amount (points)</Label>
                 <Input
-                  id="edit-amount"
+                  id="edit-w-amount"
                   name="amount"
                   type="number"
                   step="1"
-                  defaultValue={editingWithdrawal ? editingWithdrawal.amount * 100 : 0}
+                  min="1"
+                  inputMode="numeric"
+                  defaultValue={
+                    editingWithdrawal ? dollarsToPoints(editingWithdrawal.amount) : ""
+                  }
                   required
-                  placeholder="Enter points (e.g., 1500)"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Dollar equivalent: ${editingWithdrawal ? (editingWithdrawal.amount).toFixed(2) : '0.00'} (100 points = $1)
+                  {editingWithdrawal
+                    ? `${formatDollars(editingWithdrawal.amount)} at 100 points to the dollar`
+                    : "100 points = $1.00"}
                 </p>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-status">Status</Label>
+                <Label htmlFor="edit-w-status">Status</Label>
                 <Select name="status" defaultValue={editingWithdrawal?.status}>
-                  <SelectTrigger>
+                  <SelectTrigger id="edit-w-status" className="w-full">
                     <SelectValue placeholder="Select status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="PENDING">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-orange-500"></div>
-                        Pending
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="COMPLETED">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                        Completed
-                      </div>
-                    </SelectItem>
+                    <SelectItem value="PENDING">Pending</SelectItem>
+                    <SelectItem value="COMPLETED">Approved</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-completed-date">Completion Date (Optional)</Label>
+                <Label htmlFor="edit-w-completed">Approval date</Label>
                 <Input
-                  id="edit-completed-date"
+                  id="edit-w-completed"
                   name="completedDate"
                   type="date"
-                  defaultValue={editingWithdrawal?.completedAt ? new Date(editingWithdrawal.completedAt).toISOString().split("T")[0] : ""}
-                  placeholder="Leave empty for automatic date when marked as completed"
+                  defaultValue={
+                    editingWithdrawal?.completedAt
+                      ? toDateKey(new Date(editingWithdrawal.completedAt))
+                      : ""
+                  }
                 />
                 <p className="text-xs text-muted-foreground">
-                  Only used when status is "Approved". Leave empty to use current date automatically.
+                  Used when the status is Approved. Leave empty to use today.
                 </p>
               </div>
             </div>
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setEditingWithdrawal(null)} className="hover:bg-slate-50 transition-colors">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setEditingWithdrawal(null)}
+              >
                 Cancel
               </Button>
-              <Button type="submit" disabled={loading} className="bg-gradient-to-r from-purple-500 to-violet-600 hover:from-purple-600 hover:to-violet-700 text-white shadow-lg transition-all duration-200">
-                {loading ? "Saving..." : "Save Changes"}
+              <Button type="submit" disabled={loading}>
+                {loading ? "Saving…" : "Save changes"}
               </Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation */}
-      <AlertDialog open={!!deletingWithdrawal} onOpenChange={() => setDeletingWithdrawal(null)}>
+      {/* Delete */}
+      <AlertDialog
+        open={!!deletingWithdrawal}
+        onOpenChange={(open) => {
+          if (!open) setDeletingWithdrawal(null)
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Withdrawal</AlertDialogTitle>
+            <AlertDialogTitle>Delete this withdrawal?</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this {deletingWithdrawal ? (deletingWithdrawal.amount * 100).toLocaleString() : 0} points (${deletingWithdrawal?.amount.toFixed(2)}) withdrawal?
-              This action cannot be undone.
+              {deletingWithdrawal
+                ? `${formatDollars(deletingWithdrawal.amount)} from ${deletingWithdrawal.accountName}, requested ${formatDate(new Date(deletingWithdrawal.date))}. This cannot be undone.`
+                : null}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="hover:bg-slate-50 transition-colors">Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={loading}>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleDelete}
-              className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white shadow-lg shadow-red-200/50 transition-all duration-200"
+              disabled={loading}
+              onClick={(event) => {
+                event.preventDefault()
+                void handleDelete()
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {loading ? "Deleting..." : "Delete"}
+              {loading ? "Deleting…" : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Withdrawal Details Modal */}
       <WithdrawalDetailsModal
         isOpen={!!selectedWithdrawal}
         onClose={() => setSelectedWithdrawal(null)}
         withdrawal={selectedWithdrawal}
         isFirstWithdrawal={selectedWithdrawal ? isFirstWithdrawal(selectedWithdrawal) : false}
       />
-    </>
+    </div>
   )
 }
