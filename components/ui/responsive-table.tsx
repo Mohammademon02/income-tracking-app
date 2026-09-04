@@ -97,9 +97,12 @@ export function EmptyState({
   action?: ReactNode
 }) {
   return (
-    <div className="rounded-lg border border-dashed bg-card px-6 py-16 text-center">
+    // Dashed rather than solid, and tinted rather than grey: an empty state
+    // is a place something will go, and it should not look like a card that
+    // failed to load.
+    <div className="rounded-xl border border-dashed border-border-strong px-6 py-16 text-center">
       {icon ? (
-        <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
+        <div className="mx-auto mb-4 flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
           {icon}
         </div>
       ) : null}

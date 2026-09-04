@@ -108,11 +108,11 @@ export function UsTimeClock({ className }: { className?: string }) {
     <Card className={className}>
       <CardContent className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-warning/15 text-warning">
             <PhaseIcon className="size-5" />
           </span>
           <div className="min-w-0">
-            <p className="font-mono text-2xl leading-none font-semibold tabular-nums sm:text-3xl">
+            <p className="font-mono text-2xl leading-none font-semibold tabular-nums sm:text-3xl" suppressHydrationWarning>
               {parts?.time ?? "—:—:—"}
             </p>
             <p className="mt-1 truncate text-sm text-muted-foreground">
@@ -123,7 +123,7 @@ export function UsTimeClock({ className }: { className?: string }) {
 
         <div className="flex items-center gap-2">
           {isBusinessZone ? (
-            <Badge variant="secondary" title="This zone decides which date counts as today">
+            <Badge variant="info" title="This zone decides which date counts as today">
               Business day
             </Badge>
           ) : null}

@@ -385,9 +385,11 @@ function QuickStat({
 
 function EmptyRow({ icon, label }: { icon: React.ReactNode; label: string }) {
   return (
-    <div className="flex flex-col items-center gap-2 py-8 text-muted-foreground">
-      {icon}
-      <p className="text-sm">{label}</p>
+    <div className="flex flex-col items-center gap-3 py-10">
+      <span className="flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+        {icon}
+      </span>
+      <p className="text-sm text-muted-foreground">{label}</p>
     </div>
   )
 }
