@@ -1,0 +1,68 @@
+import { Clock } from "lucide-react"
+
+import { daysBetween, toDateKey } from "@/lib/date-utils"
+import { cn } from "@/lib/utils"
+
+/**
+ * How long a withdrawal took, as a badge.
+ *
+ * The dashboard and the withdrawals table each carried their own copy of this
+ * logic — the table computed the day count six times inline in one cell — and
+ * both rendered the result as an emoji rating (⚡ Fast, 🐌 Slow). One component,
+ * one threshold table, words instead of emoji.
+ */
+
+const THRESHOLDS = [
+  { maxDays: 7, label: "Fast", className: "bg-success-muted text-success" },
+  { maxDays: 15, label: "Normal", className: "bg-muted text-muted-foreground" },
+  { maxDays: 25, label: "Slow", className: "bg-warning-muted text-warning" },
+] as const
+
+const SLOWEST = { label: "Very slow", className: "bg-destructive-muted text-destructive" }
+
+export function processingDays(requestedAt: Date, completedAt: Date | null): number | null {
+  if (!completedAt) return null
+  // Whole calendar days, so the count cannot drift with the server's offset.
+  return daysBetween(toDateKey(new Date(requestedAt)), toDateKey(new Date(completedAt)))
+}
+
+export function ProcessingTimeBadge({
+  requestedAt,
+  completedAt,
+  className,
+}: {
+  requestedAt: Date
+  completedAt: Date | null
+  className?: string
+}) {
+  const days = processingDays(requestedAt, completedAt)
+
+  if (days === null) {
+    return (
+      <span
+        className={cn(
+          "inline-flex items-center gap-1 text-xs text-muted-foreground",
+          className
+        )}
+      >
+        <Clock className="size-3" />
+        Processing
+      </span>
+    )
+  }
+
+  const speed = THRESHOLDS.find((threshold) => days <= threshold.maxDays) ?? SLOWEST
+
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium",
+        speed.className,
+        className
+      )}
+    >
+      <Clock className="size-3" />
+      {days} {days === 1 ? "day" : "days"} · {speed.label}
+    </span>
+  )
+}
