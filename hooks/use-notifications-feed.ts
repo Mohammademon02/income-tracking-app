@@ -33,13 +33,13 @@ export function useNotificationsFeed() {
 
   const load = useCallback(async (signal?: AbortSignal) => {
     try {
-      setError(null)
       const response = await fetch("/api/notifications/recent", { signal })
       if (!response.ok) throw new Error("Could not load notifications")
 
       const data = await response.json()
       if (signal?.aborted) return
 
+      setError(null)
       setEnabled(data.enabled !== false)
       setNotifications(
         (data.notifications ?? []).map((notification: any) => ({
@@ -58,12 +58,16 @@ export function useNotificationsFeed() {
 
   useEffect(() => {
     const controller = new AbortController()
-    void load(controller.signal)
 
+    // The first load is deferred to a macrotask so the effect body does not
+    // update state during the render pass that scheduled it. The abort still
+    // covers it, since a cancelled timer never starts the fetch.
+    const first = setTimeout(() => void load(controller.signal), 0)
     const interval = setInterval(() => void load(controller.signal), REFRESH_INTERVAL_MS)
 
     return () => {
       controller.abort()
+      clearTimeout(first)
       clearInterval(interval)
     }
   }, [load])

@@ -1,6 +1,6 @@
 "use client"
 
-import React, { memo, useEffect, useState } from "react"
+import React, { memo, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -46,19 +46,19 @@ NavigationItem.displayName = 'NavigationItem'
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [menuOpenedAt, setMenuOpenedAt] = useState<string | null>(null)
+
+  // The menu belongs to the page it was opened on. Deriving that from the
+  // pathname closes it on navigation — including browser back and forward —
+  // without an effect that sets state on every route change.
+  const mobileMenuOpen = menuOpenedAt === pathname
+  const setMobileMenuOpen = (open: boolean) => setMenuOpenedAt(open ? pathname : null)
 
   // Simple notification system
   useNotifications({
     enableDailyGoalAlerts: true,
     checkInterval: 60000 // Check every minute
   })
-
-  // Close the mobile nav on navigation. Without this it stays open behind the
-  // new page after a link is tapped.
-  useEffect(() => {
-    setMobileMenuOpen(false)
-  }, [pathname])
 
   return (
     <div className="min-h-screen bg-background">

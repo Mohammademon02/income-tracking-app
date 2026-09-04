@@ -55,11 +55,18 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
     setLastChecked(new Date())
   }, [checkDailyGoals])
 
-  // Set up periodic checks
+  // Set up periodic checks.
+  //
+  // The first run is deferred to a microtask so the effect body itself does
+  // not update state during the render pass that scheduled it.
   useEffect(() => {
-    checkNotifications()
+    const timer = setTimeout(checkNotifications, 0)
     const interval = setInterval(checkNotifications, checkInterval)
-    return () => clearInterval(interval)
+
+    return () => {
+      clearTimeout(timer)
+      clearInterval(interval)
+    }
   }, [checkNotifications, checkInterval])
 
   // Manual trigger function

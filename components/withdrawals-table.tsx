@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import {
   CheckCircle2,
@@ -186,9 +186,22 @@ export function WithdrawalsTable({
   const startIndex = (currentPage - 1) * itemsPerPage
   const paginated = filteredWithdrawals.slice(startIndex, startIndex + itemsPerPage)
 
-  useEffect(() => {
+  // Adjusted during render rather than in an effect — see entries-table.
+  const filterSignature = [
+    statusFilter,
+    accountFilter,
+    dateFromFilter,
+    dateToFilter,
+    minAmountFilter,
+    maxAmountFilter,
+    itemsPerPage,
+  ].join("|")
+  const [previousFilters, setPreviousFilters] = useState(filterSignature)
+
+  if (filterSignature !== previousFilters) {
+    setPreviousFilters(filterSignature)
     setCurrentPage(1)
-  }, [statusFilter, accountFilter, dateFromFilter, dateToFilter, minAmountFilter, maxAmountFilter, itemsPerPage])
+  }
 
   const clearFilters = () => {
     setStatusFilter("all")

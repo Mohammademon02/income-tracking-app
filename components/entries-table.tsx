@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { CalendarPlus, Filter, MoreHorizontal, Pencil, Trash2, X } from "lucide-react"
 
@@ -120,11 +120,26 @@ export function EntriesTable({ entries, accounts }: { entries: Entry[]; accounts
   const endIndex = startIndex + itemsPerPage
   const paginatedEntries = filteredEntries.slice(startIndex, endIndex)
 
-  // An effect, not a useMemo. Calling setState during render is not guaranteed
-  // to run (a memo can be discarded) and React 19 flags it.
-  useEffect(() => {
+  // Adjusting state when an input changes, done during render.
+  //
+  // This was a useMemo with a setState inside it, which is not guaranteed to
+  // run — a memo can be discarded and recomputed. An effect would work but
+  // renders one frame on the wrong page first. Comparing against the previous
+  // value during render is React's documented pattern for exactly this.
+  const filterSignature = [
+    accountFilter,
+    dateFromFilter,
+    dateToFilter,
+    minPointsFilter,
+    maxPointsFilter,
+    itemsPerPage,
+  ].join("|")
+  const [previousFilters, setPreviousFilters] = useState(filterSignature)
+
+  if (filterSignature !== previousFilters) {
+    setPreviousFilters(filterSignature)
     setCurrentPage(1)
-  }, [accountFilter, dateFromFilter, dateToFilter, minPointsFilter, maxPointsFilter, itemsPerPage])
+  }
 
   const clearFilters = () => {
     setAccountFilter("all")

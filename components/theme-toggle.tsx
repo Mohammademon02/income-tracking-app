@@ -2,7 +2,7 @@
 
 import { Monitor, Moon, Sun } from "lucide-react"
 import { useTheme } from "next-themes"
-import { useEffect, useState } from "react"
+import { useSyncExternalStore } from "react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -20,12 +20,15 @@ const OPTIONS = [
 
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme()
-  const [mounted, setMounted] = useState(false)
-
   // The resolved theme is only known in the browser, so the icon cannot be
-  // chosen during SSR without risking a hydration mismatch. Render a stable
-  // placeholder until mount.
-  useEffect(() => setMounted(true), [])
+  // chosen during SSR without risking a hydration mismatch. This reads false
+  // on the server and true on the client without an effect, so there is no
+  // extra render pass.
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  )
 
   const active = OPTIONS.find((option) => option.value === theme) ?? OPTIONS[2]
   const Icon = mounted ? active.icon : Sun

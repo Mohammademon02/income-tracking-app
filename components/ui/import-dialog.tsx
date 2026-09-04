@@ -283,7 +283,7 @@ export function ImportDialog({ type, accounts = [], onImportComplete, className 
                   }
                 />
                 <Label htmlFor="dryRun" className="text-sm">
-                  Preview only (don't import)
+                  Preview only (don&apos;t import)
                 </Label>
               </div>
             </div>

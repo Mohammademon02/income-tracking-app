@@ -37,10 +37,13 @@ export function SearchInput({
     return () => clearTimeout(timer)
   }, [searchValue, debounceMs, onChange])
 
-  // Update local state when external value changes
-  useEffect(() => {
+  // Adjusting state when a prop changes, done during render rather than in
+  // an effect: the effect version renders once with the stale value first.
+  const [previousValue, setPreviousValue] = useState(value)
+  if (value !== previousValue) {
+    setPreviousValue(value)
     setSearchValue(value)
-  }, [value])
+  }
 
   const handleClear = () => {
     setSearchValue("")
