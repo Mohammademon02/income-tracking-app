@@ -130,7 +130,7 @@ export function SmartInsights() {
                   <h4 className="text-sm font-semibold text-foreground">{insight.title}</h4>
                 </div>
                 {insight.priority === "high" ? (
-                  <Badge variant="secondary" className="bg-destructive-muted text-destructive">
+                  <Badge variant="destructive" className="bg-destructive/12 text-destructive">
                     High
                   </Badge>
                 ) : null}

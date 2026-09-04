@@ -3,6 +3,7 @@
 import { Users } from "lucide-react"
 
 import { AccountAvatar } from "@/components/account-avatar"
+import { SectionIcon } from "@/components/page-shell"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
@@ -48,7 +49,7 @@ export function AnimatedAccountPerformance({
     <Card className="lg:col-span-2">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Users className="size-4 text-muted-foreground" />
+          <SectionIcon icon={Users} tone="rose" />
           Accounts
         </CardTitle>
         <CardDescription>Share of total points earned, and what is available.</CardDescription>
@@ -73,8 +74,8 @@ export function AnimatedAccountPerformance({
                       <span className="truncate text-sm font-medium">{account.name}</span>
                       {ready ? (
                         <Badge
-                          variant="secondary"
-                          className="shrink-0 bg-success-muted text-success"
+                          variant="success"
+                          className="shrink-0"
                         >
                           Ready
                         </Badge>
@@ -90,7 +91,9 @@ export function AnimatedAccountPerformance({
                     </div>
                   </div>
 
-                  <Progress value={share} />
+                  {/* Plotted in the account's own colour, which is the same
+                      colour its avatar and its slice of the donut carry. */}
+                  <Progress value={share} color={account.color} />
 
                   <div className="flex justify-between text-xs text-muted-foreground tabular-nums">
                     {/* The available figure is the one being acted on, so it

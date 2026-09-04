@@ -101,7 +101,7 @@ export function Pagination({ currentPage, totalPages, onPageChange, className }:
                                     className={cn(
                                         "h-8 w-8 p-0 font-medium transition-all duration-200 rounded-md",
                                         currentPage === page
-                                            ? "bg-primary hover:bg-blue-700 text-white shadow-sm"
+                                            ? "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90"
                                             : "hover:bg-primary/10 hover:text-primary text-foreground"
                                     )}
                                 >

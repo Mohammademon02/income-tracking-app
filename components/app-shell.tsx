@@ -101,7 +101,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div className="relative min-h-screen bg-background">
       {/* Ambient light for the whole app. Fixed, so it stays put while content
           scrolls through it, and behind everything on a negative z-index. */}
-      <div className="aurora" aria-hidden="true" />
+      <div className="aurora" aria-hidden="true">
+        <span />
+      </div>
 
       {/* Mobile header */}
       <div className="fixed inset-x-0 top-0 z-50 border-b border-border/60 bg-background/70 backdrop-blur-xl lg:hidden">

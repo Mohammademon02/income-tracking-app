@@ -17,6 +17,15 @@ const badgeVariants = cva(
           'border-transparent bg-destructive text-white [a&]:hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60',
         outline:
           'text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground',
+        /*
+         * Status. These existed only as the ad-hoc string
+         * `bg-warning-muted text-warning` repeated at a dozen call sites, which
+         * is why "Pending" was styled three slightly different ways depending
+         * on which screen you were looking at.
+         */
+        success: 'border-transparent bg-success/12 text-success',
+        warning: 'border-transparent bg-warning/15 text-warning',
+        info: 'border-transparent bg-chart-2/12 text-chart-2',
       },
     },
     defaultVariants: {

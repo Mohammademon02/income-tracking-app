@@ -1,10 +1,40 @@
 "use client"
 
-import { useMemo } from "react"
-import { addDays, dateKeyToDate, dayOfWeek, formatDate, toDateKey, todayKey } from "@/lib/date-utils"
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from "recharts"
+import { useId, useMemo } from "react"
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts"
+import { Calendar, DollarSign, TrendingUp } from "lucide-react"
+
+import { SectionIcon } from "@/components/page-shell"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { TrendingUp, Calendar, DollarSign } from "lucide-react"
+import { addDays, dateKeyToDate, dayOfWeek, formatDate, toDateKey, todayKey } from "@/lib/date-utils"
+import { formatDollars, formatPoints, pointsToDollars } from "@/lib/money"
+
+/**
+ * The charts.
+ *
+ * Every colour in here used to be a literal: `#e2e8f0` grid lines, `#64748b`
+ * axes, `#3B82F6` and `#8B5CF6` series, and `backgroundColor: 'white'` on all
+ * three tooltips. In dark mode that meant near-invisible axes and a white card
+ * flashing over the ink whenever you hovered a point — the charts were the one
+ * part of the app that never got a dark theme, because they never resolved from
+ * tokens at all.
+ *
+ * They now read from --chart-*, so the series match the tiles above them and
+ * both themes are handled by the same markup.
+ */
 
 interface EarningsData {
   date: string
@@ -18,15 +48,64 @@ interface EarningsChartProps {
   accounts: Array<{ id: string; name: string; color: string; totalPoints: number }>
 }
 
-const COLORS = [
-  'var(--chart-1)',
-  'var(--chart-2)',
-  'var(--chart-3)',
-  'var(--chart-4)',
-  'var(--chart-5)',
+const SERIES = [
+  "var(--chart-1)",
+  "var(--chart-2)",
+  "var(--chart-3)",
+  "var(--chart-4)",
+  "var(--chart-5)",
 ]
 
+const AXIS = {
+  stroke: "var(--muted-foreground)",
+  fontSize: 11,
+  tickLine: false,
+  axisLine: false,
+} as const
+
+/**
+ * Recharts' `contentStyle` cannot express a themed surface — it takes literal
+ * CSS values, which is how the hardcoded white got in. Rendering the tooltip as
+ * a component instead lets it use the same tokens as every other popover.
+ */
+function ChartTooltip({
+  active,
+  payload,
+  label,
+  unit = "points",
+}: {
+  active?: boolean
+  payload?: { value: number; name: string; color?: string }[]
+  label?: string
+  unit?: "points" | "entries"
+}) {
+  if (!active || !payload?.length) return null
+
+  return (
+    <div className="panel rounded-lg px-3 py-2 shadow-lg backdrop-blur-sm">
+      {label ? <p className="mb-1 text-xs font-medium text-muted-foreground">{label}</p> : null}
+      {payload.map((item) => (
+        <p key={item.name} className="text-sm font-semibold tabular-nums">
+          {unit === "entries"
+            ? `${item.value} ${item.value === 1 ? "entry" : "entries"}`
+            : `${formatPoints(item.value)} pts`}
+          {unit === "points" ? (
+            <span className="ml-2 text-xs font-normal text-muted-foreground">
+              {formatDollars(pointsToDollars(item.value))}
+            </span>
+          ) : null}
+        </p>
+      ))}
+    </div>
+  )
+}
+
 export function EarningsChart({ data, accounts }: EarningsChartProps) {
+  // Gradient ids have to be unique per mount, or a second chart on the page
+  // paints with the first one's stops.
+  const dailyGradient = useId()
+  const weeklyGradient = useId()
+
   // Filter data to show only recent entries (last 30 days)
   const recentData = useMemo(() => {
     const today = todayKey()
@@ -38,29 +117,34 @@ export function EarningsChart({ data, accounts }: EarningsChartProps) {
     })
   }, [data])
 
-  // Process data for different chart types
   const dailyData = useMemo(() => {
-    const grouped = recentData.reduce((acc, entry) => {
-      const entryDate = new Date(entry.date)
-      const dateKey = toDateKey(entryDate)
-      const displayDate = formatDate(dateKey, { day: 'numeric', month: 'short' })
-      
-      if (!acc[dateKey]) {
-        acc[dateKey] = { 
-          dateKey,
-          date: displayDate, 
-          points: 0, 
-          earnings: 0,
-          sortDate: entryDate.getTime()
+    const grouped = recentData.reduce(
+      (acc, entry) => {
+        const entryDate = new Date(entry.date)
+        const dateKey = toDateKey(entryDate)
+        const displayDate = formatDate(dateKey, { day: "numeric", month: "short" })
+
+        if (!acc[dateKey]) {
+          acc[dateKey] = {
+            dateKey,
+            date: displayDate,
+            points: 0,
+            earnings: 0,
+            sortDate: entryDate.getTime(),
+          }
         }
-      }
-      
-      acc[dateKey].points += entry.points
-      acc[dateKey].earnings += entry.points / 100
-      
-      return acc
-    }, {} as Record<string, { dateKey: string; date: string; points: number; earnings: number; sortDate: number }>)
-    
+
+        acc[dateKey].points += entry.points
+        acc[dateKey].earnings += entry.points / 100
+
+        return acc
+      },
+      {} as Record<
+        string,
+        { dateKey: string; date: string; points: number; earnings: number; sortDate: number }
+      >
+    )
+
     return Object.values(grouped)
       .sort((a, b) => a.sortDate - b.sortDate) // Sort by actual date
       .slice(-14) // Last 14 days
@@ -68,12 +152,14 @@ export function EarningsChart({ data, accounts }: EarningsChartProps) {
   }, [recentData])
 
   const accountData = useMemo(() => {
-    return accounts.map((account, index) => ({
-      name: account.name,
-      points: account.totalPoints,
-      earnings: account.totalPoints / 100,
-      color: COLORS[index % COLORS.length]
-    })).sort((a, b) => b.points - a.points)
+    return accounts
+      .map((account, index) => ({
+        name: account.name,
+        points: account.totalPoints,
+        earnings: account.totalPoints / 100,
+        color: SERIES[index % SERIES.length],
+      }))
+      .sort((a, b) => b.points - a.points)
   }, [accounts])
 
   const weeklyData = useMemo(() => {
@@ -85,31 +171,37 @@ export function EarningsChart({ data, accounts }: EarningsChartProps) {
       const key = toDateKey(new Date(entry.date))
       return key >= windowStart && key <= today
     })
-    
-    const weeks = weeklyEntries.reduce((acc, entry) => {
-      const entryKey = toDateKey(new Date(entry.date))
-      // Monday of that week. dayOfWeek() reads the UTC weekday; Sunday (0)
-      // belongs to the week that started six days earlier.
-      const weekday = dayOfWeek(entryKey)
-      const weekKey = addDays(entryKey, weekday === 0 ? -6 : 1 - weekday)
-      const weekDisplay = formatDate(weekKey, { day: 'numeric', month: 'short' })
-      
-      if (!acc[weekKey]) {
-        acc[weekKey] = { 
-          weekKey,
-          week: weekDisplay, 
-          points: 0, 
-          entries: 0,
-          sortDate: dateKeyToDate(weekKey).getTime()
+
+    const weeks = weeklyEntries.reduce(
+      (acc, entry) => {
+        const entryKey = toDateKey(new Date(entry.date))
+        // Monday of that week. dayOfWeek() reads the UTC weekday; Sunday (0)
+        // belongs to the week that started six days earlier.
+        const weekday = dayOfWeek(entryKey)
+        const weekKey = addDays(entryKey, weekday === 0 ? -6 : 1 - weekday)
+        const weekDisplay = formatDate(weekKey, { day: "numeric", month: "short" })
+
+        if (!acc[weekKey]) {
+          acc[weekKey] = {
+            weekKey,
+            week: weekDisplay,
+            points: 0,
+            entries: 0,
+            sortDate: dateKeyToDate(weekKey).getTime(),
+          }
         }
-      }
-      
-      acc[weekKey].points += entry.points
-      acc[weekKey].entries += 1
-      
-      return acc
-    }, {} as Record<string, { weekKey: string; week: string; points: number; entries: number; sortDate: number }>)
-    
+
+        acc[weekKey].points += entry.points
+        acc[weekKey].entries += 1
+
+        return acc
+      },
+      {} as Record<
+        string,
+        { weekKey: string; week: string; points: number; entries: number; sortDate: number }
+      >
+    )
+
     return Object.values(weeks)
       .sort((a, b) => a.sortDate - b.sortDate) // Sort by actual date
       .slice(-12) // Last 12 weeks
@@ -124,49 +216,55 @@ export function EarningsChart({ data, accounts }: EarningsChartProps) {
       <Card className="lg:col-span-2">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-primary" />
-            Daily Earnings Trend (Last 14 Days)
+            <SectionIcon icon={TrendingUp} tone="primary" />
+            Daily earnings
           </CardTitle>
-          <CardDescription>
-            Track your daily point earnings over time - Recent data only
-          </CardDescription>
+          <CardDescription>Points per day over the last 14 days with activity.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={dailyData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis 
-                  dataKey="date" 
-                  stroke="#64748b"
-                  fontSize={12}
+              {/* An area rather than a line: the quantity is an amount
+                  accumulated per day, and the fill is what says so. */}
+              <AreaChart data={dailyData} margin={{ top: 8, right: 8, bottom: 0, left: -12 }}>
+                <defs>
+                  <linearGradient id={dailyGradient} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.35} />
+                    <stop offset="100%" stopColor="var(--chart-1)" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="var(--border)"
+                  vertical={false}
                 />
-                <YAxis 
-                  stroke="#64748b"
-                  fontSize={12}
-                  tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
+                <XAxis dataKey="date" {...AXIS} />
+                <YAxis
+                  {...AXIS}
+                  width={44}
+                  tickFormatter={(value: number) =>
+                    value >= 1000 ? `${(value / 1000).toFixed(0)}k` : `${value}`
+                  }
                 />
                 <Tooltip
-                  contentStyle={{
-                    backgroundColor: 'white',
-                    border: '1px solid #e2e8f0',
-                    borderRadius: '8px',
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                  content={<ChartTooltip />}
+                  cursor={{ stroke: "var(--border-strong)", strokeDasharray: "3 3" }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="points"
+                  stroke="var(--chart-1)"
+                  strokeWidth={2}
+                  fill={`url(#${dailyGradient})`}
+                  dot={false}
+                  activeDot={{
+                    r: 4,
+                    fill: "var(--chart-1)",
+                    stroke: "var(--background)",
+                    strokeWidth: 2,
                   }}
-                  formatter={(value: number, name: string) => [
-                    name === 'points' ? `${value.toLocaleString()} pts` : `$${value.toFixed(2)}`,
-                    name === 'points' ? 'Points' : 'Earnings'
-                  ]}
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="points" 
-                  stroke="#3B82F6" 
-                  strokeWidth={3}
-                  dot={{ fill: '#3B82F6', strokeWidth: 2, r: 4 }}
-                  activeDot={{ r: 6, stroke: '#3B82F6', strokeWidth: 2 }}
-                />
-              </LineChart>
+              </AreaChart>
             </ResponsiveContainer>
           </div>
         </CardContent>
@@ -176,66 +274,56 @@ export function EarningsChart({ data, accounts }: EarningsChartProps) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <DollarSign className="w-5 h-5 text-success" />
-            Account Performance
+            <SectionIcon icon={DollarSign} tone="success" />
+            Account split
           </CardTitle>
-          <CardDescription>
-            Points distribution across accounts
-          </CardDescription>
+          <CardDescription>Points distribution across accounts.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="h-80">
+          <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={accountData}
                   cx="50%"
                   cy="50%"
-                  innerRadius={60}
-                  outerRadius={120}
+                  innerRadius={62}
+                  outerRadius={104}
                   paddingAngle={2}
+                  cornerRadius={4}
                   dataKey="points"
+                  stroke="none"
                 >
-                  {accountData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  {accountData.map((entry) => (
+                    <Cell key={entry.name} fill={entry.color} />
                   ))}
                 </Pie>
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: 'white',
-                    border: '1px solid #e2e8f0',
-                    borderRadius: '8px',
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                  }}
-                  formatter={(value: number) => [
-                    `${value.toLocaleString()} pts ($${(value / 100).toFixed(2)})`,
-                    'Points'
-                  ]}
-                />
+                <Tooltip content={<ChartTooltip />} />
               </PieChart>
             </ResponsiveContainer>
           </div>
-          
-          {/* Legend */}
-          <div className="mt-4 space-y-2">
+
+          {/* Legend. Doubles as the readable version of the ring — a donut
+              cannot be read to a value, and this can. */}
+          <ul className="mt-4 space-y-2">
             {accountData.map((account) => (
-              <div key={account.name} className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-2">
-                  <div 
-                    className="w-3 h-3 rounded-full" 
+              <li key={account.name} className="flex items-center justify-between gap-3 text-sm">
+                <div className="flex min-w-0 items-center gap-2">
+                  <span
+                    className="size-2.5 shrink-0 rounded-full"
                     style={{ backgroundColor: account.color }}
                   />
-                  <span className="font-medium">{account.name}</span>
+                  <span className="truncate font-medium">{account.name}</span>
                 </div>
-                <div className="text-right">
-                  <div className="font-semibold">{account.points.toLocaleString()} pts</div>
-                  <div className="text-xs text-muted-foreground">
+                <div className="shrink-0 text-right">
+                  <div className="font-semibold tabular-nums">{formatPoints(account.points)}</div>
+                  <div className="text-xs text-muted-foreground tabular-nums">
                     {totalPoints > 0 ? ((account.points / totalPoints) * 100).toFixed(1) : 0}%
                   </div>
                 </div>
-              </div>
+              </li>
             ))}
-          </div>
+          </ul>
         </CardContent>
       </Card>
 
@@ -243,45 +331,35 @@ export function EarningsChart({ data, accounts }: EarningsChartProps) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-primary" />
-            Weekly Summary (Last 12 Weeks)
+            <SectionIcon icon={Calendar} tone="violet" />
+            Weekly totals
           </CardTitle>
-          <CardDescription>
-            Weekly points and entry count - 3 months overview
-          </CardDescription>
+          <CardDescription>Points per week over the last 12 weeks.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="h-80">
+          <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={weeklyData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis 
-                  dataKey="week" 
-                  stroke="#64748b"
-                  fontSize={12}
-                />
-                <YAxis 
-                  stroke="#64748b"
-                  fontSize={12}
-                  tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
+              <BarChart data={weeklyData} margin={{ top: 8, right: 8, bottom: 0, left: -12 }}>
+                <defs>
+                  <linearGradient id={weeklyGradient} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="var(--chart-4)" stopOpacity={0.95} />
+                    <stop offset="100%" stopColor="var(--chart-4)" stopOpacity={0.45} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                <XAxis dataKey="week" {...AXIS} />
+                <YAxis
+                  {...AXIS}
+                  width={44}
+                  tickFormatter={(value: number) =>
+                    value >= 1000 ? `${(value / 1000).toFixed(0)}k` : `${value}`
+                  }
                 />
                 <Tooltip
-                  contentStyle={{
-                    backgroundColor: 'white',
-                    border: '1px solid #e2e8f0',
-                    borderRadius: '8px',
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                  }}
-                  formatter={(value: number, name: string) => [
-                    name === 'points' ? `${value.toLocaleString()} pts` : `${value} entries`,
-                    name === 'points' ? 'Points' : 'Entries'
-                  ]}
+                  content={<ChartTooltip />}
+                  cursor={{ fill: "var(--surface-2)", radius: 6 }}
                 />
-                <Bar 
-                  dataKey="points" 
-                  fill="#8B5CF6" 
-                  radius={[4, 4, 0, 0]}
-                />
+                <Bar dataKey="points" fill={`url(#${weeklyGradient})`} radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

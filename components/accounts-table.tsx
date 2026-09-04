@@ -323,7 +323,7 @@ export function AccountsTable({ accounts }: { accounts: Account[] }) {
                     <TableCell className="text-right">
                       {account.pendingWithdrawals > 0 ? (
                         <>
-                          <Badge variant="secondary" className="bg-warning-muted text-warning">
+                          <Badge variant="warning">
                             {formatPoints(dollarsToPoints(account.pendingWithdrawals))}
                           </Badge>
                           <div className="mt-1 text-xs text-muted-foreground tabular-nums">

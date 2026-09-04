@@ -3,7 +3,7 @@ import { Bell, Clock, Database, Target } from "lucide-react"
 import { DataMaintenance } from "@/components/data-maintenance"
 import { MonthlyTargetSettings } from "@/components/monthly-target-settings"
 import { NotificationPreferences } from "@/components/notification-preferences"
-import { PageContainer, PageHeader } from "@/components/page-shell"
+import { PageContainer, PageHeader, SectionIcon } from "@/components/page-shell"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { APP_TIMEZONE } from "@/lib/date-utils"
 
@@ -16,7 +16,7 @@ export default function SettingsPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Target className="size-4 text-muted-foreground" />
+              <SectionIcon icon={Target} tone="primary" />
               Monthly target
             </CardTitle>
             <CardDescription>Set the monthly goal your progress is measured against.</CardDescription>
@@ -29,7 +29,7 @@ export default function SettingsPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Bell className="size-4 text-muted-foreground" />
+              <SectionIcon icon={Bell} tone="info" />
               Notifications
             </CardTitle>
             <CardDescription>Choose what you are told about, and where.</CardDescription>
@@ -42,7 +42,7 @@ export default function SettingsPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Clock className="size-4 text-muted-foreground" />
+              <SectionIcon icon={Clock} tone="warning" />
               Business timezone
             </CardTitle>
             <CardDescription>
@@ -68,7 +68,7 @@ export default function SettingsPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Database className="size-4 text-muted-foreground" />
+              <SectionIcon icon={Database} tone="violet" />
               Local data
             </CardTitle>
             <CardDescription>Cached pages and preferences stored in this browser.</CardDescription>

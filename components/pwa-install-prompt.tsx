@@ -51,14 +51,14 @@ export function PWAInstallPrompt() {
   }
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 z-50 bg-card dark:bg-gray-800 border border-border dark:border-gray-700 rounded-lg shadow-lg p-4 flex items-center justify-between">
+    <div className="fixed bottom-4 left-4 right-4 z-50 panel rounded-xl p-4 shadow-lg flex items-center justify-between">
       <div className="flex items-center space-x-3">
         <Download className="h-5 w-5 text-primary" />
         <div>
-          <p className="text-sm font-medium text-foreground dark:text-gray-100">
+          <p className="text-sm font-medium text-foreground">
             Install SurvTrack
           </p>
-          <p className="text-xs text-muted-foreground dark:text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             Add to your home screen for quick access
           </p>
         </div>
@@ -67,7 +67,7 @@ export function PWAInstallPrompt() {
         <Button
           onClick={handleInstallClick}
           size="sm"
-          className="bg-primary hover:bg-blue-700 text-white"
+          className="bg-primary text-primary-foreground hover:bg-primary/90"
         >
           Install
         </Button>

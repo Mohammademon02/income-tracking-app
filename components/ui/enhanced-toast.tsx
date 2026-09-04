@@ -149,11 +149,11 @@ export const enhancedToast = {
   loading: (message: string, options?: ToastOptions) => {
     return toast.loading(message, {
       description: options?.description,
-      icon: <div className="w-6 h-6 bg-slate-500 rounded-full flex items-center justify-center">
+      icon: <div className="w-6 h-6 bg-muted-foreground rounded-full flex items-center justify-center">
         <Loader2 className="w-4 h-4 text-white animate-spin" />
       </div>,
       unstyled: true,
-      className: "bg-card border-l-4 border-l-slate-500 border border-border rounded-lg shadow-lg p-4 flex items-center gap-3 min-h-[64px]",
+      className: "bg-card border-l-4 border-l-muted-foreground border border-border rounded-lg shadow-lg p-4 flex items-center gap-3 min-h-[64px]",
     })
   },
 

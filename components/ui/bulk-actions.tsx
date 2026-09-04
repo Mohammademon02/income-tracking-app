@@ -202,7 +202,7 @@ export function BulkActions<T>({
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleBulkDelete}
-              className="bg-destructive hover:bg-red-700 text-white"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {loading ? "Deleting..." : `Delete ${selectedCount} ${selectedCount === 1 ? 'Item' : 'Items'}`}
             </AlertDialogAction>

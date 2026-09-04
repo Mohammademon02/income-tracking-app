@@ -14,7 +14,7 @@ import { AnimatedAccountPerformance } from "@/components/animated-account-perfor
 import { EarningsChart } from "@/components/charts/earnings-chart"
 import { HeroMetric } from "@/components/hero-metric"
 import { Reveal, Stagger, StaggerItem } from "@/components/motion/reveal"
-import { PageContainer, PageHeader, PageSection } from "@/components/page-shell"
+import { PageContainer, PageHeader, PageSection, SectionIcon } from "@/components/page-shell"
 import { PendingWithdrawalsCard } from "@/components/pending-withdrawals-card"
 import { PerformanceMonitor } from "@/components/performance-monitor"
 import { ProcessingTimeBadge } from "@/components/processing-time-badge"
@@ -148,6 +148,7 @@ export default async function DashboardPage() {
             value={totalBalance}
             hint={`${formatDollars(pointsToDollars(totalBalance))} ready to withdraw`}
             icon={TrendingUp}
+            tone="info"
           />
         </StaggerItem>
         <StaggerItem>
@@ -156,6 +157,7 @@ export default async function DashboardPage() {
             value={todayTotalPoints}
             hint={formatDollars(pointsToDollars(todayTotalPoints))}
             icon={Coins}
+            tone="violet"
           />
         </StaggerItem>
       </Stagger>
@@ -198,7 +200,7 @@ export default async function DashboardPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="size-4 text-muted-foreground" />
+                <SectionIcon icon={TrendingUp} tone="info" />
                 Quick stats
               </CardTitle>
               <CardDescription>{currentMonthName} so far.</CardDescription>
@@ -241,7 +243,7 @@ export default async function DashboardPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Calendar className="size-4 text-muted-foreground" />
+                <SectionIcon icon={Calendar} tone="success" />
                 Recent entries
               </CardTitle>
               <CardDescription>Your latest point entries.</CardDescription>
@@ -287,7 +289,7 @@ export default async function DashboardPage() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Wallet className="size-4 text-muted-foreground" />
+                <SectionIcon icon={Wallet} tone="violet" />
                 Recent withdrawals
               </CardTitle>
               <CardDescription>Your latest payout requests.</CardDescription>
@@ -319,7 +321,7 @@ export default async function DashboardPage() {
                               completedAt={withdrawal.completedAt}
                             />
                           ) : (
-                            <Badge variant="secondary" className="bg-warning-muted text-warning">
+                            <Badge variant="warning">
                               Pending
                             </Badge>
                           )}

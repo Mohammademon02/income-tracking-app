@@ -452,6 +452,24 @@
     animation: aurora-drift-b 32s ease-in-out infinite alternate;
   }
 
+  /* The third light. An element rather than a pseudo because there are only two
+     of those, and two lights leave the lower half of a long page unlit — which
+     is most of every page in this app. */
+  .aurora > span {
+    position: absolute;
+    bottom: -18vw;
+    left: 38vw;
+    width: 52vw;
+    height: 52vw;
+    min-width: 28rem;
+    min-height: 28rem;
+    border-radius: 9999px;
+    background: radial-gradient(circle, var(--glow-3), transparent 68%);
+    filter: blur(90px);
+    animation: aurora-drift-a 38s ease-in-out infinite alternate-reverse;
+    will-change: transform;
+  }
+
   /* Text that carries the accent as a gradient rather than a fill. Reserved for
      the single hero figure on a page — used twice it stops meaning anything. */
   .text-gradient {

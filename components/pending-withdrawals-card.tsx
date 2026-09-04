@@ -62,7 +62,7 @@ export function PendingWithdrawalsCard({
                 {withdrawals.length === 1 ? "request" : "requests"}
               </p>
             </div>
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-surface-2 text-warning">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-warning/15 text-warning">
               <Clock className="size-4" />
             </span>
           </button>

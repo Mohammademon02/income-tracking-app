@@ -22,13 +22,35 @@ import { cn } from "@/lib/utils"
  * would not survive the client boundary.
  */
 
-type Tone = "default" | "success" | "warning" | "destructive"
+/**
+ * A tile's hue.
+ *
+ * The first four are semantic and mean what they say. `info` and `violet` are
+ * not — they exist so a row of tiles that are all merely neutral can still be
+ * told apart at a glance, which is the difference between a dashboard and a
+ * ledger printout. They map onto the chart series, so a figure and the line
+ * plotting it wear the same colour.
+ */
+type Tone = "default" | "success" | "warning" | "destructive" | "info" | "violet"
 
 const TONE_CLASS: Record<Tone, string> = {
   default: "text-primary",
   success: "text-success",
   warning: "text-warning",
   destructive: "text-destructive",
+  info: "text-chart-2",
+  violet: "text-chart-4",
+}
+
+/** The icon chip carries the hue as a wash rather than a fill, so six tiles in
+ *  a row read as tinted rather than as six competing buttons. */
+const TONE_CHIP: Record<Tone, string> = {
+  default: "bg-primary/12 text-primary",
+  success: "bg-success/12 text-success",
+  warning: "bg-warning/15 text-warning",
+  destructive: "bg-destructive/12 text-destructive",
+  info: "bg-chart-2/12 text-chart-2",
+  violet: "bg-chart-4/12 text-chart-4",
 }
 
 export function StatCard({
@@ -85,8 +107,8 @@ export function StatCard({
         {Icon ? (
           <span
             className={cn(
-              "flex size-9 shrink-0 items-center justify-center rounded-lg bg-surface-2",
-              TONE_CLASS[tone]
+              "flex size-9 shrink-0 items-center justify-center rounded-lg",
+              TONE_CHIP[tone]
             )}
           >
             <Icon className="size-4" />
