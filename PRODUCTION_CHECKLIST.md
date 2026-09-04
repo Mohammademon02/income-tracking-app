@@ -1,11 +1,21 @@
 # Production Deployment Checklist
 
 ## Environment Setup
-- [ ] Update `.env.production` with actual production values
-- [ ] Set secure JWT_SECRET (minimum 32 characters)
-- [ ] Configure production MongoDB connection string
+
+Set these in your host's dashboard (Vercel project settings, or equivalent).
+That is where production values belong.
+
+There is deliberately **no `.env.production` file in this repo.** Next.js loads
+one *over* `.env` whenever NODE_ENV is production, so a half-filled copy is
+worse than none: a placeholder DATABASE_URL gives 500s, and a JWT_SECRET that
+does not match the one tokens were signed with gives 401s on every request —
+while `.env` sits there looking correct. If you add one, fill in every variable.
+
+- [ ] Set a secure JWT_SECRET (minimum 32 characters — `openssl rand -base64 36`)
+- [ ] Configure the production MongoDB connection string
 - [ ] Set strong authentication credentials
-- [ ] Configure domain URL for NEXTAUTH_URL
+- [ ] Set NEXT_PUBLIC_APP_TIMEZONE to the timezone that defines your business day
+- [ ] Generate the VAPID key pair, or leave all three unset to disable push
 
 ## Security
 - [ ] All console.log statements are wrapped in development checks
@@ -58,9 +68,21 @@ npm run analyze
 ```
 
 ## Environment Variables Required
-- `DATABASE_URL`
-- `APP_USERNAME`
-- `APP_PASSWORD`
-- `JWT_SECRET`
-- `NODE_ENV=production`
-- `NEXTAUTH_URL`
+
+`.env.example` carries the full annotated list.
+
+| Variable | Required | Notes |
+|---|---|---|
+| `DATABASE_URL` | yes | MongoDB connection string |
+| `APP_USERNAME` | yes | the single application user |
+| `APP_PASSWORD` | yes | deliberately not reused as the signing key |
+| `JWT_SECRET` | yes | ≥ 32 chars; the app refuses to start without it |
+| `NEXT_PUBLIC_APP_TIMEZONE` | no | defaults to `America/Chicago` |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | no | all three, or push is silently disabled |
+| `VAPID_PRIVATE_KEY` | no | never expose this one |
+| `VAPID_SUBJECT` | no | contact address for push services |
+
+`NODE_ENV` is set by `next build` / `next start`; do not set it yourself.
+
+`NEXTAUTH_URL` used to be listed here, but no code reads it — this app does not
+use next-auth. Its session cookie is signed with `JWT_SECRET` directly.

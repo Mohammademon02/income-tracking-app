@@ -71,7 +71,10 @@ export function WithdrawalDetailsModal({
       return {
         icon: CheckCircle2,
         label: "Approved",
-        detail: `Cleared in ${elapsedBusinessDays} business ${elapsedBusinessDays === 1 ? "day" : "days"}`,
+        detail:
+          elapsedBusinessDays === 0
+            ? "Cleared the same day"
+            : `Cleared in ${elapsedBusinessDays} business ${elapsedBusinessDays === 1 ? "day" : "days"}`,
         className: "bg-success-muted text-success",
       }
     }

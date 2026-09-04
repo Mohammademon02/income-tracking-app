@@ -20,6 +20,16 @@ const THRESHOLDS = [
 
 const SLOWEST = { label: "Very slow", className: "bg-destructive-muted text-destructive" }
 
+/**
+ * How the day count reads. Zero is the common case — most payouts clear the
+ * same day they are requested — and "0 days" is a worse way to say that than
+ * "Same day".
+ */
+function durationLabel(days: number): string {
+  if (days === 0) return "Same day"
+  return `${days} ${days === 1 ? "day" : "days"}`
+}
+
 export function ProcessingTimeBadge({
   requestedAt,
   completedAt,
@@ -56,7 +66,7 @@ export function ProcessingTimeBadge({
       )}
     >
       <Clock className="size-3" />
-      {days} {days === 1 ? "day" : "days"} · {speed.label}
+      {durationLabel(days)} · {speed.label}
     </span>
   )
 }
