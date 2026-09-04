@@ -72,7 +72,6 @@ import {
 } from "@/components/ui/table"
 import { formatDate, toDateKey, todayKey } from "@/lib/date-utils"
 import { dollarsToPoints, formatDollars, formatPoints } from "@/lib/money"
-import { cn } from "@/lib/utils"
 
 type Withdrawal = {
   id: string
@@ -293,14 +292,7 @@ export function WithdrawalsTable({
   }
 
   const statusBadge = (withdrawal: Withdrawal) => (
-    <Badge
-      variant="secondary"
-      className={cn(
-        withdrawal.status === "COMPLETED"
-          ? "bg-success-muted text-success"
-          : "bg-warning-muted text-warning"
-      )}
-    >
+    <Badge variant={withdrawal.status === "COMPLETED" ? "success" : "warning"}>
       {withdrawal.status === "COMPLETED" ? "Approved" : "Pending"}
     </Badge>
   )

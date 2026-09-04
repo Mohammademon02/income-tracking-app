@@ -134,12 +134,8 @@ export function PendingWithdrawalsModal({
                           {formatDollars(withdrawal.amount)}
                         </span>
                         <Badge
-                          variant="secondary"
-                          className={
-                            waiting > 15
-                              ? "bg-destructive-muted text-destructive"
-                              : "bg-warning-muted text-warning"
-                          }
+                          variant={waiting > 15 ? "destructive" : "warning"}
+                          className={waiting > 15 ? "bg-destructive/12 text-destructive" : undefined}
                         >
                           <Clock className="mr-1 size-3" />
                           {waiting}d

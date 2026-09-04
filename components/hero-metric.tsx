@@ -62,8 +62,8 @@ export function HeroMetric({
               <span
                 className={cn(
                   "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium tabular-nums",
-                  trend > 0 && "bg-success-muted text-success",
-                  trend < 0 && "bg-destructive-muted text-destructive",
+                  trend > 0 && "bg-success/12 text-success",
+                  trend < 0 && "bg-destructive/12 text-destructive",
                   trend === 0 && "bg-surface-2 text-muted-foreground"
                 )}
               >

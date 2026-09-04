@@ -75,7 +75,7 @@ export function WithdrawalDetailsModal({
           elapsedBusinessDays === 0
             ? "Cleared the same day"
             : `Cleared in ${elapsedBusinessDays} business ${elapsedBusinessDays === 1 ? "day" : "days"}`,
-        className: "bg-success-muted text-success",
+        className: "bg-success/12 text-success",
       }
     }
 
@@ -84,7 +84,7 @@ export function WithdrawalDetailsModal({
         icon: Clock,
         label: "Processing",
         detail: `${elapsedBusinessDays} of ${onTrackDays}–${expectedDays} expected business days`,
-        className: "bg-muted text-muted-foreground",
+        className: "bg-surface-2 text-muted-foreground",
       }
     }
 
@@ -92,7 +92,7 @@ export function WithdrawalDetailsModal({
       icon: AlertCircle,
       label: "Delayed",
       detail: `${elapsedBusinessDays} business days, past the expected ${onTrackDays}–${expectedDays}`,
-      className: "bg-destructive-muted text-destructive",
+      className: "bg-destructive/12 text-destructive",
     }
   })()
 

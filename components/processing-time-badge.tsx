@@ -13,12 +13,12 @@ import { cn } from "@/lib/utils"
  */
 
 const THRESHOLDS = [
-  { maxDays: 7, label: "Fast", className: "bg-success-muted text-success" },
-  { maxDays: 15, label: "Normal", className: "bg-muted text-muted-foreground" },
-  { maxDays: 25, label: "Slow", className: "bg-warning-muted text-warning" },
+  { maxDays: 7, label: "Fast", className: "bg-success/12 text-success" },
+  { maxDays: 15, label: "Normal", className: "bg-surface-2 text-muted-foreground" },
+  { maxDays: 25, label: "Slow", className: "bg-warning/15 text-warning" },
 ] as const
 
-const SLOWEST = { label: "Very slow", className: "bg-destructive-muted text-destructive" }
+const SLOWEST = { label: "Very slow", className: "bg-destructive/12 text-destructive" }
 
 /**
  * How the day count reads. Zero is the common case — most payouts clear the
