@@ -1,314 +1,121 @@
 "use client"
 
-import { useState, useEffect } from 'react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { 
-  Bell, 
-  BellRing, 
-  BellOff,
-  Clock,
-  TestTube,
-  CheckCircle,
-  AlertCircle,
-  Loader2,
-  Smartphone,
-  Timer
-} from 'lucide-react'
-import { useSimpleNotifications } from '@/hooks/use-simple-notifications'
-import { cn } from '@/lib/utils'
+import { useState } from "react"
+import { Bell, BellOff, Loader2, Send } from "lucide-react"
 
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { enhancedToast } from "@/components/ui/enhanced-toast"
+import { Switch } from "@/components/ui/switch"
+import { usePushNotifications } from "@/hooks/use-push-notifications"
+
+/**
+ * Push notification controls.
+ *
+ * This screen used to manage a browser-local `new Notification()` schedule and
+ * called it push. It now drives a real subscription: the browser registers an
+ * endpoint with its push service, the server stores it, and the test button
+ * sends an actual push through it — so a passing test means the whole path
+ * works, rather than only that the tab is open.
+ */
 export function PushNotificationSettings() {
-  const {
-    supported,
-    permission,
-    active,
-    loading,
-    error,
-    enable,
-    disable,
-    sendTestNotification
-  } = useSimpleNotifications()
+  const { status, subscribe, unsubscribe, sendTest } = usePushNotifications()
+  const [testing, setTesting] = useState(false)
 
-  const [testLoading, setTestLoading] = useState(false)
-  const [testSuccess, setTestSuccess] = useState(false)
-  const [nextNotificationTime, setNextNotificationTime] = useState<string>('')
-  const [timeRemaining, setTimeRemaining] = useState<string>('')
-
-  // Update next notification time every minute
-  useEffect(() => {
-    const updateNextNotificationTime = () => {
-      if (!active) {
-        setNextNotificationTime('')
-        setTimeRemaining('')
-        return
-      }
-
-      const startTime = localStorage.getItem('notificationStartTime')
-      if (!startTime) {
-        setNextNotificationTime('')
-        setTimeRemaining('')
-        return
-      }
-
-      const started = new Date(startTime)
-      const now = new Date()
-      
-      // Calculate next notification time
-      const nextHour = new Date(started)
-      nextHour.setHours(started.getHours() + 1, 0, 0, 0)
-      while (nextHour <= now) {
-        nextHour.setHours(nextHour.getHours() + 1)
-      }
-      
-      const minutesUntilNext = Math.round((nextHour.getTime() - now.getTime()) / 1000 / 60)
-      
-      setNextNotificationTime(nextHour.toLocaleTimeString([], { 
-        hour: '2-digit', 
-        minute: '2-digit',
-        hour12: true 
-      }))
-      
-      if (minutesUntilNext > 60) {
-        const hours = Math.floor(minutesUntilNext / 60)
-        const mins = minutesUntilNext % 60
-        setTimeRemaining(`${hours}h ${mins}m`)
-      } else {
-        setTimeRemaining(`${minutesUntilNext}m`)
-      }
+  async function toggle(enabled: boolean) {
+    if (enabled) {
+      const ok = await subscribe()
+      if (ok) enhancedToast.success("Notifications enabled on this device")
+      else if (status.error) enhancedToast.error(status.error)
+      return
     }
 
-    updateNextNotificationTime()
-    
-    // Update every minute
-    const interval = setInterval(updateNextNotificationTime, 60000)
-    return () => clearInterval(interval)
-  }, [active])
-
-  const handleEnable = async () => {
-    const success = await enable()
-    if (success && process.env.NODE_ENV === 'development') {
-      console.log('Notifications enabled successfully')
-    }
+    const ok = await unsubscribe()
+    if (ok) enhancedToast.success("Notifications disabled on this device")
   }
 
-  const handleDisable = async () => {
-    const success = await disable()
-    if (success && process.env.NODE_ENV === 'development') {
-      console.log('Notifications disabled successfully')
-    }
-  }
+  async function test() {
+    setTesting(true)
+    const result = await sendTest()
+    setTesting(false)
 
-  const handleTestNotification = async () => {
-    setTestLoading(true)
-    setTestSuccess(false)
-    
-    const success = await sendTestNotification()
-    
-    setTestLoading(false)
-    if (success) {
-      setTestSuccess(true)
-      setTimeout(() => setTestSuccess(false), 3000)
-    }
-  }
-
-  const getStatusBadge = () => {
-    if (!supported) {
-      return <Badge variant="destructive">Not Supported</Badge>
-    }
-    
-    if (permission === 'denied') {
-      return <Badge variant="destructive">Permission Denied</Badge>
-    }
-    
-    if (permission === 'default') {
-      return <Badge variant="secondary">Permission Needed</Badge>
-    }
-    
-    if (active) {
-      return <Badge className="bg-success text-white">Active</Badge>
-    }
-    
-    return <Badge variant="outline">Inactive</Badge>
-  }
-
-  const getStatusIcon = () => {
-    if (!supported || permission === 'denied') {
-      return <BellOff className="w-5 h-5 text-destructive" />
-    }
-    
-    if (active) {
-      return <BellRing className="w-5 h-5 text-success" />
-    }
-    
-    return <Bell className="w-5 h-5 text-muted-foreground" />
-  }
-
-  if (!supported) {
-    return (
-      <Card className="border-destructive/30 bg-destructive-muted">
-        <CardContent className="p-6">
-          <div className="flex items-center gap-3 mb-3">
-            <BellOff className="w-6 h-6 text-destructive" />
-            <h3 className="font-semibold text-destructive">Notifications Not Supported</h3>
-          </div>
-          <p className="text-sm text-destructive mb-4">
-            Your browser doesn't support notifications. Please use a modern browser like Chrome, Firefox, or Safari.
-          </p>
-        </CardContent>
-      </Card>
-    )
+    if (result.ok) enhancedToast.success("Test push sent", { description: result.message })
+    else enhancedToast.error(result.message)
   }
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            {getStatusIcon()}
-            <div>
-              <div className="flex items-center gap-2">
-                Hourly Income Notifications
-                <Smartphone className="w-4 h-4 text-primary" />
-              </div>
-              <p className="text-sm font-normal text-muted-foreground mt-1">
-                Works on mobile and desktop
-              </p>
-            </div>
-          </div>
-          {getStatusBadge()}
+        <CardTitle className="flex items-center gap-2">
+          <Bell className="size-4 text-muted-foreground" />
+          Push notifications
         </CardTitle>
+        <CardDescription>
+          Delivered to this device by your browser, even when the app is closed.
+        </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Next Notification Timer */}
-        {active && nextNotificationTime && (
-          <div className="bg-primary/10 border border-primary/30 rounded-lg p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <Timer className="w-4 h-4 text-primary" />
-              <span className="font-medium text-sm text-primary">Next Notification</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-lg font-semibold text-primary">{nextNotificationTime}</p>
-                <p className="text-sm text-primary">Daily income summary</p>
-              </div>
-              <div className="text-right">
-                <p className="text-2xl font-bold text-primary">{timeRemaining}</p>
-                <p className="text-xs text-primary">remaining</p>
-              </div>
-            </div>
-          </div>
-        )}
 
-        {/* Status Information */}
-        <div className="bg-muted rounded-lg p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Clock className="w-4 h-4 text-primary" />
-            <span className="font-medium text-sm">24/7 Notification Schedule</span>
-          </div>
-          <p className="text-sm text-foreground">
-            Get your daily income summary every hour, 24 hours a day. Optimized for mobile devices.
+      <CardContent className="space-y-4">
+        {!status.supported ? (
+          <p className="flex items-center gap-2 text-sm text-muted-foreground">
+            <BellOff className="size-4" />
+            This browser does not support push notifications.
           </p>
-        </div>
-
-        {/* Error Message */}
-        {error && (
-          <div className="bg-destructive-muted border border-destructive/30 rounded-lg p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <AlertCircle className="w-4 h-4 text-destructive" />
-              <span className="font-medium text-destructive">Error</span>
+        ) : !status.configured ? (
+          <p className="flex items-center gap-2 text-sm text-muted-foreground">
+            <BellOff className="size-4" />
+            Push is not configured on this server. Set the VAPID keys to enable it.
+          </p>
+        ) : (
+          <>
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-0.5">
+                <p id="push-toggle-label" className="text-sm font-medium">
+                  This device
+                </p>
+                <p className="text-sm text-muted-foreground">
+                  {status.subscribed
+                    ? "Registered and receiving pushes."
+                    : "Not registered yet."}
+                </p>
+              </div>
+              <Switch
+                checked={status.subscribed}
+                onCheckedChange={(value) => void toggle(value)}
+                disabled={status.busy}
+                aria-labelledby="push-toggle-label"
+              />
             </div>
-            <p className="text-sm text-destructive">{error}</p>
-          </div>
-        )}
 
-        {/* Permission Denied */}
-        {permission === 'denied' && (
-          <div className="bg-warning-muted border border-warning/30 rounded-lg p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <BellOff className="w-4 h-4 text-warning" />
-              <span className="font-medium text-warning">Permission Denied</span>
-            </div>
-            <p className="text-sm text-warning mb-3">
-              To enable notifications:
-            </p>
-            <ol className="text-sm text-warning space-y-1 ml-4">
-              <li>1. Click the lock/info icon in your browser's address bar</li>
-              <li>2. Allow notifications for this site</li>
-              <li>3. Refresh this page</li>
-            </ol>
-          </div>
-        )}
+            {status.permission === "denied" ? (
+              <p className="rounded-md bg-warning-muted px-3 py-2 text-sm text-warning">
+                Notifications are blocked for this site. Allow them in your browser&apos;s
+                settings, then switch this back on.
+              </p>
+            ) : null}
 
-        {/* Controls */}
-        <div className="flex flex-col sm:flex-row gap-3">
-          {!active ? (
-            <Button 
-              onClick={handleEnable}
-              disabled={loading || permission === 'denied'}
-              className="flex items-center gap-2"
-            >
-              {loading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <BellRing className="w-4 h-4" />
-              )}
-              Enable Hourly Notifications
-            </Button>
-          ) : (
-            <Button 
-              variant="outline"
-              onClick={handleDisable}
-              disabled={loading}
-              className="flex items-center gap-2"
-            >
-              {loading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <BellOff className="w-4 h-4" />
-              )}
-              Disable Notifications
-            </Button>
-          )}
+            {status.error ? (
+              <p className="rounded-md bg-destructive-muted px-3 py-2 text-sm text-destructive">
+                {status.error}
+              </p>
+            ) : null}
 
-          {active && (
-            <Button 
-              variant="secondary"
-              onClick={handleTestNotification}
-              disabled={testLoading}
-              className={cn(
-                "flex items-center gap-2",
-                testSuccess && "bg-success-muted text-success border-success/30"
-              )}
-            >
-              {testLoading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : testSuccess ? (
-                <CheckCircle className="w-4 h-4" />
-              ) : (
-                <TestTube className="w-4 h-4" />
-              )}
-              {testSuccess ? 'Test Sent!' : 'Send Test'}
-            </Button>
-          )}
-        </div>
-
-        {/* Feature List */}
-        {active && (
-          <div className="bg-success-muted border border-success/30 rounded-lg p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <CheckCircle className="w-4 h-4 text-success" />
-              <span className="font-medium text-success">Active Features</span>
-            </div>
-            <ul className="text-sm text-success space-y-1">
-              <li>• Hourly daily income summaries (24/7)</li>
-              <li>• Mobile-optimized notifications</li>
-              <li>• Works day and night</li>
-              <li>• Auto-close after 8 seconds</li>
-              <li>• Click to open dashboard</li>
-            </ul>
-          </div>
+            {status.subscribed ? (
+              <div className="border-t pt-4">
+                <Button variant="outline" size="sm" onClick={() => void test()} disabled={testing}>
+                  {testing ? (
+                    <Loader2 className="mr-1.5 size-4 animate-spin" />
+                  ) : (
+                    <Send className="mr-1.5 size-4" />
+                  )}
+                  Send a test push
+                </Button>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Close the app first to confirm it arrives in the background.
+                </p>
+              </div>
+            ) : null}
+          </>
         )}
       </CardContent>
     </Card>

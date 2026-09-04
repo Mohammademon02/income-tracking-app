@@ -1,111 +1,93 @@
 "use client"
 
-import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import {
-    Bell,
-    BellRing,
-    CheckCircle,
-    X,
-    Settings,
-    Loader2,
-    Bug
-} from 'lucide-react'
-import { useSimpleNotifications } from '@/hooks/use-simple-notifications'
-import { useSettings } from '@/hooks/use-settings'
-import { simpleNotificationManager } from '@/lib/simple-notifications'
-import Link from 'next/link'
+import { useState } from "react"
+import Link from "next/link"
+import { Bell, Loader2, Settings, X } from "lucide-react"
 
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import { enhancedToast } from "@/components/ui/enhanced-toast"
+import { usePushNotifications } from "@/hooks/use-push-notifications"
+
+/**
+ * The dashboard prompt to turn on notifications.
+ *
+ * It used to enable a browser-local hourly notification that only fired while
+ * a tab was open, and shipped a "Debug" button that rendered in production and
+ * did nothing there because its body was guarded by a NODE_ENV check. It now
+ * registers a real push subscription, so notifications arrive with the app
+ * closed — which is what the copy always claimed.
+ */
 export function UnifiedNotificationSetup() {
-    const { supported, permission, active, enable, loading } = useSimpleNotifications()
-    const { settings } = useSettings()
-    const [dismissed, setDismissed] = useState(false)
+  const { status, subscribe } = usePushNotifications()
+  const [dismissed, setDismissed] = useState(false)
 
-    // Don't show if not supported, already active, or dismissed
-    if (!supported || active || dismissed || permission === 'denied') {
-        return null
+  // Nothing to offer when it is already on, unavailable, or blocked.
+  if (
+    dismissed ||
+    !status.supported ||
+    !status.configured ||
+    status.subscribed ||
+    status.permission === "denied"
+  ) {
+    return null
+  }
+
+  async function enable() {
+    const ok = await subscribe()
+    if (ok) {
+      enhancedToast.success("Notifications enabled on this device")
+      setDismissed(true)
+    } else if (status.error) {
+      enhancedToast.error(status.error)
     }
+  }
 
-    // Don't show if notifications are disabled in settings
-    if (!settings?.notificationsEnabled || !settings?.pushNotifications) {
-        return null
-    }
+  return (
+    <Card>
+      <CardContent className="flex items-start gap-3 p-4">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-muted text-primary">
+          <Bell className="size-4" />
+        </span>
 
-    const handleEnable = async () => {
-        const success = await enable()
-        if (success) {
-            setDismissed(true)
-        }
-    }
+        <div className="min-w-0 flex-1 space-y-3">
+          <div className="space-y-1">
+            <h3 className="text-sm font-semibold">Turn on notifications</h3>
+            <p className="text-sm text-muted-foreground">
+              Get told when a withdrawal is approved or a goal is reached, even with the app
+              closed.
+            </p>
+          </div>
 
-    const handleDebug = () => {
-        if (process.env.NODE_ENV === 'development') {
-            console.log('🔍 Debug Status:')
-            simpleNotificationManager.debugStatus()
-        }
-    }
+          <div className="flex flex-wrap items-center gap-2">
+            <Button size="sm" onClick={() => void enable()} disabled={status.busy}>
+              {status.busy ? (
+                <Loader2 className="mr-1.5 size-4 animate-spin" />
+              ) : (
+                <Bell className="mr-1.5 size-4" />
+              )}
+              {status.busy ? "Enabling…" : "Enable"}
+            </Button>
 
-    return (
-        <Card className="border-primary/30 bg-gradient-to-r from-blue-50 to-indigo-50">
-            <CardContent className="p-4">
-                <div className="flex items-start gap-3">
-                    <div className="p-2 bg-primary/10 rounded-lg">
-                        <BellRing className="w-5 h-5 text-primary" />
-                    </div>
+            <Button variant="outline" size="sm" asChild>
+              <Link href="/settings/notifications">
+                <Settings className="mr-1.5 size-4" />
+                Settings
+              </Link>
+            </Button>
+          </div>
+        </div>
 
-                    <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-primary mb-1">
-                            Enable Hourly Income Notifications
-                        </h3>
-                        <p className="text-sm text-primary mb-3">
-                            Get your daily income summary every hour. Works perfectly in Chrome and other modern browsers.
-                        </p>
-
-                        <div className="flex items-center gap-2">
-                            <Button
-                                size="sm"
-                                onClick={handleEnable}
-                                disabled={loading}
-                                className="bg-primary hover:bg-blue-700"
-                            >
-                                {loading ? (
-                                    <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                                ) : (
-                                    <Bell className="w-4 h-4 mr-1" />
-                                )}
-                                {loading ? 'Enabling...' : 'Enable Now'}
-                            </Button>
-
-                            <Link href="/settings/notifications">
-                                <Button variant="outline" size="sm">
-                                    <Settings className="w-4 h-4 mr-1" />
-                                    Settings
-                                </Button>
-                            </Link>
-                            
-                            <Button 
-                                variant="ghost" 
-                                size="sm"
-                                onClick={handleDebug}
-                                className="text-muted-foreground hover:text-foreground"
-                            >
-                                <Bug className="w-4 h-4 mr-1" />
-                                Debug
-                            </Button>
-                        </div>
-                    </div>
-
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                        onClick={() => setDismissed(true)}
-                    >
-                        <X className="w-4 h-4" />
-                    </Button>
-                </div>
-            </CardContent>
-        </Card>
-    )
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-8 shrink-0"
+          onClick={() => setDismissed(true)}
+        >
+          <X className="size-4" />
+          <span className="sr-only">Dismiss</span>
+        </Button>
+      </CardContent>
+    </Card>
+  )
 }

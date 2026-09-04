@@ -1,297 +1,181 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useEffect, useState } from "react"
+import Link from "next/link"
+import { ArrowLeft, Loader2, Save, Target } from "lucide-react"
+
+import { PageContainer, PageHeader } from "@/components/page-shell"
+import { PushNotificationSettings } from "@/components/push-notification-settings"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { enhancedToast } from "@/components/ui/enhanced-toast"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Badge } from "@/components/ui/badge"
-import { 
-  Settings, 
-  Target, 
-  Bell, 
-  DollarSign,
-  Save,
-  ArrowLeft
-} from "lucide-react"
-import Link from "next/link"
-import { PushNotificationSettings } from "@/components/push-notification-settings"
+import { Skeleton } from "@/components/ui/skeleton"
+import { formatDollars, pointsToDollars } from "@/lib/money"
 
-interface UserSettings {
-  id: string
+type Goals = {
   dailyGoalPoints: number
   weeklyGoalPoints: number
   monthlyGoalPoints: number
-  notificationsEnabled: boolean
-  emailNotifications: boolean
-  pushNotifications: boolean
-  quietHoursStart: string
-  quietHoursEnd: string
 }
 
+const FIELDS: { key: keyof Goals; label: string; hint: string }[] = [
+  { key: "dailyGoalPoints", label: "Daily goal", hint: "Points you aim for each day" },
+  { key: "weeklyGoalPoints", label: "Weekly goal", hint: "Points across a week" },
+  { key: "monthlyGoalPoints", label: "Monthly goal", hint: "Points across a month" },
+]
+
 export default function NotificationSettingsPage() {
-  const [settings, setSettings] = useState<UserSettings | null>(null)
+  const [goals, setGoals] = useState<Goals | null>(null)
+  const [draft, setDraft] = useState<Record<keyof Goals, string> | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [success, setSuccess] = useState(false)
 
   useEffect(() => {
-    fetchSettings()
+    const controller = new AbortController()
+
+    fetch("/api/settings", { signal: controller.signal })
+      .then((response) => {
+        if (!response.ok) throw new Error("Could not load settings")
+        return response.json()
+      })
+      .then((data) => {
+        const next: Goals = {
+          dailyGoalPoints: data.dailyGoalPoints,
+          weeklyGoalPoints: data.weeklyGoalPoints,
+          monthlyGoalPoints: data.monthlyGoalPoints,
+        }
+        setGoals(next)
+        setDraft({
+          dailyGoalPoints: String(next.dailyGoalPoints),
+          weeklyGoalPoints: String(next.weeklyGoalPoints),
+          monthlyGoalPoints: String(next.monthlyGoalPoints),
+        })
+      })
+      .catch((cause) => {
+        if (cause.name === "AbortError") return
+        setError("Could not load your goals.")
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false)
+      })
+
+    return () => controller.abort()
   }, [])
 
-  const fetchSettings = async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const response = await fetch('/api/settings')
-      if (response.ok) {
-        const data = await response.json()
-        setSettings(data)
-      } else {
-        throw new Error('Failed to fetch settings')
-      }
-    } catch (error) {
-      console.error('Error fetching settings:', error)
-      setError('Failed to load settings')
-      // Set default settings as fallback
-      setSettings({
-        id: 'default',
-        dailyGoalPoints: 2000,
-        weeklyGoalPoints: 14000,
-        monthlyGoalPoints: 60000,
-        notificationsEnabled: true,
-        emailNotifications: false,
-        pushNotifications: true,
-        quietHoursStart: "22:00",
-        quietHoursEnd: "08:00"
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const saveSettings = async () => {
-    if (!settings) return
-
+  async function save() {
+    if (!draft) return
     setSaving(true)
-    setError(null)
-    setSuccess(false)
 
     try {
-      const response = await fetch('/api/settings', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(settings)
+      const body = Object.fromEntries(
+        Object.entries(draft).map(([key, value]) => [key, Number(value)])
+      )
+
+      const response = await fetch("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
       })
 
-      if (response.ok) {
-        setSuccess(true)
-        setTimeout(() => setSuccess(false), 3000)
-      } else {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to save settings')
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}))
+        throw new Error(payload.error ?? "Could not save your goals")
       }
-    } catch (error: any) {
-      console.error('Error saving settings:', error)
-      setError(error.message || 'Failed to save settings')
+
+      const saved = await response.json()
+      setGoals({
+        dailyGoalPoints: saved.dailyGoalPoints,
+        weeklyGoalPoints: saved.weeklyGoalPoints,
+        monthlyGoalPoints: saved.monthlyGoalPoints,
+      })
+      enhancedToast.success("Goals saved")
+    } catch (cause) {
+      enhancedToast.error(cause instanceof Error ? cause.message : "Could not save.")
     } finally {
       setSaving(false)
     }
   }
 
-  const updateSetting = (key: keyof UserSettings, value: any) => {
-    if (!settings) return
-    setSettings({ ...settings, [key]: value })
-  }
-
-  if (loading) {
-    return (
-      <div className="p-6 space-y-8">
-        <div className="text-center py-12">
-          <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading settings...</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (!settings) {
-    return (
-      <div className="p-6 space-y-8">
-        <Card className="border-destructive/30 bg-destructive-muted">
-          <CardContent className="p-6 text-center">
-            <Settings className="w-12 h-12 mx-auto mb-3 text-red-300" />
-            <p className="font-medium text-destructive">Error loading settings</p>
-            <p className="text-sm text-destructive mt-1">{error}</p>
-            <Button 
-              variant="outline" 
-              className="mt-3"
-              onClick={fetchSettings}
-            >
-              Try again
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
+  const dirty =
+    goals !== null &&
+    draft !== null &&
+    FIELDS.some((field) => draft[field.key] !== String(goals[field.key]))
 
   return (
-    <div className="p-6 space-y-8">
-      {/* Header */}
-      <div className="flex items-center gap-4 mb-6">
+    <PageContainer>
+      <Button variant="ghost" size="sm" asChild className="-ml-2 w-fit">
         <Link href="/settings">
-          <Button variant="ghost" size="icon">
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
+          <ArrowLeft className="mr-1.5 size-4" />
+          Back to settings
         </Link>
-        <div className="flex-1">
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Bell className="w-6 h-6 text-primary" />
-            Notification Settings
-          </h1>
-          <p className="text-foreground">Customize your goals and notifications</p>
-        </div>
-        <Button 
-          onClick={saveSettings} 
-          disabled={saving}
-          className="flex items-center gap-2"
-        >
-          <Save className="w-4 h-4" />
-          {saving ? 'Saving...' : 'Save Changes'}
-        </Button>
-      </div>
+      </Button>
 
-      {/* Success/Error Messages */}
-      {success && (
-        <div className="mb-6 p-4 bg-success-muted border border-success/30 rounded-lg">
-          <p className="text-success font-medium">✅ Settings saved successfully!</p>
-        </div>
-      )}
+      <PageHeader
+        title="Notification settings"
+        description="Goals that trigger milestones, and where notifications are delivered."
+      />
 
-      {error && (
-        <div className="mb-6 p-4 bg-destructive-muted border border-destructive/30 rounded-lg">
-          <p className="text-destructive font-medium">❌ {error}</p>
-        </div>
-      )}
-
-      <div className="grid gap-6">
-        {/* Goal Settings */}
+      <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Target className="w-5 h-5 text-success" />
-              Daily Goal Settings
+              <Target className="size-4 text-muted-foreground" />
+              Goals
             </CardTitle>
+            <CardDescription>
+              Reaching one of these is what produces a goal notification.
+            </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Daily Goal */}
-            <div className="space-y-2">
-              <Label htmlFor="dailyGoal" className="flex items-center gap-2">
-                Daily Goal
-                <Badge variant="secondary" className="text-xs">
-                  ${(settings.dailyGoalPoints / 100).toFixed(2)}
-                </Badge>
-              </Label>
-              <div className="flex items-center gap-4">
-                <Input
-                  id="dailyGoal"
-                  type="number"
-                  min="100"
-                  max="50000"
-                  step="100"
-                  value={settings.dailyGoalPoints}
-                  onChange={(e) => updateSetting('dailyGoalPoints', parseInt(e.target.value) || 0)}
-                  className="max-w-xs"
-                />
-                <span className="text-sm text-muted-foreground">points per day</span>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Get notified when you reach your daily earning goal
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+          <CardContent className="space-y-4">
+            {loading ? (
+              <>
+                <Skeleton className="h-16 w-full" />
+                <Skeleton className="h-16 w-full" />
+                <Skeleton className="h-16 w-full" />
+              </>
+            ) : error || !draft ? (
+              <p className="text-sm text-destructive">{error ?? "No settings available"}</p>
+            ) : (
+              <>
+                {FIELDS.map((field) => (
+                  <div key={field.key} className="space-y-2">
+                    <Label htmlFor={field.key}>{field.label}</Label>
+                    <Input
+                      id={field.key}
+                      type="number"
+                      step="100"
+                      min="100"
+                      inputMode="numeric"
+                      value={draft[field.key]}
+                      onChange={(e) =>
+                        setDraft({ ...draft, [field.key]: e.target.value })
+                      }
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {field.hint} ·{" "}
+                      {formatDollars(pointsToDollars(Number(draft[field.key]) || 0))}
+                    </p>
+                  </div>
+                ))}
 
-        {/* Quick Goal Presets */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <DollarSign className="w-5 h-5 text-primary" />
-              Quick Goal Presets
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {[
-                { label: '$7/day', points: 700 },
-                { label: '$10/day', points: 1000 },
-                { label: '$13/day', points: 1300 },
-                { label: '$15/day', points: 1500 }
-              ].map((preset) => (
-                <Button
-                  key={preset.points}
-                  variant={settings.dailyGoalPoints === preset.points ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => updateSetting('dailyGoalPoints', preset.points)}
-                  className="flex flex-col h-auto py-3"
-                >
-                  <span className="font-medium">{preset.label}</span>
-                  <span className="text-xs opacity-75">{preset.points} pts</span>
+                <Button onClick={() => void save()} disabled={saving || !dirty}>
+                  {saving ? (
+                    <Loader2 className="mr-1.5 size-4 animate-spin" />
+                  ) : (
+                    <Save className="mr-1.5 size-4" />
+                  )}
+                  Save goals
                 </Button>
-              ))}
-            </div>
+              </>
+            )}
           </CardContent>
         </Card>
 
-        {/* Notification Settings */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Bell className="w-5 h-5 text-primary" />
-              Notification Preferences
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Enable Notifications */}
-            <div className="flex items-center justify-between">
-              <div>
-                <Label className="font-medium">Enable Notifications</Label>
-                <p className="text-sm text-muted-foreground">Receive goal notifications</p>
-              </div>
-              <Button
-                variant={settings.notificationsEnabled ? "default" : "outline"}
-                size="sm"
-                onClick={() => updateSetting('notificationsEnabled', !settings.notificationsEnabled)}
-              >
-                {settings.notificationsEnabled ? 'Enabled' : 'Disabled'}
-              </Button>
-            </div>
-
-            {/* Push Notifications */}
-            <div className="flex items-center justify-between">
-              <div>
-                <Label className="font-medium">Push Notifications</Label>
-                <p className="text-sm text-muted-foreground">In-app notification alerts</p>
-              </div>
-              <Button
-                variant={settings.pushNotifications ? "default" : "outline"}
-                size="sm"
-                onClick={() => updateSetting('pushNotifications', !settings.pushNotifications)}
-                disabled={!settings.notificationsEnabled}
-              >
-                {settings.pushNotifications ? 'On' : 'Off'}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Push Notification Settings */}
         <PushNotificationSettings />
       </div>
-    </div>
+    </PageContainer>
   )
 }
