@@ -2,12 +2,26 @@ import * as React from 'react'
 
 import { cn } from '@/lib/utils'
 
-function Card({ className, ...props }: React.ComponentProps<'div'>) {
+/**
+ * `.panel` replaces what used to be `border shadow-sm`: a stroke that is bright
+ * along the top-left and gone by the bottom-right, over a sheen washing down
+ * from that edge. A flat border on four sides marks an edge but says nothing
+ * about which way is up, which is why a page of these read as a wireframe.
+ *
+ * Pass `interactive` only when the card actually does something when clicked.
+ * The previous dashboard put `hover:scale-105` on cards that did not.
+ */
+function Card({
+  className,
+  interactive = false,
+  ...props
+}: React.ComponentProps<'div'> & { interactive?: boolean }) {
   return (
     <div
       data-slot="card"
       className={cn(
-        'bg-card text-card-foreground flex flex-col gap-6 rounded-xl border py-6 shadow-sm',
+        'panel text-card-foreground flex flex-col gap-6 rounded-xl py-6',
+        interactive && 'panel-interactive',
         className,
       )}
       {...props}

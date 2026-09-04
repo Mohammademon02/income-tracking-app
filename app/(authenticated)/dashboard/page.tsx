@@ -12,6 +12,8 @@ import {
 import { AccountAvatar } from "@/components/account-avatar"
 import { AnimatedAccountPerformance } from "@/components/animated-account-performance"
 import { EarningsChart } from "@/components/charts/earnings-chart"
+import { HeroMetric } from "@/components/hero-metric"
+import { Reveal, Stagger, StaggerItem } from "@/components/motion/reveal"
 import { PageContainer, PageHeader, PageSection } from "@/components/page-shell"
 import { PendingWithdrawalsCard } from "@/components/pending-withdrawals-card"
 import { PerformanceMonitor } from "@/components/performance-monitor"
@@ -23,8 +25,28 @@ import { UsTimeClock } from "@/components/us-time-clock"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ExportButton } from "@/components/ui/export-button"
-import { formatDate, toDateKey, todayKey } from "@/lib/date-utils"
+import { addDays, formatDate, toDateKey, todayKey, type DateKey } from "@/lib/date-utils"
 import { dollarsToPoints, formatDollars, formatPoints, pointsToDollars } from "@/lib/money"
+
+/** Points earned on each of the last `days` days, oldest first. */
+function dailySeries(
+  entries: { date: Date | string; points: number }[],
+  days: number,
+  end: DateKey
+): number[] {
+  const totals = new Map<DateKey, number>()
+  for (const entry of entries) {
+    const key = toDateKey(new Date(entry.date))
+    totals.set(key, (totals.get(key) ?? 0) + entry.points)
+  }
+
+  // Every day is emitted, including the empty ones: a sparkline that skips days
+  // with no entries compresses a quiet week into a single point and reads as
+  // steady earning.
+  return Array.from({ length: days }, (_, index) => totals.get(addDays(end, index - days + 1)) ?? 0)
+}
+
+const sum = (values: number[]) => values.reduce((total, value) => total + value, 0)
 
 export default async function DashboardPage() {
   const [
@@ -64,6 +86,13 @@ export default async function DashboardPage() {
     .filter((entry) => toDateKey(new Date(entry.date)) === today)
     .reduce((sum, entry) => sum + entry.points, 0)
 
+  const series = dailySeries(allEntries, 30, today)
+  const lastWeek = sum(series.slice(-7))
+  const priorWeek = sum(series.slice(-14, -7))
+  // Left undefined when there is no baseline to divide by. A previous version
+  // of the insights panel handled that case by reporting +1280%.
+  const weekTrend = priorWeek > 0 ? ((lastWeek - priorWeek) / priorWeek) * 100 : undefined
+
   return (
     <PageContainer>
       {/* The full report was fed the five most recent withdrawals, while the
@@ -83,201 +112,234 @@ export default async function DashboardPage() {
 
       <UsTimeClock />
 
-      {/* Headline numbers */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
+      {/* The anchor. One figure at 60px, and the row beneath it demoted, so the
+          page opens with an answer rather than four equal tiles to compare. */}
+      <Reveal>
+        <HeroMetric
           label="Total earned"
-          value={formatPoints(totalPoints)}
-          hint={formatDollars(pointsToDollars(totalPoints))}
-          icon={Coins}
+          points={totalPoints}
+          dollars={pointsToDollars(totalPoints)}
+          trend={weekTrend}
+          spark={series}
+          footnote="Lifetime, with the last 30 days shown below."
         />
-        <StatCard
-          label="Withdrawn"
-          value={formatPoints(totalCompletedPoints)}
-          hint={formatDollars(pointsToDollars(totalCompletedPoints))}
-          icon={Wallet}
-          tone="success"
-        />
-        <PendingWithdrawalsCard withdrawals={pendingWithdrawals} allWithdrawals={allWithdrawals} />
-        <StatCard
-          label="Available"
-          value={formatPoints(totalBalance)}
-          hint={`${formatDollars(pointsToDollars(totalBalance))} ready to withdraw`}
-          icon={TrendingUp}
-        />
-      </div>
+      </Reveal>
 
-      {/* Performance */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        <AnimatedAccountPerformance accounts={accounts} totalPoints={totalPoints} />
-        <PerformanceMonitor />
-      </div>
-
-      <UnifiedNotificationSetup />
-
-      {/* Insights and quick stats */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <SmartInsights />
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="size-4 text-muted-foreground" />
-              Quick stats
-            </CardTitle>
-            <CardDescription>{currentMonthName} so far.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-3">
-              <QuickStat label="Active accounts" value={activeAccounts.toString()} />
-              <QuickStat
-                label="Total withdrawn"
-                value={formatDollars(pointsToDollars(totalCompletedPoints))}
-                hint={`${formatPoints(totalCompletedPoints)} pts`}
-              />
-              <QuickStat
-                label="Today"
-                value={formatPoints(todayTotalPoints)}
-                hint={formatDollars(pointsToDollars(todayTotalPoints))}
-                href="/daily-earnings"
-              />
-              <QuickStat
-                label={`${currentMonthName} income`}
-                value={formatPoints(thisMonthIncome)}
-                hint={formatDollars(pointsToDollars(thisMonthIncome))}
-                href="/reports"
-              />
-              <QuickStat
-                label={`${currentMonthName} approved`}
-                value={formatDollars(pointsToDollars(thisMonthWithdrawalPoints))}
-                hint={`${formatPoints(thisMonthWithdrawalPoints)} pts`}
-                href="/withdrawals-reports"
-              />
-              {/*
-                The entries tile used to render a hardcoded "↗ +26%" next to the
-                count — a fabricated trend that never came from any data.
-              */}
-              <QuickStat
-                label={`${currentMonthName} entries`}
-                value={monthlyStats.entriesCount.toString()}
-                href="/entries"
-              />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Charts */}
-      {allEntries.length > 0 ? (
-        <PageSection
-          title="Trends"
-          actions={<Badge variant="secondary">{allEntries.length} entries</Badge>}
-        >
-          <EarningsChart
-            data={allEntries.map((entry) => ({
-              date: entry.date.toString(),
-              points: entry.points,
-              accountName: entry.accountName,
-              accountColor: entry.accountColor,
-            }))}
-            accounts={accounts}
+      {/* Supporting numbers */}
+      <Stagger className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" delay={0.1}>
+        <StaggerItem>
+          <StatCard
+            label="Withdrawn"
+            value={totalCompletedPoints}
+            hint={formatDollars(pointsToDollars(totalCompletedPoints))}
+            icon={Wallet}
+            tone="success"
           />
-        </PageSection>
+        </StaggerItem>
+        <StaggerItem>
+          <PendingWithdrawalsCard
+            withdrawals={pendingWithdrawals}
+            allWithdrawals={allWithdrawals}
+          />
+        </StaggerItem>
+        <StaggerItem>
+          <StatCard
+            label="Available"
+            value={totalBalance}
+            hint={`${formatDollars(pointsToDollars(totalBalance))} ready to withdraw`}
+            icon={TrendingUp}
+          />
+        </StaggerItem>
+        <StaggerItem>
+          <StatCard
+            label="Today"
+            value={todayTotalPoints}
+            hint={formatDollars(pointsToDollars(todayTotalPoints))}
+            icon={Coins}
+          />
+        </StaggerItem>
+      </Stagger>
+
+      {/* Charts. Promoted above the insight panels: the shape of the earnings
+          is the thing most worth the space, and it previously sat below two
+          cards of derived text. */}
+      {allEntries.length > 0 ? (
+        <Reveal>
+          <PageSection
+            title="Trends"
+            actions={<Badge variant="secondary">{allEntries.length} entries</Badge>}
+          >
+            <EarningsChart
+              data={allEntries.map((entry) => ({
+                date: entry.date.toString(),
+                points: entry.points,
+                accountName: entry.accountName,
+                accountColor: entry.accountColor,
+              }))}
+              accounts={accounts}
+            />
+          </PageSection>
+        </Reveal>
       ) : null}
 
-      {/* Recent activity */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Calendar className="size-4 text-muted-foreground" />
-              Recent entries
-            </CardTitle>
-            <CardDescription>Your latest point entries.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {recentEntries.length === 0 ? (
-              <EmptyRow icon={<Activity className="size-5" />} label="No entries yet" />
-            ) : (
-              <ul className="divide-y">
-                {recentEntries.map((entry) => (
-                  <li key={entry.id} className="flex items-center justify-between gap-3 py-3">
-                    <div className="flex min-w-0 items-center gap-2.5">
-                      <AccountAvatar
-                        name={entry.accountName}
-                        color={entry.accountColor}
-                        size="sm"
-                      />
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium">{entry.accountName}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {formatDate(new Date(entry.date))}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-semibold tabular-nums">
-                        +{formatPoints(entry.points)}
-                      </p>
-                      <p className="text-xs text-muted-foreground tabular-nums">
-                        {formatDollars(pointsToDollars(entry.points))}
-                      </p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
+      {/* Performance */}
+      <Reveal>
+        <div className="grid gap-6 lg:grid-cols-3">
+          <AnimatedAccountPerformance accounts={accounts} totalPoints={totalPoints} />
+          <PerformanceMonitor />
+        </div>
+      </Reveal>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Wallet className="size-4 text-muted-foreground" />
-              Recent withdrawals
-            </CardTitle>
-            <CardDescription>Your latest payout requests.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {recentWithdrawals.length === 0 ? (
-              <EmptyRow icon={<Wallet className="size-5" />} label="No withdrawals yet" />
-            ) : (
-              <ul className="divide-y">
-                {recentWithdrawals.map((withdrawal) => (
-                  <li key={withdrawal.id} className="flex items-start justify-between gap-3 py-3">
-                    <div className="flex min-w-0 items-start gap-2.5">
-                      <AccountAvatar
-                        name={withdrawal.accountName}
-                        color={withdrawal.accountColor}
-                        size="sm"
-                      />
-                      <div className="min-w-0 space-y-1">
-                        <p className="truncate text-sm font-medium">{withdrawal.accountName}</p>
-                        <p className="text-xs text-muted-foreground">
-                          Requested {formatDate(new Date(withdrawal.date))}
-                        </p>
-                        {withdrawal.status === "COMPLETED" ? (
-                          <ProcessingTimeBadge
-                            requestedAt={withdrawal.date}
-                            completedAt={withdrawal.completedAt}
-                          />
-                        ) : (
-                          <Badge variant="secondary" className="bg-warning-muted text-warning">
-                            Pending
-                          </Badge>
-                        )}
+      {/* Insights and quick stats */}
+      <Reveal>
+        <div className="grid gap-6 lg:grid-cols-2">
+          <SmartInsights />
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="size-4 text-muted-foreground" />
+                Quick stats
+              </CardTitle>
+              <CardDescription>{currentMonthName} so far.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {/* Four tiles, not six. "Today" and "Total withdrawn" moved up
+                  into the headline row, where they were being duplicated. */}
+              <div className="grid grid-cols-2 gap-3">
+                <QuickStat label="Active accounts" value={activeAccounts.toString()} />
+                <QuickStat
+                  label={`${currentMonthName} income`}
+                  value={formatPoints(thisMonthIncome)}
+                  hint={formatDollars(pointsToDollars(thisMonthIncome))}
+                  href="/reports"
+                />
+                <QuickStat
+                  label={`${currentMonthName} approved`}
+                  value={formatDollars(pointsToDollars(thisMonthWithdrawalPoints))}
+                  hint={`${formatPoints(thisMonthWithdrawalPoints)} pts`}
+                  href="/withdrawals-reports"
+                />
+                {/*
+                  The entries tile used to render a hardcoded "↗ +26%" next to
+                  the count — a fabricated trend that never came from any data.
+                */}
+                <QuickStat
+                  label={`${currentMonthName} entries`}
+                  value={monthlyStats.entriesCount.toString()}
+                  href="/entries"
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </Reveal>
+
+      {/* Recent activity */}
+      <Reveal>
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="size-4 text-muted-foreground" />
+                Recent entries
+              </CardTitle>
+              <CardDescription>Your latest point entries.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {recentEntries.length === 0 ? (
+                <EmptyRow icon={<Activity className="size-5" />} label="No entries yet" />
+              ) : (
+                <ul className="divide-y divide-border/60">
+                  {recentEntries.map((entry) => (
+                    <li
+                      key={entry.id}
+                      className="-mx-2 flex items-center justify-between gap-3 rounded-lg px-2 py-3 transition-colors hover:bg-surface-2/60"
+                    >
+                      <div className="flex min-w-0 items-center gap-2.5">
+                        <AccountAvatar
+                          name={entry.accountName}
+                          color={entry.accountColor}
+                          size="sm"
+                        />
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium">{entry.accountName}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {formatDate(new Date(entry.date))}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                    <p className="text-sm font-semibold tabular-nums">
-                      {formatDollars(withdrawal.amount)}
-                    </p>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-semibold tabular-nums text-success">
+                          +{formatPoints(entry.points)}
+                        </p>
+                        <p className="text-xs text-muted-foreground tabular-nums">
+                          {formatDollars(pointsToDollars(entry.points))}
+                        </p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Wallet className="size-4 text-muted-foreground" />
+                Recent withdrawals
+              </CardTitle>
+              <CardDescription>Your latest payout requests.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {recentWithdrawals.length === 0 ? (
+                <EmptyRow icon={<Wallet className="size-5" />} label="No withdrawals yet" />
+              ) : (
+                <ul className="divide-y divide-border/60">
+                  {recentWithdrawals.map((withdrawal) => (
+                    <li
+                      key={withdrawal.id}
+                      className="-mx-2 flex items-start justify-between gap-3 rounded-lg px-2 py-3 transition-colors hover:bg-surface-2/60"
+                    >
+                      <div className="flex min-w-0 items-start gap-2.5">
+                        <AccountAvatar
+                          name={withdrawal.accountName}
+                          color={withdrawal.accountColor}
+                          size="sm"
+                        />
+                        <div className="min-w-0 space-y-1">
+                          <p className="truncate text-sm font-medium">{withdrawal.accountName}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Requested {formatDate(new Date(withdrawal.date))}
+                          </p>
+                          {withdrawal.status === "COMPLETED" ? (
+                            <ProcessingTimeBadge
+                              requestedAt={withdrawal.date}
+                              completedAt={withdrawal.completedAt}
+                            />
+                          ) : (
+                            <Badge variant="secondary" className="bg-warning-muted text-warning">
+                              Pending
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                      <p className="text-sm font-semibold tabular-nums">
+                        {formatDollars(withdrawal.amount)}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </Reveal>
+
+      {/* Setup, not glance. It sat between the headline numbers and the charts,
+          above everything a returning user actually opens the page for. */}
+      <UnifiedNotificationSetup />
     </PageContainer>
   )
 }
@@ -297,7 +359,7 @@ function QuickStat({
   const content = (
     <>
       <p className="metric-sm">{value}</p>
-      <p className="mt-0.5 text-xs text-muted-foreground">{label}</p>
+      <p className="label-caps mt-1">{label}</p>
       {hint ? <p className="text-xs text-muted-foreground tabular-nums">{hint}</p> : null}
     </>
   )
@@ -306,14 +368,17 @@ function QuickStat({
     return (
       <Link
         href={href}
-        className="rounded-md border p-3 transition-colors hover:bg-accent focus-visible:ring-ring/50 focus-visible:ring-[3px] focus-visible:outline-none"
+        // `block` is load-bearing: an <a> is inline by default, and .panel's
+        // inset-0 ring pseudo-element has nothing to size against on an inline
+        // box.
+        className="panel panel-interactive block rounded-lg p-3 focus-visible:ring-ring/50 focus-visible:ring-[3px] focus-visible:outline-none"
       >
         {content}
       </Link>
     )
   }
 
-  return <div className="rounded-md border p-3">{content}</div>
+  return <div className="panel rounded-lg p-3">{content}</div>
 }
 
 function EmptyRow({ icon, label }: { icon: React.ReactNode; label: string }) {

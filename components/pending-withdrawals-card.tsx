@@ -7,8 +7,9 @@ import {
   PendingWithdrawalsModal,
   type WithdrawalOrderRef,
 } from "@/components/pending-withdrawals-modal"
+import { CountUp } from "@/components/motion/count-up"
 import { Card, CardContent } from "@/components/ui/card"
-import { dollarsToPoints, formatDollars, formatPoints } from "@/lib/money"
+import { dollarsToPoints, formatDollars } from "@/lib/money"
 
 interface PendingWithdrawal {
   id: string
@@ -44,22 +45,24 @@ export function PendingWithdrawalsCard({
 
   return (
     <>
-      <Card className="py-0">
+      <Card interactive className="h-full gap-0 overflow-hidden py-0">
         <CardContent className="p-0">
           <button
             type="button"
             onClick={() => setIsOpen(true)}
-            className="flex w-full items-start justify-between gap-4 rounded-lg p-5 text-left transition-colors hover:bg-accent focus-visible:ring-ring/50 focus-visible:ring-[3px] focus-visible:outline-none"
+            className="flex w-full items-start justify-between gap-4 rounded-xl p-5 text-left focus-visible:ring-ring/50 focus-visible:ring-[3px] focus-visible:outline-none"
           >
             <div className="min-w-0 space-y-1.5">
-              <p className="text-sm font-medium text-muted-foreground">Pending</p>
-              <p className="metric text-warning">{formatPoints(totalPoints)}</p>
+              <p className="label-caps">Pending</p>
+              <p className="metric text-warning">
+                <CountUp value={totalPoints} format="points" />
+              </p>
               <p className="text-xs text-muted-foreground">
                 {formatDollars(totalDollars)} across {withdrawals.length}{" "}
                 {withdrawals.length === 1 ? "request" : "requests"}
               </p>
             </div>
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-muted text-warning">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-surface-2 text-warning">
               <Clock className="size-4" />
             </span>
           </button>

@@ -119,6 +119,24 @@
   --sidebar-border: oklch(0.926 0.005 265);
   --sidebar-ring: oklch(0.52 0.125 160);
 
+  /*
+   * Light and depth.
+   *
+   * --hairline is the 1px stroke that catches light along a panel's top edge;
+   * --sheen is the highlight that washes down from it. Together they are what
+   * makes a surface read as a physical panel rather than a coloured rectangle,
+   * and they are the reason cards no longer need a flat border on all four
+   * sides. The glows are the three colours the page's ambient light is made of.
+   *
+   * In light mode the "highlight" has to be a shadow instead — white-on-white
+   * is invisible — so --hairline carries the foreground hue at low alpha.
+   */
+  --hairline: oklch(0.21 0.015 265 / 0.1);
+  --sheen: oklch(0.21 0.015 265 / 0.03);
+  --glow-1: oklch(0.52 0.125 160 / 0.14);
+  --glow-2: oklch(0.55 0.16 255 / 0.1);
+  --glow-3: oklch(0.58 0.2 305 / 0.07);
+
   --radius: 0.75rem;
 }
 
@@ -184,6 +202,14 @@
   --sidebar-accent-foreground: oklch(0.965 0.004 265);
   --sidebar-border: oklch(0.245 0.012 265);
   --sidebar-ring: oklch(0.82 0.175 160);
+
+  /* On ink the highlight is a real highlight, so it can be white, and the
+     ambient glows can carry roughly twice the alpha before they read as haze. */
+  --hairline: oklch(1 0 0 / 0.12);
+  --sheen: oklch(1 0 0 / 0.045);
+  --glow-1: oklch(0.82 0.175 160 / 0.2);
+  --glow-2: oklch(0.7 0.16 255 / 0.16);
+  --glow-3: oklch(0.73 0.17 305 / 0.12);
 }
 
 @theme inline {
@@ -322,6 +348,146 @@
    */
   .label-caps {
     @apply text-[0.6875rem] font-medium tracking-[0.08em] text-muted-foreground uppercase;
+  }
+
+  /*
+   * The panel.
+   *
+   * A card with a flat 1px border on all four sides is the most common surface
+   * treatment there is, and it is why the app read as a wireframe: a border
+   * says "here is an edge" but nothing about which way is up. A panel instead
+   * gets a stroke that is bright along its top-left and fades away by its
+   * bottom-right, plus a sheen washing down from that edge — so the surface has
+   * a light source and therefore a shape.
+   *
+   * The stroke is painted with a masked pseudo-element rather than
+   * border-image, which cannot follow a border-radius. `padding: 1px` plus the
+   * xor mask leaves exactly the 1px ring and punches out the middle.
+   */
+  .panel {
+    position: relative;
+    background:
+      linear-gradient(180deg, var(--sheen), transparent 55%),
+      var(--surface-1);
+    isolation: isolate;
+  }
+
+  .panel::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(150deg, var(--hairline), transparent 45%, transparent 70%, var(--hairline));
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  /*
+   * An interactive panel. The lift is 1px and the shadow spreads — enough that
+   * the hand knows the surface responded, not so much that a grid of them
+   * bounces. The old dashboard used hover:scale-105 on cards that were not
+   * even clickable.
+   */
+  .panel-interactive {
+    transition:
+      transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 220ms cubic-bezier(0.22, 1, 0.36, 1),
+      background-color 220ms ease;
+  }
+
+  .panel-interactive:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 28px -12px var(--glow-1);
+  }
+
+  /*
+   * The ambient light behind the page.
+   *
+   * Three slow radial drifts, blurred past the point of being readable as
+   * shapes. Fixed rather than scrolled so the light stays put while content
+   * moves through it, and pinned behind everything with a negative z-index on
+   * an element the layout otherwise ignores.
+   */
+  .aurora {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  .aurora::before,
+  .aurora::after {
+    content: '';
+    position: absolute;
+    width: 60vw;
+    height: 60vw;
+    min-width: 32rem;
+    min-height: 32rem;
+    border-radius: 9999px;
+    filter: blur(90px);
+    will-change: transform;
+  }
+
+  .aurora::before {
+    top: -22vw;
+    left: -12vw;
+    background: radial-gradient(circle, var(--glow-1), transparent 68%);
+    animation: aurora-drift-a 26s ease-in-out infinite alternate;
+  }
+
+  .aurora::after {
+    top: 12vh;
+    right: -20vw;
+    background: radial-gradient(circle, var(--glow-2), transparent 68%);
+    animation: aurora-drift-b 32s ease-in-out infinite alternate;
+  }
+
+  /* Text that carries the accent as a gradient rather than a fill. Reserved for
+     the single hero figure on a page — used twice it stops meaning anything. */
+  .text-gradient {
+    background: linear-gradient(100deg, var(--primary), var(--chart-2));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+}
+
+@keyframes aurora-drift-a {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(8vw, 6vh, 0) scale(1.15);
+  }
+}
+
+@keyframes aurora-drift-b {
+  from {
+    transform: translate3d(0, 0, 0) scale(1.1);
+  }
+  to {
+    transform: translate3d(-7vw, -5vh, 0) scale(1);
+  }
+}
+
+/* A highlight travelling across a surface, for values that just changed and for
+   skeletons, so a loading state and a fresh number share one visual idea. */
+@keyframes shimmer {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(100%);
   }
 }
 
