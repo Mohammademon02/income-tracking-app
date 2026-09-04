@@ -23,6 +23,13 @@ import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
+import { useRouter } from "next/navigation"
+
+import {
+  importAccountRows,
+  importEntryRows,
+  importWithdrawalRows,
+} from "@/app/actions/import"
 import { enhancedToast } from "@/components/ui/enhanced-toast"
 import {
   importAccounts,
@@ -38,11 +45,12 @@ import {
 interface ImportDialogProps {
   type: 'accounts' | 'entries' | 'withdrawals'
   accounts?: any[]
-  onImportComplete: (data: any[]) => void
+  onImportComplete?: (data: any[]) => void
   className?: string
 }
 
 export function ImportDialog({ type, accounts = [], onImportComplete, className }: ImportDialogProps) {
+  const router = useRouter()
   const [open, setOpen] = useState(false)
   const [file, setFile] = useState<File | null>(null)
   const [importing, setImporting] = useState(false)
@@ -96,12 +104,33 @@ export function ImportDialog({ type, accounts = [], onImportComplete, className 
 
       setImportResult(result)
 
-      if (result.success && result.data && !options.dryRun) {
-        onImportComplete(result.data)
-        enhancedToast.success("Import completed!", {
-          description: `Successfully imported ${result.summary?.imported || 0} ${type}`
-        })
+      if (!result.success || !result.data || options.dryRun) return
+
+      // Parsing the file is not importing it. This step is what was missing:
+      // the rows used to be handed to a callback that discarded them.
+      const write =
+        type === 'accounts'
+          ? importAccountRows
+          : type === 'entries'
+            ? importEntryRows
+            : importWithdrawalRows
+
+      const outcome = await write(result.data)
+
+      if (!outcome.success) {
+        enhancedToast.error("Import failed", { description: outcome.error })
+        return
       }
+
+      enhancedToast.success("Import complete", {
+        description: `${outcome.imported} ${type} added${outcome.skipped ? `, ${outcome.skipped} skipped` : ''}.`,
+      })
+
+      onImportComplete?.(result.data)
+      setOpen(false)
+      setFile(null)
+      setImportResult(null)
+      router.refresh()
     } catch (error) {
       enhancedToast.error("Import failed", {
         description: error instanceof Error ? error.message : "Unknown error occurred"

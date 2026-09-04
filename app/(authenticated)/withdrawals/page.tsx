@@ -2,6 +2,7 @@ import { getAccounts } from "@/app/actions/accounts"
 import { getWithdrawals } from "@/app/actions/withdrawals"
 import { AddWithdrawalDialog } from "@/components/add-withdrawal-dialog"
 import { PageContainer, PageHeader } from "@/components/page-shell"
+import { ImportDialog } from "@/components/ui/import-dialog"
 import { WithdrawalsTable } from "@/components/withdrawals-table"
 
 export default async function WithdrawalsPage() {
@@ -12,7 +13,12 @@ export default async function WithdrawalsPage() {
       <PageHeader
         title="Withdrawals"
         description="Payout requests and how long each took to clear."
-        actions={<AddWithdrawalDialog accounts={accounts} />}
+        actions={
+          <>
+            <ImportDialog type="withdrawals" accounts={accounts} />
+            <AddWithdrawalDialog accounts={accounts} />
+          </>
+        }
       />
       <WithdrawalsTable withdrawals={withdrawals} accounts={accounts} />
     </PageContainer>
