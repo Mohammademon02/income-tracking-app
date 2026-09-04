@@ -23,7 +23,11 @@ const nextConfig = {
 
   // Compiler optimizations
   compiler: {
-    removeConsole: process.env.NODE_ENV === 'production',
+    // Strip console noise in production but keep errors and warnings. With
+    // everything stripped, the error boundary's own logging vanished too, so a
+    // production crash left no trace anywhere.
+    removeConsole:
+      process.env.NODE_ENV === 'production' ? { exclude: ['error', 'warn'] } : false,
   },
 
   // Security headers

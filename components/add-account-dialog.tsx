@@ -19,7 +19,6 @@ import { AccountAvatar } from "@/components/account-avatar"
 import { Plus } from "lucide-react"
 import { createAccount } from "@/app/actions/accounts"
 import { enhancedToast, commonToasts } from "@/components/ui/enhanced-toast"
-import { notifications } from "@/lib/notification-service"
 
 export function AddAccountDialog() {
   const router = useRouter()
@@ -38,7 +37,7 @@ export function AddAccountDialog() {
     if (result?.error) {
       setError(result.error)
       setLoading(false)
-      notifications.error("Failed to create account", {
+      enhancedToast.error("Failed to create account", {
         description: result.error
       })
     } else {
@@ -48,7 +47,7 @@ export function AddAccountDialog() {
       setAccountName("")
       setSelectedColor("blue")
       router.refresh()
-      notifications.account.created(name)
+      commonToasts.accountCreated()
     }
   }
 

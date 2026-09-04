@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo } from "react"
+import { addDays, dateKeyToDate, dayOfWeek, formatDate, toDateKey, todayKey } from "@/lib/date-utils"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from "recharts"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { TrendingUp, Calendar, DollarSign } from "lucide-react"
@@ -17,17 +18,23 @@ interface EarningsChartProps {
   accounts: Array<{ id: string; name: string; color: string; totalPoints: number }>
 }
 
-const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4', '#84CC16', '#F97316']
+const COLORS = [
+  'var(--chart-1)',
+  'var(--chart-2)',
+  'var(--chart-3)',
+  'var(--chart-4)',
+  'var(--chart-5)',
+]
 
 export function EarningsChart({ data, accounts }: EarningsChartProps) {
   // Filter data to show only recent entries (last 30 days)
   const recentData = useMemo(() => {
-    const thirtyDaysAgo = new Date()
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-    
-    return data.filter(entry => {
-      const entryDate = new Date(entry.date)
-      return entryDate >= thirtyDaysAgo
+    const today = todayKey()
+    const windowStart = addDays(today, -29)
+
+    return data.filter((entry) => {
+      const key = toDateKey(new Date(entry.date))
+      return key >= windowStart && key <= today
     })
   }, [data])
 
@@ -35,11 +42,8 @@ export function EarningsChart({ data, accounts }: EarningsChartProps) {
   const dailyData = useMemo(() => {
     const grouped = recentData.reduce((acc, entry) => {
       const entryDate = new Date(entry.date)
-      const dateKey = entryDate.toISOString().split('T')[0] // YYYY-MM-DD format for proper sorting
-      const displayDate = entryDate.toLocaleDateString('en-GB', { 
-        day: 'numeric', 
-        month: 'short' 
-      })
+      const dateKey = toDateKey(entryDate)
+      const displayDate = formatDate(dateKey, { day: 'numeric', month: 'short' })
       
       if (!acc[dateKey]) {
         acc[dateKey] = { 
@@ -74,25 +78,21 @@ export function EarningsChart({ data, accounts }: EarningsChartProps) {
 
   const weeklyData = useMemo(() => {
     // Get last 12 weeks of data
-    const twelveWeeksAgo = new Date()
-    twelveWeeksAgo.setDate(twelveWeeksAgo.getDate() - 84) // 12 weeks = 84 days
-    
-    const weeklyEntries = data.filter(entry => {
-      const entryDate = new Date(entry.date)
-      return entryDate >= twelveWeeksAgo
+    const today = todayKey()
+    const windowStart = addDays(today, -83) // 12 weeks
+
+    const weeklyEntries = data.filter((entry) => {
+      const key = toDateKey(new Date(entry.date))
+      return key >= windowStart && key <= today
     })
     
     const weeks = weeklyEntries.reduce((acc, entry) => {
-      const entryDate = new Date(entry.date)
-      // Get Monday of the week
-      const monday = new Date(entryDate)
-      monday.setDate(entryDate.getDate() - entryDate.getDay() + 1)
-      
-      const weekKey = monday.toISOString().split('T')[0] // YYYY-MM-DD format
-      const weekDisplay = monday.toLocaleDateString('en-GB', { 
-        day: 'numeric', 
-        month: 'short' 
-      })
+      const entryKey = toDateKey(new Date(entry.date))
+      // Monday of that week. dayOfWeek() reads the UTC weekday; Sunday (0)
+      // belongs to the week that started six days earlier.
+      const weekday = dayOfWeek(entryKey)
+      const weekKey = addDays(entryKey, weekday === 0 ? -6 : 1 - weekday)
+      const weekDisplay = formatDate(weekKey, { day: 'numeric', month: 'short' })
       
       if (!acc[weekKey]) {
         acc[weekKey] = { 
@@ -100,7 +100,7 @@ export function EarningsChart({ data, accounts }: EarningsChartProps) {
           week: weekDisplay, 
           points: 0, 
           entries: 0,
-          sortDate: monday.getTime()
+          sortDate: dateKeyToDate(weekKey).getTime()
         }
       }
       

@@ -219,6 +219,11 @@ export const commonToasts = {
   }),
 
   // Earnings specific
+  dailyGoalReached: (points: number, goal: number) =>
+    enhancedToast.earnings("Daily goal reached!", {
+      description: `${points.toLocaleString()} of ${goal.toLocaleString()} points today`,
+    }),
+
   pointsEarned: (points: number, account: string) => enhancedToast.earnings("Points earned!", {
     description: `+${points.toLocaleString()} points added to ${account}`
   }),

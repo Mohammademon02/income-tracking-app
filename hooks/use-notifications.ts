@@ -1,7 +1,8 @@
 "use client"
 
 import { useEffect, useCallback, useState } from 'react'
-import { notifications } from '@/lib/notification-service'
+import { commonToasts } from '@/components/ui/enhanced-toast'
+import { todayKey } from '@/lib/date-utils'
 
 interface UseNotificationsOptions {
   enableDailyGoalAlerts?: boolean
@@ -21,7 +22,10 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
     if (!enableDailyGoalAlerts) return
 
     try {
-      const today = new Date().toISOString().split('T')[0]
+      // The app's business day, not a UTC slice of the local clock — the two
+      // disagree for several hours a day, which showed the goal toast against
+      // the wrong date.
+      const today = todayKey()
       const response = await fetch(`/api/stats/daily-goal?date=${today}`)
       
       if (response.ok) {
@@ -37,7 +41,7 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
           localStorage.setItem('daily-goal-alerts', JSON.stringify(shownAlerts))
           
           // Show notification
-          notifications.entry.dailyGoal(todayPoints, goalPoints)
+          commonToasts.dailyGoalReached(todayPoints, goalPoints)
         }
       }
     } catch (error) {

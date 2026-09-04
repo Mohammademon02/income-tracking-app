@@ -25,7 +25,7 @@ import { AccountAvatar } from "@/components/account-avatar"
 import { todayKey } from "@/lib/date-utils"
 import { Plus } from "lucide-react"
 import { createEntry } from "@/app/actions/entries"
-import { notifications } from "@/lib/notification-service"
+import { enhancedToast, commonToasts } from "@/components/ui/enhanced-toast"
 
 type Account = {
   id: string
@@ -56,7 +56,7 @@ export function AddEntryDialog({ accounts }: { accounts: Account[] }) {
     if (result?.error) {
       setError(result.error)
       setLoading(false)
-      notifications.error("Failed to add entry", {
+      enhancedToast.error("Failed to add entry", {
         description: result.error
       })
     } else {
@@ -66,7 +66,7 @@ export function AddEntryDialog({ accounts }: { accounts: Account[] }) {
       setLoading(false)
       setSelectedAccountId("")
       router.refresh()
-      notifications.entry.added(points, accountName)
+      commonToasts.entryAdded(points)
     }
   }
 

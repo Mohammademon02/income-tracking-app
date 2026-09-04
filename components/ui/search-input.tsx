@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { Search, X } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import { SEARCH_INPUT_ATTRIBUTE } from "@/lib/accessibility"
 import { cn } from "@/lib/utils"
 
 interface SearchInputProps {
@@ -56,7 +57,8 @@ export function SearchInput({
           placeholder={placeholder}
           value={searchValue}
           onChange={(e) => setSearchValue(e.target.value)}
-          className="pl-10 pr-10 bg-card border-border focus:border-primary/30 focus:ring-blue-200"
+          {...{ [SEARCH_INPUT_ATTRIBUTE]: "" }}
+          className="pl-10 pr-10"
         />
         {showClearButton && searchValue && (
           <Button

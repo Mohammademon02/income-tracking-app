@@ -25,13 +25,9 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    // Kept in production too: next.config excludes console.error from the
+    // stripping pass, so this is the only record a production crash leaves.
     console.error('Error caught by boundary:', error, errorInfo)
-    
-    // Log to external service in production
-    if (process.env.NODE_ENV === 'production') {
-      // Add your error reporting service here
-      // e.g., Sentry, LogRocket, etc.
-    }
   }
 
   render() {
@@ -110,9 +106,5 @@ function DefaultErrorFallback({ error, reset }: { error: Error; reset: () => voi
 export function useErrorHandler() {
   return (error: Error, errorInfo?: React.ErrorInfo) => {
     console.error('Error caught by hook:', error, errorInfo)
-    
-    if (process.env.NODE_ENV === 'production') {
-      // Log to external service
-    }
   }
 }
