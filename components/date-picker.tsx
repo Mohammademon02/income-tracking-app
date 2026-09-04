@@ -72,21 +72,21 @@ export function DatePicker({ selectedDate, availableDates, onDateSelect, onClose
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={onClose}>
-      <div className="bg-white rounded-lg shadow-xl p-4 max-w-sm w-full mx-4" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-card rounded-lg shadow-xl p-4 max-w-sm w-full mx-4" onClick={(e) => e.stopPropagation()}>
         {/* Calendar Header */}
         <div className="flex items-center justify-between mb-4">
           <button
             onClick={goToPreviousMonth}
-            className="p-1 hover:bg-slate-100 rounded transition-colors"
+            className="p-1 hover:bg-muted rounded transition-colors"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
-          <h3 className="font-semibold text-slate-800">
+          <h3 className="font-semibold text-foreground">
             {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
           </h3>
           <button
             onClick={goToNextMonth}
-            className="p-1 hover:bg-slate-100 rounded transition-colors"
+            className="p-1 hover:bg-muted rounded transition-colors"
           >
             <ChevronRight className="w-5 h-5" />
           </button>
@@ -95,7 +95,7 @@ export function DatePicker({ selectedDate, availableDates, onDateSelect, onClose
         {/* Days of week header */}
         <div className="grid grid-cols-7 gap-1 mb-2">
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-            <div key={day} className="text-center text-xs font-medium text-slate-500 py-2">
+            <div key={day} className="text-center text-xs font-medium text-muted-foreground py-2">
               {day}
             </div>
           ))}
@@ -115,33 +115,33 @@ export function DatePicker({ selectedDate, availableDates, onDateSelect, onClose
               disabled={!day.isInRange}
               className={`
                 aspect-square text-sm rounded transition-all duration-200 relative
-                ${!day.isCurrentMonth ? 'text-slate-300' : 'text-slate-700'}
+                ${!day.isCurrentMonth ? 'text-muted-foreground' : 'text-foreground'}
                 ${day.isToday ? 'ring-2 ring-rose-500' : ''}
-                ${day.isSelected ? 'bg-rose-500 text-white' : ''}
-                ${day.hasData && !day.isSelected ? 'bg-rose-50 text-rose-700 font-medium' : ''}
-                ${day.isInRange && !day.isSelected ? 'hover:bg-slate-100' : ''}
+                ${day.isSelected ? 'bg-destructive text-white' : ''}
+                ${day.hasData && !day.isSelected ? 'bg-destructive-muted text-destructive font-medium' : ''}
+                ${day.isInRange && !day.isSelected ? 'hover:bg-muted' : ''}
                 ${!day.isInRange ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer'}
               `}
             >
               {day.day}
               {day.hasData && !day.isSelected && (
-                <div className="absolute bottom-0.5 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-rose-500 rounded-full"></div>
+                <div className="absolute bottom-0.5 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-destructive rounded-full"></div>
               )}
             </button>
           ))}
         </div>
 
         {/* Legend */}
-        <div className="mt-4 text-xs text-slate-500 space-y-1">
+        <div className="mt-4 text-xs text-muted-foreground space-y-1">
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-rose-50 border border-rose-200 rounded"></div>
+            <div className="w-3 h-3 bg-destructive-muted border border-destructive/30 rounded"></div>
             <span>Has earnings data</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 border-2 border-rose-500 rounded"></div>
             <span>Today</span>
           </div>
-          <p className="text-slate-400 mt-2">Showing last 30 days only</p>
+          <p className="text-muted-foreground mt-2">Showing last 30 days only</p>
         </div>
       </div>
     </div>

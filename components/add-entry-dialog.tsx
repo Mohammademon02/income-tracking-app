@@ -21,11 +21,10 @@ import {
 } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { getAvatarGradient } from "@/lib/avatar-utils"
+import { AccountAvatar } from "@/components/account-avatar"
 import { todayKey } from "@/lib/date-utils"
 import { Plus } from "lucide-react"
 import { createEntry } from "@/app/actions/entries"
-import { enhancedToast, commonToasts } from "@/components/ui/enhanced-toast"
 import { notifications } from "@/lib/notification-service"
 
 type Account = {
@@ -89,7 +88,7 @@ export function AddEntryDialog({ accounts }: { accounts: Account[] }) {
       }
     }}>
       <DialogTrigger asChild>
-        <Button className="bg-linear-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg shadow-green-200/50 transition-all duration-200 hover:scale-105">
+        <Button>
           <Plus className="mr-2 h-4 w-4" />
           Add Entry
         </Button>
@@ -110,12 +109,10 @@ export function AddEntryDialog({ accounts }: { accounts: Account[] }) {
                 <SelectContent>
                   {accounts.map((account) => (
                     <SelectItem key={account.id} value={account.id}>
-                      <div className="flex items-center gap-2">
-                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-white font-bold text-xs ${getAvatarGradient(account.color || "blue")}`}>
-                          {account.name.charAt(0).toUpperCase()}
-                        </div>
+                      <span className="flex items-center gap-2">
+                        <AccountAvatar name={account.name} color={account.color} size="sm" />
                         {account.name}
-                      </div>
+                      </span>
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -125,17 +122,9 @@ export function AddEntryDialog({ accounts }: { accounts: Account[] }) {
             {selectedAccount && (
               <div className="space-y-3">
                 <Label>Preview</Label>
-                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
-                  <div className="relative">
-                    <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-md ring-1 ring-white/30 ${getAvatarGradient(selectedAccount.color || "blue")}`}>
-                      {selectedAccount.name.charAt(0).toUpperCase()}
-                    </div>
-                    <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-linear-to-r from-green-400 to-emerald-500 rounded-full border border-white shadow-sm"></div>
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="font-semibold text-slate-800">{selectedAccount.name}</span>
-                    <span className="text-xs text-slate-500">Survey Entry</span>
-                  </div>
+                <div className="flex items-center gap-3 rounded-md border bg-muted/40 p-3">
+                  <AccountAvatar name={selectedAccount.name} color={selectedAccount.color} />
+                  <span className="font-medium">{selectedAccount.name}</span>
                 </div>
               </div>
             )}
@@ -166,10 +155,10 @@ export function AddEntryDialog({ accounts }: { accounts: Account[] }) {
             {error && <p className="text-sm text-destructive">{error}</p>}
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)} className="hover:bg-slate-50 transition-colors">
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={loading} className="bg-linear-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg transition-all duration-200">
+            <Button type="submit" disabled={loading}>
               {loading ? "Adding..." : "Add Entry"}
             </Button>
           </DialogFooter>

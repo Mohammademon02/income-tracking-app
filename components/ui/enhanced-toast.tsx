@@ -18,11 +18,11 @@ export const enhancedToast = {
     return toast.success(message, {
       description: options?.description,
       duration: options?.duration || 4000,
-      icon: <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+      icon: <div className="w-6 h-6 bg-success rounded-full flex items-center justify-center">
         <CheckCircle className="w-4 h-4 text-white" />
       </div>,
       unstyled: true,
-      className: "bg-white border-l-4 border-l-green-500 border border-green-100 rounded-lg shadow-lg p-4 flex items-center gap-3 min-h-[64px]",
+      className: "bg-card border-l-4 border-l-green-500 border border-success/30 rounded-lg shadow-lg p-4 flex items-center gap-3 min-h-[64px]",
       action: options?.action ? {
         label: options.action.label,
         onClick: options.action.onClick,
@@ -35,11 +35,11 @@ export const enhancedToast = {
     return toast.success(message, {
       description: options?.description,
       duration: options?.duration || 4000,
-      icon: <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+      icon: <div className="w-6 h-6 bg-success rounded-full flex items-center justify-center">
         <Plus className="w-4 h-4 text-white font-bold" />
       </div>,
       unstyled: true,
-      className: "bg-white border-l-4 border-l-green-500 border border-green-100 rounded-lg shadow-lg p-4 flex items-center gap-3 min-h-[64px]",
+      className: "bg-card border-l-4 border-l-green-500 border border-success/30 rounded-lg shadow-lg p-4 flex items-center gap-3 min-h-[64px]",
       action: options?.action ? {
         label: options.action.label,
         onClick: options.action.onClick,
@@ -52,11 +52,11 @@ export const enhancedToast = {
     return toast.success(message, {
       description: options?.description,
       duration: options?.duration || 4000,
-      icon: <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center">
+      icon: <div className="w-6 h-6 bg-warning rounded-full flex items-center justify-center">
         <Minus className="w-4 h-4 text-white font-bold" />
       </div>,
       unstyled: true,
-      className: "bg-white border-l-4 border-l-orange-500 border border-orange-100 rounded-lg shadow-lg p-4 flex items-center gap-3 min-h-[64px]",
+      className: "bg-card border-l-4 border-l-orange-500 border border-warning/30 rounded-lg shadow-lg p-4 flex items-center gap-3 min-h-[64px]",
       action: options?.action ? {
         label: options.action.label,
         onClick: options.action.onClick,
@@ -69,11 +69,11 @@ export const enhancedToast = {
     return toast.success(message, {
       description: options?.description,
       duration: options?.duration || 4000,
-      icon: <div className="w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center">
+      icon: <div className="w-6 h-6 bg-success rounded-full flex items-center justify-center">
         <TrendingUp className="w-4 h-4 text-white font-bold" />
       </div>,
       unstyled: true,
-      className: "bg-white border-l-4 border-l-emerald-500 border border-emerald-100 rounded-lg shadow-lg p-4 flex items-center gap-3 min-h-[64px]",
+      className: "bg-card border-l-4 border-l-emerald-500 border border-success/30 rounded-lg shadow-lg p-4 flex items-center gap-3 min-h-[64px]",
       action: options?.action ? {
         label: options.action.label,
         onClick: options.action.onClick,
@@ -86,11 +86,11 @@ export const enhancedToast = {
     return toast.success(message, {
       description: options?.description,
       duration: options?.duration || 4000,
-      icon: <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+      icon: <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center">
         <TrendingDown className="w-4 h-4 text-white font-bold" />
       </div>,
       unstyled: true,
-      className: "bg-white border-l-4 border-l-blue-500 border border-blue-100 rounded-lg shadow-lg p-4 flex items-center gap-3 min-h-[64px]",
+      className: "bg-card border-l-4 border-l-blue-500 border border-primary/30 rounded-lg shadow-lg p-4 flex items-center gap-3 min-h-[64px]",
       action: options?.action ? {
         label: options.action.label,
         onClick: options.action.onClick,
@@ -102,11 +102,11 @@ export const enhancedToast = {
     return toast.error(message, {
       description: options?.description,
       duration: options?.duration || 6000,
-      icon: <div className="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center">
+      icon: <div className="w-6 h-6 bg-destructive rounded-full flex items-center justify-center">
         <XCircle className="w-4 h-4 text-white" />
       </div>,
       unstyled: true,
-      className: "bg-white border-l-4 border-l-red-500 border border-red-100 rounded-lg shadow-lg p-4 flex items-center gap-3 min-h-[64px]",
+      className: "bg-card border-l-4 border-l-red-500 border border-destructive/30 rounded-lg shadow-lg p-4 flex items-center gap-3 min-h-[64px]",
       action: options?.action ? {
         label: options.action.label,
         onClick: options.action.onClick,
@@ -118,11 +118,11 @@ export const enhancedToast = {
     return toast.warning(message, {
       description: options?.description,
       duration: options?.duration || 5000,
-      icon: <div className="w-6 h-6 bg-amber-500 rounded-full flex items-center justify-center">
+      icon: <div className="w-6 h-6 bg-warning rounded-full flex items-center justify-center">
         <AlertCircle className="w-4 h-4 text-white" />
       </div>,
       unstyled: true,
-      className: "bg-white border-l-4 border-l-amber-500 border border-amber-100 rounded-lg shadow-lg p-4 flex items-center gap-3 min-h-[64px]",
+      className: "bg-card border-l-4 border-l-amber-500 border border-warning/30 rounded-lg shadow-lg p-4 flex items-center gap-3 min-h-[64px]",
       action: options?.action ? {
         label: options.action.label,
         onClick: options.action.onClick,
@@ -134,11 +134,11 @@ export const enhancedToast = {
     return toast.info(message, {
       description: options?.description,
       duration: options?.duration || 4000,
-      icon: <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+      icon: <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center">
         <Info className="w-4 h-4 text-white" />
       </div>,
       unstyled: true,
-      className: "bg-white border-l-4 border-l-blue-500 border border-blue-100 rounded-lg shadow-lg p-4 flex items-center gap-3 min-h-[64px]",
+      className: "bg-card border-l-4 border-l-blue-500 border border-primary/30 rounded-lg shadow-lg p-4 flex items-center gap-3 min-h-[64px]",
       action: options?.action ? {
         label: options.action.label,
         onClick: options.action.onClick,
@@ -153,7 +153,7 @@ export const enhancedToast = {
         <Loader2 className="w-4 h-4 text-white animate-spin" />
       </div>,
       unstyled: true,
-      className: "bg-white border-l-4 border-l-slate-500 border border-slate-100 rounded-lg shadow-lg p-4 flex items-center gap-3 min-h-[64px]",
+      className: "bg-card border-l-4 border-l-slate-500 border border-border rounded-lg shadow-lg p-4 flex items-center gap-3 min-h-[64px]",
     })
   },
 

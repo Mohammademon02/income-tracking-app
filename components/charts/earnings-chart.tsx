@@ -124,7 +124,7 @@ export function EarningsChart({ data, accounts }: EarningsChartProps) {
       <Card className="lg:col-span-2">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-blue-600" />
+            <TrendingUp className="w-5 h-5 text-primary" />
             Daily Earnings Trend (Last 14 Days)
           </CardTitle>
           <CardDescription>
@@ -176,7 +176,7 @@ export function EarningsChart({ data, accounts }: EarningsChartProps) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <DollarSign className="w-5 h-5 text-green-600" />
+            <DollarSign className="w-5 h-5 text-success" />
             Account Performance
           </CardTitle>
           <CardDescription>
@@ -229,7 +229,7 @@ export function EarningsChart({ data, accounts }: EarningsChartProps) {
                 </div>
                 <div className="text-right">
                   <div className="font-semibold">{account.points.toLocaleString()} pts</div>
-                  <div className="text-xs text-slate-500">
+                  <div className="text-xs text-muted-foreground">
                     {totalPoints > 0 ? ((account.points / totalPoints) * 100).toFixed(1) : 0}%
                   </div>
                 </div>
@@ -243,7 +243,7 @@ export function EarningsChart({ data, accounts }: EarningsChartProps) {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-purple-600" />
+            <Calendar className="w-5 h-5 text-primary" />
             Weekly Summary (Last 12 Weeks)
           </CardTitle>
           <CardDescription>

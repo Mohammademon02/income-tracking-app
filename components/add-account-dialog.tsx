@@ -15,7 +15,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ColorPicker } from "@/components/ui/color-picker"
-import { getAvatarGradient } from "@/lib/avatar-utils"
+import { AccountAvatar } from "@/components/account-avatar"
 import { Plus } from "lucide-react"
 import { createAccount } from "@/app/actions/accounts"
 import { enhancedToast, commonToasts } from "@/components/ui/enhanced-toast"
@@ -55,7 +55,7 @@ export function AddAccountDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="bg-linear-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg shadow-blue-200/50 transition-all duration-200 hover:scale-105">
+        <Button>
           <Plus className="mr-2 h-4 w-4" />
           Add Account
         </Button>
@@ -81,16 +81,9 @@ export function AddAccountDialog() {
 
             <div className="space-y-3">
               <Label>Preview</Label>
-              <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg ring-2 ring-white/20 ${getAvatarGradient(selectedColor)}`}>
-                  {accountName ? accountName.charAt(0).toUpperCase() : "A"}
-                </div>
-                <div className="flex flex-col">
-                  <span className="font-semibold text-slate-800">
-                    {accountName || "Account Name"}
-                  </span>
-                  <span className="text-xs text-slate-500">Survey Platform</span>
-                </div>
+              <div className="flex items-center gap-3 rounded-md border bg-muted/40 p-3">
+                <AccountAvatar name={accountName || "A"} color={selectedColor} />
+                <span className="font-medium">{accountName || "Account name"}</span>
               </div>
             </div>
 
@@ -103,10 +96,10 @@ export function AddAccountDialog() {
             {error && <p className="text-sm text-destructive">{error}</p>}
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)} className="hover:bg-slate-50 transition-colors">
+            <Button type="button" variant="outline" onClick={() => setOpen(false)} className="hover:bg-muted transition-colors">
               Cancel
             </Button>
-            <Button type="submit" disabled={loading} className="bg-linear-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg transition-all duration-200">
+            <Button type="submit" disabled={loading}>
               {loading ? "Creating..." : "Create Account"}
             </Button>
           </DialogFooter>

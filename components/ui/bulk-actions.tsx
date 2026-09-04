@@ -84,7 +84,7 @@ export function BulkActions<T>({
 
   return (
     <>
-      <div className={cn("flex items-center justify-between gap-4 p-4 bg-white border border-slate-200 rounded-lg shadow-sm", className)}>
+      <div className={cn("flex items-center justify-between gap-4 p-4 bg-card border border-border rounded-lg shadow-sm", className)}>
         <div className="flex items-center gap-3">
           <Button
             variant="ghost"
@@ -93,21 +93,21 @@ export function BulkActions<T>({
             className="p-1 h-8 w-8"
           >
             {allSelected ? (
-              <CheckSquare className="h-4 w-4 text-blue-600" />
+              <CheckSquare className="h-4 w-4 text-primary" />
             ) : someSelected ? (
-              <div className="h-4 w-4 bg-blue-600 rounded-sm flex items-center justify-center">
-                <div className="h-2 w-2 bg-white rounded-sm" />
+              <div className="h-4 w-4 bg-primary rounded-sm flex items-center justify-center">
+                <div className="h-2 w-2 bg-card rounded-sm" />
               </div>
             ) : (
-              <Square className="h-4 w-4 text-slate-400" />
+              <Square className="h-4 w-4 text-muted-foreground" />
             )}
           </Button>
           
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-slate-700">
+            <span className="text-sm font-medium text-foreground">
               {selectedCount > 0 ? (
                 <>
-                  <Badge variant="secondary" className="bg-blue-100 text-blue-700">
+                  <Badge variant="secondary" className="bg-primary/10 text-primary">
                     {selectedCount}
                   </Badge>
                   <span className="ml-2">
@@ -129,7 +129,7 @@ export function BulkActions<T>({
                 size="sm"
                 onClick={() => handleBulkAction(() => onBulkExport!(Array.from(selectedItems)))}
                 disabled={loading}
-                className="hover:bg-green-50 hover:border-green-200"
+                className="hover:bg-success-muted hover:border-success/30"
               >
                 <Download className="h-4 w-4 mr-2" />
                 Export
@@ -158,7 +158,7 @@ export function BulkActions<T>({
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
                       onClick={() => setShowDeleteDialog(true)}
-                      className="text-red-600 focus:text-red-600"
+                      className="text-destructive focus:text-destructive"
                     >
                       <Trash2 className="h-4 w-4 mr-2" />
                       Delete Selected
@@ -181,14 +181,14 @@ export function BulkActions<T>({
               This action cannot be undone.
               
               {getItemName && selectedCount <= 5 && (
-                <div className="mt-3 p-3 bg-slate-50 rounded-lg">
-                  <div className="text-sm font-medium text-slate-700 mb-2">Items to be deleted:</div>
-                  <ul className="text-sm text-slate-600 space-y-1">
+                <div className="mt-3 p-3 bg-muted rounded-lg">
+                  <div className="text-sm font-medium text-foreground mb-2">Items to be deleted:</div>
+                  <ul className="text-sm text-foreground space-y-1">
                     {Array.from(selectedItems).slice(0, 5).map(id => {
                       const item = items.find(item => getItemId(item) === id)
                       return item ? (
                         <li key={id} className="flex items-center gap-2">
-                          <div className="w-1.5 h-1.5 bg-red-400 rounded-full" />
+                          <div className="w-1.5 h-1.5 bg-destructive rounded-full" />
                           {getItemName(item)}
                         </li>
                       ) : null
@@ -202,7 +202,7 @@ export function BulkActions<T>({
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleBulkDelete}
-              className="bg-red-600 hover:bg-red-700 text-white"
+              className="bg-destructive hover:bg-red-700 text-white"
             >
               {loading ? "Deleting..." : `Delete ${selectedCount} ${selectedCount === 1 ? 'Item' : 'Items'}`}
             </AlertDialogAction>
@@ -230,9 +230,9 @@ export function SelectableItem({ id, selected, onSelectionChange, className }: S
       className={cn("p-1 h-8 w-8", className)}
     >
       {selected ? (
-        <CheckSquare className="h-4 w-4 text-blue-600" />
+        <CheckSquare className="h-4 w-4 text-primary" />
       ) : (
-        <Square className="h-4 w-4 text-slate-400 hover:text-slate-600" />
+        <Square className="h-4 w-4 text-muted-foreground hover:text-foreground" />
       )}
     </Button>
   )

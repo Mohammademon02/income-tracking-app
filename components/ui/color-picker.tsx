@@ -42,7 +42,7 @@ export function ColorPicker({ selectedColor, onColorChange, name = "color" }: Co
             key={color.value}
             type="button"
             onClick={() => onColorChange(color.value)}
-            className={`relative w-10 h-10 rounded-full bg-gradient-to-br ${color.gradient} shadow-md hover:scale-110 transition-transform duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500`}
+            className={`relative w-10 h-10 rounded-full bg-gradient-to-br ${color.gradient} shadow-md transition-transform duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500`}
             title={color.name}
           >
             {selectedColor === color.value && (

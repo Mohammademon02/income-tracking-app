@@ -153,7 +153,7 @@ export function ImportDialog({ type, accounts = [], onImportComplete, className 
       if (!isOpen) resetDialog()
     }}>
       <DialogTrigger asChild>
-        <Button variant="outline" className={`hover:bg-blue-50 hover:border-blue-200 ${className}`}>
+        <Button variant="outline" className={`hover:bg-primary/10 hover:border-primary/30 ${className}`}>
           <Upload className="w-4 h-4 mr-2" />
           Import {getTypeLabel()}
         </Button>
@@ -169,12 +169,12 @@ export function ImportDialog({ type, accounts = [], onImportComplete, className 
 
         <div className="space-y-6">
           {/* Template Download */}
-          <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg border border-blue-200">
+          <div className="flex items-center justify-between p-4 bg-primary/10 rounded-lg border border-primary/30">
             <div className="flex items-center gap-3">
-              <FileText className="w-5 h-5 text-blue-600" />
+              <FileText className="w-5 h-5 text-primary" />
               <div>
-                <p className="font-medium text-blue-800">Need a template?</p>
-                <p className="text-sm text-blue-600">Download the CSV template to see the required format</p>
+                <p className="font-medium text-primary">Need a template?</p>
+                <p className="text-sm text-primary">Download the CSV template to see the required format</p>
               </div>
             </div>
             <Button variant="outline" size="sm" onClick={downloadTemplate}>
@@ -186,7 +186,7 @@ export function ImportDialog({ type, accounts = [], onImportComplete, className 
           {/* File Upload */}
           <div className="space-y-3">
             <Label>Select CSV File</Label>
-            <div className="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
+            <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
               <input
                 ref={fileInputRef}
                 type="file"
@@ -196,17 +196,17 @@ export function ImportDialog({ type, accounts = [], onImportComplete, className 
               />
               {file ? (
                 <div className="space-y-2">
-                  <CheckCircle className="w-8 h-8 text-green-600 mx-auto" />
+                  <CheckCircle className="w-8 h-8 text-success mx-auto" />
                   <p className="font-medium">{file.name}</p>
-                  <p className="text-sm text-slate-500">{(file.size / 1024).toFixed(1)} KB</p>
+                  <p className="text-sm text-muted-foreground">{(file.size / 1024).toFixed(1)} KB</p>
                   <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
                     Choose Different File
                   </Button>
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <Upload className="w-8 h-8 text-slate-400 mx-auto" />
-                  <p className="text-slate-600">Click to select a CSV file</p>
+                  <Upload className="w-8 h-8 text-muted-foreground mx-auto" />
+                  <p className="text-foreground">Click to select a CSV file</p>
                   <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
                     Browse Files
                   </Button>
@@ -276,9 +276,9 @@ export function ImportDialog({ type, accounts = [], onImportComplete, className 
             <div className="space-y-4">
               <div className="flex items-center gap-2">
                 {importResult.success ? (
-                  <CheckCircle className="w-5 h-5 text-green-600" />
+                  <CheckCircle className="w-5 h-5 text-success" />
                 ) : (
-                  <AlertCircle className="w-5 h-5 text-red-600" />
+                  <AlertCircle className="w-5 h-5 text-destructive" />
                 )}
                 <span className="font-medium">
                   {importResult.success ? 'Import Successful' : 'Import Failed'}
@@ -287,21 +287,21 @@ export function ImportDialog({ type, accounts = [], onImportComplete, className 
 
               {importResult.summary && (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="text-center p-3 bg-slate-50 rounded-lg">
-                    <div className="text-lg font-bold text-slate-800">{importResult.summary.total}</div>
-                    <div className="text-xs text-slate-500">Total Rows</div>
+                  <div className="text-center p-3 bg-muted rounded-lg">
+                    <div className="text-lg font-bold text-foreground">{importResult.summary.total}</div>
+                    <div className="text-xs text-muted-foreground">Total Rows</div>
                   </div>
-                  <div className="text-center p-3 bg-green-50 rounded-lg">
-                    <div className="text-lg font-bold text-green-600">{importResult.summary.imported}</div>
-                    <div className="text-xs text-green-500">Imported</div>
+                  <div className="text-center p-3 bg-success-muted rounded-lg">
+                    <div className="text-lg font-bold text-success">{importResult.summary.imported}</div>
+                    <div className="text-xs text-success">Imported</div>
                   </div>
-                  <div className="text-center p-3 bg-orange-50 rounded-lg">
-                    <div className="text-lg font-bold text-orange-600">{importResult.summary.skipped}</div>
-                    <div className="text-xs text-orange-500">Skipped</div>
+                  <div className="text-center p-3 bg-warning-muted rounded-lg">
+                    <div className="text-lg font-bold text-warning">{importResult.summary.skipped}</div>
+                    <div className="text-xs text-warning">Skipped</div>
                   </div>
-                  <div className="text-center p-3 bg-red-50 rounded-lg">
-                    <div className="text-lg font-bold text-red-600">{importResult.summary.failed}</div>
-                    <div className="text-xs text-red-500">Failed</div>
+                  <div className="text-center p-3 bg-destructive-muted rounded-lg">
+                    <div className="text-lg font-bold text-destructive">{importResult.summary.failed}</div>
+                    <div className="text-xs text-destructive">Failed</div>
                   </div>
                 </div>
               )}
@@ -309,12 +309,12 @@ export function ImportDialog({ type, accounts = [], onImportComplete, className 
               {importResult.warnings && importResult.warnings.length > 0 && (
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <Info className="w-4 h-4 text-orange-600" />
-                    <span className="text-sm font-medium text-orange-700">Warnings</span>
+                    <Info className="w-4 h-4 text-warning" />
+                    <span className="text-sm font-medium text-warning">Warnings</span>
                   </div>
                   <div className="max-h-32 overflow-y-auto space-y-1">
                     {importResult.warnings.map((warning, index) => (
-                      <div key={index} className="text-xs text-orange-600 bg-orange-50 p-2 rounded">
+                      <div key={index} className="text-xs text-warning bg-warning-muted p-2 rounded">
                         {warning}
                       </div>
                     ))}
@@ -325,12 +325,12 @@ export function ImportDialog({ type, accounts = [], onImportComplete, className 
               {importResult.errors && importResult.errors.length > 0 && (
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 text-red-600" />
-                    <span className="text-sm font-medium text-red-700">Errors</span>
+                    <AlertCircle className="w-4 h-4 text-destructive" />
+                    <span className="text-sm font-medium text-destructive">Errors</span>
                   </div>
                   <div className="max-h-32 overflow-y-auto space-y-1">
                     {importResult.errors.map((error, index) => (
-                      <div key={index} className="text-xs text-red-600 bg-red-50 p-2 rounded">
+                      <div key={index} className="text-xs text-destructive bg-destructive-muted p-2 rounded">
                         {error}
                       </div>
                     ))}
@@ -356,7 +356,7 @@ export function ImportDialog({ type, accounts = [], onImportComplete, className 
                 setOptions(prev => ({ ...prev, dryRun: false }))
                 handleImport()
               }}
-              className="bg-green-600 hover:bg-green-700"
+              className="bg-success hover:bg-green-700"
             >
               Confirm Import
             </Button>

@@ -60,14 +60,14 @@ export function Pagination({ currentPage, totalPages, onPageChange, className }:
 
     return (
         <div className={cn("flex items-center justify-center", className)}>
-            <div className="flex items-center space-x-1 bg-white border border-slate-200 rounded-lg p-1 shadow-sm">
+            <div className="flex items-center space-x-1 bg-card border border-border rounded-lg p-1 shadow-sm">
                 {/* First page button */}
                 <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => onPageChange(1)}
                     disabled={currentPage === 1}
-                    className="h-8 w-8 p-0 hover:bg-blue-50 hover:text-blue-600 disabled:opacity-40 disabled:hover:bg-transparent transition-all duration-200"
+                    className="h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary disabled:opacity-40 disabled:hover:bg-transparent transition-all duration-200"
                     title="First page"
                 >
                     <ChevronsLeft className="h-4 w-4" />
@@ -79,7 +79,7 @@ export function Pagination({ currentPage, totalPages, onPageChange, className }:
                     size="sm"
                     onClick={() => onPageChange(currentPage - 1)}
                     disabled={currentPage === 1}
-                    className="h-8 w-8 p-0 hover:bg-blue-50 hover:text-blue-600 disabled:opacity-40 disabled:hover:bg-transparent transition-all duration-200"
+                    className="h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary disabled:opacity-40 disabled:hover:bg-transparent transition-all duration-200"
                     title="Previous page"
                 >
                     <ChevronLeft className="h-4 w-4" />
@@ -90,7 +90,7 @@ export function Pagination({ currentPage, totalPages, onPageChange, className }:
                     {getVisiblePages().map((page, index) => (
                         <div key={index}>
                             {page === "..." ? (
-                                <div className="flex h-8 w-8 items-center justify-center text-slate-400">
+                                <div className="flex h-8 w-8 items-center justify-center text-muted-foreground">
                                     <MoreHorizontal className="h-4 w-4" />
                                 </div>
                             ) : (
@@ -101,8 +101,8 @@ export function Pagination({ currentPage, totalPages, onPageChange, className }:
                                     className={cn(
                                         "h-8 w-8 p-0 font-medium transition-all duration-200 rounded-md",
                                         currentPage === page
-                                            ? "bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
-                                            : "hover:bg-blue-50 hover:text-blue-600 text-slate-700"
+                                            ? "bg-primary hover:bg-blue-700 text-white shadow-sm"
+                                            : "hover:bg-primary/10 hover:text-primary text-foreground"
                                     )}
                                 >
                                     {page}
@@ -118,7 +118,7 @@ export function Pagination({ currentPage, totalPages, onPageChange, className }:
                     size="sm"
                     onClick={() => onPageChange(currentPage + 1)}
                     disabled={currentPage === totalPages}
-                    className="h-8 w-8 p-0 hover:bg-blue-50 hover:text-blue-600 disabled:opacity-40 disabled:hover:bg-transparent transition-all duration-200"
+                    className="h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary disabled:opacity-40 disabled:hover:bg-transparent transition-all duration-200"
                     title="Next page"
                 >
                     <ChevronRight className="h-4 w-4" />
@@ -130,7 +130,7 @@ export function Pagination({ currentPage, totalPages, onPageChange, className }:
                     size="sm"
                     onClick={() => onPageChange(totalPages)}
                     disabled={currentPage === totalPages}
-                    className="h-8 w-8 p-0 hover:bg-blue-50 hover:text-blue-600 disabled:opacity-40 disabled:hover:bg-transparent transition-all duration-200"
+                    className="h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary disabled:opacity-40 disabled:hover:bg-transparent transition-all duration-200"
                     title="Last page"
                 >
                     <ChevronsRight className="h-4 w-4" />

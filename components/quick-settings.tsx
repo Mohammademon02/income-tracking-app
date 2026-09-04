@@ -25,8 +25,8 @@ export function QuickSettings() {
             <Card>
                 <CardContent className="p-6">
                     <div className="animate-pulse">
-                        <div className="h-4 bg-slate-200 rounded w-1/2 mb-2"></div>
-                        <div className="h-8 bg-slate-200 rounded w-full"></div>
+                        <div className="h-4 bg-muted rounded w-1/2 mb-2"></div>
+                        <div className="h-8 bg-muted rounded w-full"></div>
                     </div>
                 </CardContent>
             </Card>
@@ -49,7 +49,7 @@ export function QuickSettings() {
         <Card>
             <CardHeader className="pb-3">
                 <CardTitle className="text-lg flex items-center gap-2">
-                    <Target className="w-5 h-5 text-green-600" />
+                    <Target className="w-5 h-5 text-success" />
                     Daily Goal
                     <Badge variant="secondary" className="ml-auto">
                         ${(displayGoal / 100).toFixed(2)}
@@ -59,10 +59,10 @@ export function QuickSettings() {
             <CardContent className="space-y-4">
                 {/* Current Goal Display */}
                 <div className="text-center p-4 bg-linear-to-r from-green-50 to-blue-50 rounded-lg">
-                    <div className="text-2xl font-bold text-slate-800">
+                    <div className="text-2xl font-bold text-foreground">
                         {displayGoal.toLocaleString()} points
                     </div>
-                    <div className="text-sm text-slate-600">
+                    <div className="text-sm text-foreground">
                         ${(displayGoal / 100).toFixed(2)} per day
                     </div>
                 </div>

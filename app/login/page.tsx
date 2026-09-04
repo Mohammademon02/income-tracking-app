@@ -2,12 +2,13 @@
 
 import { useState } from "react"
 import Image from "next/image"
+import { Eye, EyeOff, Loader2 } from "lucide-react"
+
+import { login } from "@/app/actions/auth"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { login } from "@/app/actions/auth"
-import { Eye, EyeOff, TrendingUp, BarChart3 } from "lucide-react"
 
 export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
@@ -18,6 +19,7 @@ export default function LoginPage() {
     setLoading(true)
     setError(null)
 
+    // On success this redirects, so `loading` is only reset on failure.
     const result = await login(formData)
 
     if (result?.error) {
@@ -27,54 +29,39 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-      {/* Subtle Background Elements */}
-      <div className="absolute inset-0">
-        <div className="absolute top-20 left-20 w-64 h-64 bg-gradient-to-r from-blue-100/30 to-indigo-100/30 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-32 right-32 w-80 h-80 bg-gradient-to-r from-slate-100/40 to-gray-100/40 rounded-full blur-3xl"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-r from-indigo-50/50 to-blue-50/50 rounded-full blur-3xl"></div>
-        
-        {/* Minimal floating icons */}
-        <div className="absolute top-1/4 right-1/4 opacity-5">
-          <TrendingUp className="w-24 h-24 text-indigo-600 animate-pulse" style={{ animationDuration: '4s' }} />
-        </div>
-        <div className="absolute bottom-1/4 left-1/4 opacity-5">
-          <BarChart3 className="w-20 h-20 text-slate-600 animate-pulse" style={{ animationDuration: '5s', animationDelay: '1s' }} />
-        </div>
-      </div>
-
-      {/* Clean Modern Card */}
-      <Card className="w-full max-w-md relative z-10 bg-white/90 backdrop-blur-sm border border-white/60 shadow-xl shadow-indigo-100/50">
-        <CardHeader className="text-center space-y-4 pb-8">
-          <div className="mx-auto">
-            <Image 
-              src="/Logo.png" 
-              alt="SurvTrack Logo" 
-              width={200} 
-              height={60}
-              className="h-16 w-auto mx-auto"
-            />
-          </div>
-          <CardDescription className="text-slate-600 text-base">
-            Sign in to manage your survey income
-          </CardDescription>
+    // The three blurred gradient orbs and two pulsing background icons that
+    // used to sit behind this card are gone; they were decoration on a form
+    // with two fields.
+    <div className="flex min-h-screen items-center justify-center bg-background p-4">
+      <Card className="w-full max-w-sm">
+        <CardHeader className="space-y-4 text-center">
+          <Image
+            src="/Logo.png"
+            alt="SurvTrack"
+            width={200}
+            height={60}
+            className="mx-auto h-12 w-auto dark:brightness-0 dark:invert"
+            priority
+          />
+          <CardDescription>Sign in to manage your survey income.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <form action={handleSubmit} className="space-y-6">
+
+        <CardContent>
+          <form action={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username" className="text-slate-700 font-medium">Username</Label>
+              <Label htmlFor="username">Username</Label>
               <Input
                 id="username"
                 name="username"
                 type="text"
                 required
                 autoComplete="username"
-                className="bg-white border-slate-200 text-slate-800 placeholder:text-slate-400 focus:border-indigo-400 focus:ring-indigo-400/20 transition-all duration-200 h-12"
-                placeholder="Enter your username"
+                autoFocus
               />
             </div>
+
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-slate-700 font-medium">Password</Label>
+              <Label htmlFor="password">Password</Label>
               <div className="relative">
                 <Input
                   id="password"
@@ -82,55 +69,36 @@ export default function LoginPage() {
                   type={showPassword ? "text" : "password"}
                   required
                   autoComplete="current-password"
-                  className="bg-white border-slate-200 text-slate-800 placeholder:text-slate-400 focus:border-indigo-400 focus:ring-indigo-400/20 transition-all duration-200 h-12 pr-12"
-                  placeholder="Enter your password"
+                  className="pr-10"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  className="absolute right-0 top-0 flex h-9 w-10 items-center justify-center text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-ring/50 focus-visible:ring-[3px] focus-visible:outline-none"
                 >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                 </button>
               </div>
             </div>
-            {error && (
-              <div className="p-4 rounded-xl bg-red-50 border border-red-100">
-                <p className="text-sm text-red-600">{error}</p>
-              </div>
-            )}
-            <Button 
-              type="submit" 
-              className="w-full bg-gradient-to-r from-indigo-500 to-blue-600 hover:from-indigo-600 hover:to-blue-700 text-white font-semibold h-12 rounded-xl shadow-lg shadow-indigo-200/50 transform transition-all duration-200 hover:scale-[1.02] hover:shadow-xl hover:shadow-indigo-300/50 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none" 
-              disabled={loading}
-            >
+
+            {error ? (
+              <p role="alert" className="rounded-md bg-destructive-muted px-3 py-2 text-sm text-destructive">
+                {error}
+              </p>
+            ) : null}
+
+            <Button type="submit" className="w-full" disabled={loading}>
               {loading ? (
-                <div className="flex items-center justify-center space-x-2">
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  <span>Signing in...</span>
-                </div>
+                <>
+                  <Loader2 className="mr-2 size-4 animate-spin" />
+                  Signing in…
+                </>
               ) : (
-                "Sign In"
+                "Sign in"
               )}
             </Button>
           </form>
-          
-          <div className="pt-6 border-t border-slate-100">
-            <div className="flex items-center justify-center space-x-4 text-slate-500 text-sm">
-              <span className="flex items-center space-x-1">
-                <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                <span>Secure</span>
-              </span>
-              <span className="flex items-center space-x-1">
-                <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-                <span>Fast</span>
-              </span>
-              <span className="flex items-center space-x-1">
-                <div className="w-2 h-2 bg-indigo-400 rounded-full"></div>
-                <span>Reliable</span>
-              </span>
-            </div>
-          </div>
         </CardContent>
       </Card>
     </div>

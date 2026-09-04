@@ -112,20 +112,20 @@ export function ExportButton({
       <DropdownMenuTrigger asChild>
         <Button 
           variant="outline" 
-          className={`hover:bg-green-50 hover:border-green-200 transition-colors ${className}`}
+          className={`hover:bg-success-muted hover:border-success/30 transition-colors ${className}`}
           disabled={loading}
         >
           <Download className="w-4 h-4 mr-2" />
           {loading ? "Exporting..." : getButtonText()}
           {!loading && (
-            <span className="ml-2 text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">
+            <span className="ml-2 text-xs bg-muted text-foreground px-2 py-0.5 rounded-full">
               {getRecordCount()}
             </span>
           )}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
-        <div className="px-2 py-1.5 text-sm font-medium text-slate-700 border-b border-slate-100">
+        <div className="px-2 py-1.5 text-sm font-medium text-foreground border-b border-border">
           Export Options
         </div>
         
@@ -135,10 +135,10 @@ export function ExportButton({
               onClick={() => handleExport('csv')}
               className="cursor-pointer"
             >
-              <FileSpreadsheet className="w-4 h-4 mr-2 text-green-600" />
+              <FileSpreadsheet className="w-4 h-4 mr-2 text-success" />
               <div>
                 <div className="font-medium">CSV Format</div>
-                <div className="text-xs text-slate-500">Excel compatible</div>
+                <div className="text-xs text-muted-foreground">Excel compatible</div>
               </div>
             </DropdownMenuItem>
             
@@ -146,10 +146,10 @@ export function ExportButton({
               onClick={() => handleExport('json')}
               className="cursor-pointer"
             >
-              <Database className="w-4 h-4 mr-2 text-blue-600" />
+              <Database className="w-4 h-4 mr-2 text-primary" />
               <div>
                 <div className="font-medium">JSON Format</div>
-                <div className="text-xs text-slate-500">Developer friendly</div>
+                <div className="text-xs text-muted-foreground">Developer friendly</div>
               </div>
             </DropdownMenuItem>
             
@@ -162,10 +162,10 @@ export function ExportButton({
             onClick={() => handleExport('comprehensive')}
             className="cursor-pointer"
           >
-            <FileText className="w-4 h-4 mr-2 text-purple-600" />
+            <FileText className="w-4 h-4 mr-2 text-primary" />
             <div>
               <div className="font-medium">Full Report</div>
-              <div className="text-xs text-slate-500">
+              <div className="text-xs text-muted-foreground">
                 All data + summary
               </div>
             </div>

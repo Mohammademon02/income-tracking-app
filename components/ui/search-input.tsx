@@ -50,13 +50,13 @@ export function SearchInput({
   return (
     <div className={cn("relative", className)}>
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
           type="text"
           placeholder={placeholder}
           value={searchValue}
           onChange={(e) => setSearchValue(e.target.value)}
-          className="pl-10 pr-10 bg-white border-slate-200 focus:border-blue-300 focus:ring-blue-200"
+          className="pl-10 pr-10 bg-card border-border focus:border-primary/30 focus:ring-blue-200"
         />
         {showClearButton && searchValue && (
           <Button
@@ -64,7 +64,7 @@ export function SearchInput({
             variant="ghost"
             size="sm"
             onClick={handleClear}
-            className="absolute right-1 top-1/2 transform -translate-y-1/2 h-7 w-7 p-0 hover:bg-slate-100"
+            className="absolute right-1 top-1/2 transform -translate-y-1/2 h-7 w-7 p-0 hover:bg-muted"
           >
             <X className="h-3 w-3" />
             <span className="sr-only">Clear search</span>
@@ -113,9 +113,9 @@ export function GlobalSearch({ onSearch, className }: GlobalSearchProps) {
             type="checkbox"
             checked={filters.accounts}
             onChange={(e) => setFilters(prev => ({ ...prev, accounts: e.target.checked }))}
-            className="rounded border-slate-300"
+            className="rounded border-border"
           />
-          <span className="text-slate-700">Accounts</span>
+          <span className="text-foreground">Accounts</span>
         </label>
         
         <label className="flex items-center gap-2 text-sm">
@@ -123,9 +123,9 @@ export function GlobalSearch({ onSearch, className }: GlobalSearchProps) {
             type="checkbox"
             checked={filters.entries}
             onChange={(e) => setFilters(prev => ({ ...prev, entries: e.target.checked }))}
-            className="rounded border-slate-300"
+            className="rounded border-border"
           />
-          <span className="text-slate-700">Entries</span>
+          <span className="text-foreground">Entries</span>
         </label>
         
         <label className="flex items-center gap-2 text-sm">
@@ -133,9 +133,9 @@ export function GlobalSearch({ onSearch, className }: GlobalSearchProps) {
             type="checkbox"
             checked={filters.withdrawals}
             onChange={(e) => setFilters(prev => ({ ...prev, withdrawals: e.target.checked }))}
-            className="rounded border-slate-300"
+            className="rounded border-border"
           />
-          <span className="text-slate-700">Withdrawals</span>
+          <span className="text-foreground">Withdrawals</span>
         </label>
       </div>
     </div>

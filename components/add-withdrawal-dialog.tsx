@@ -21,11 +21,10 @@ import {
 } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { getAvatarGradient } from "@/lib/avatar-utils"
+import { AccountAvatar } from "@/components/account-avatar"
 import { todayKey } from "@/lib/date-utils"
 import { Plus } from "lucide-react"
 import { createWithdrawal } from "@/app/actions/withdrawals"
-import { toast } from "sonner"
 import { enhancedToast } from "@/components/ui/enhanced-toast"
 
 type Account = {
@@ -82,7 +81,7 @@ export function AddWithdrawalDialog({ accounts }: { accounts: Account[] }) {
       }
     }}>
       <DialogTrigger asChild>
-        <Button className="bg-gradient-to-r from-purple-500 to-violet-600 hover:from-purple-600 hover:to-violet-700 text-white shadow-lg shadow-purple-200/50 transition-all duration-200 hover:scale-105">
+        <Button>
           <Plus className="mr-2 h-4 w-4" />
           Add Withdrawal
         </Button>
@@ -103,12 +102,10 @@ export function AddWithdrawalDialog({ accounts }: { accounts: Account[] }) {
                 <SelectContent>
                   {accounts.map((account) => (
                     <SelectItem key={account.id} value={account.id}>
-                      <div className="flex items-center gap-2">
-                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-white font-bold text-xs ${getAvatarGradient(account.color || "blue")}`}>
-                          {account.name.charAt(0).toUpperCase()}
-                        </div>
+                      <span className="flex items-center gap-2">
+                        <AccountAvatar name={account.name} color={account.color} size="sm" />
                         {account.name}
-                      </div>
+                      </span>
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -118,17 +115,9 @@ export function AddWithdrawalDialog({ accounts }: { accounts: Account[] }) {
             {selectedAccount && (
               <div className="space-y-3">
                 <Label>Preview</Label>
-                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
-                  <div className="relative">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-xs shadow-md ring-1 ring-white/30 ${getAvatarGradient(selectedAccount.color || "blue")}`}>
-                      {selectedAccount.name.charAt(0).toUpperCase()}
-                    </div>
-                    <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-gradient-to-r from-orange-400 to-amber-500 rounded-full border border-white shadow-sm"></div>
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="font-semibold text-slate-800">{selectedAccount.name}</span>
-                    <span className="text-xs text-slate-500">Withdrawal Request</span>
-                  </div>
+                <div className="flex items-center gap-3 rounded-md border bg-muted/40 p-3">
+                  <AccountAvatar name={selectedAccount.name} color={selectedAccount.color} />
+                  <span className="font-medium">{selectedAccount.name}</span>
                 </div>
               </div>
             )}
@@ -165,13 +154,13 @@ export function AddWithdrawalDialog({ accounts }: { accounts: Account[] }) {
                 <SelectContent>
                   <SelectItem value="PENDING">
                     <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-orange-500"></div>
+                      <div className="w-2 h-2 rounded-full bg-warning"></div>
                       Pending
                     </div>
                   </SelectItem>
                   <SelectItem value="COMPLETED">
                     <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                      <div className="w-2 h-2 rounded-full bg-success"></div>
                       Completed
                     </div>
                   </SelectItem>
@@ -181,10 +170,10 @@ export function AddWithdrawalDialog({ accounts }: { accounts: Account[] }) {
             {error && <p className="text-sm text-destructive">{error}</p>}
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)} className="hover:bg-slate-50 transition-colors">
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={loading} className="bg-gradient-to-r from-purple-500 to-violet-600 hover:from-purple-600 hover:to-violet-700 text-white shadow-lg transition-all duration-200">
+            <Button type="submit" disabled={loading}>
               {loading ? "Adding..." : "Add Withdrawal"}
             </Button>
           </DialogFooter>
