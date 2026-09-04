@@ -61,7 +61,6 @@ export function AddEntryDialog({ accounts }: { accounts: Account[] }) {
       })
     } else {
       const points = parseInt(formData.get("points") as string)
-      const accountName = accounts.find(a => a.id === selectedAccountId)?.name || "Unknown"
       setOpen(false)
       setLoading(false)
       setSelectedAccountId("")

@@ -1,6 +1,11 @@
 "use client"
 
 import { useState } from "react"
+import { Wallet } from "lucide-react"
+
+import { AccountAvatar } from "@/components/account-avatar"
+import { ProcessingTimeBadge } from "@/components/processing-time-badge"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Select,
   SelectContent,
@@ -8,57 +13,82 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { formatDate } from "@/lib/date-utils"
+import { dollarsToPoints, formatDollars, formatPoints } from "@/lib/money"
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Wallet, Clock } from "lucide-react"
-import { getAvatarGradient } from "@/lib/avatar-utils"
+/**
+ * Approved withdrawals for one month.
+ *
+ * This screen was the last one still carrying its own copy of the
+ * processing-time thresholds — a fourth set of cutoffs, rendered as emoji
+ * ratings, next to two hardcoded pastel gradients that were invisible in dark
+ * mode and two `toLocaleDateString()` calls that shifted every stored date back
+ * a day west of UTC.
+ */
 
-interface MonthlyWithdrawalsClientProps {
-  monthlyData: Record<string, any>
-  availableMonths: Array<{
-    key: string
-    name: string
-    data: any
-  }>
-  currentMonthKey: string
+export type MonthWithdrawal = {
+  id: string
+  accountId: string
+  accountName: string
+  accountColor: string
+  amount: number
+  requestDate: Date
+  completedDate: Date
 }
 
-export function MonthlyWithdrawalsClient({ monthlyData, availableMonths, currentMonthKey }: MonthlyWithdrawalsClientProps) {
-  // Set default to current month if available, otherwise first available month
-  const defaultMonth = availableMonths.find(m => m.key === currentMonthKey) || availableMonths[0]
-  const [selectedMonth, setSelectedMonth] = useState(defaultMonth?.key || '')
+export type MonthGroup = {
+  monthName: string
+  totalAmount: number
+  totalWithdrawals: number
+  withdrawalsList: MonthWithdrawal[]
+}
 
-  const selectedMonthData = availableMonths.find(m => m.key === selectedMonth)
+export type AvailableMonth = {
+  key: string
+  name: string
+  data: MonthGroup
+}
+
+export function MonthlyWithdrawalsClient({
+  availableMonths,
+  currentMonthKey,
+}: {
+  availableMonths: AvailableMonth[]
+  currentMonthKey: string
+}) {
+  const defaultMonth =
+    availableMonths.find((month) => month.key === currentMonthKey) ?? availableMonths[0]
+  const [selectedMonth, setSelectedMonth] = useState(defaultMonth?.key ?? "")
+
+  const selected = availableMonths.find((month) => month.key === selectedMonth)
 
   if (availableMonths.length === 0) {
     return (
-      <Card className="bg-card border border-border shadow-xl">
-        <CardContent className="text-center py-12">
-          <Wallet className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-          <p className="text-muted-foreground text-lg">No approved withdrawals yet</p>
-          <p className="text-muted-foreground text-sm">Complete some withdrawal requests to see your monthly approved withdrawals</p>
+      <Card>
+        <CardContent className="py-12 text-center">
+          <Wallet className="mx-auto mb-4 size-12 text-muted-foreground" />
+          <p className="text-lg text-muted-foreground">No approved withdrawals yet</p>
+          <p className="text-sm text-muted-foreground">
+            Complete some withdrawal requests to see your monthly approved withdrawals
+          </p>
         </CardContent>
       </Card>
     )
   }
 
-  const getProcessingTimeColor = (days: number) => {
-    if (days <= 7) return 'text-success bg-success-muted border-success/30'
-    if (days <= 15) return 'text-primary bg-primary/10 border-primary/30'
-    if (days <= 25) return 'text-warning bg-warning-muted border-warning/30'
-    return 'text-destructive bg-destructive-muted border-destructive/30'
-  }
+  if (!selected) return null
 
-  const getProcessingTimeLabel = (days: number) => {
-    if (days <= 7) return '⚡ Fast'
-    if (days <= 15) return '✅ Normal'
-    if (days <= 25) return '🐌 Slow'
-    return '🔴 Very Slow'
-  }
+  const { data } = selected
+  const activeAccounts = new Set(data.withdrawalsList.map((w) => w.accountId)).size
+
+  // Copy before sorting: `.sort()` mutates, and this list comes straight from a
+  // prop.
+  const sortedWithdrawals = [...data.withdrawalsList].sort(
+    (a, b) => new Date(b.completedDate).getTime() - new Date(a.completedDate).getTime()
+  )
 
   return (
     <div className="space-y-6">
-      {/* Month Selector */}
       <div className="flex justify-end">
         <div className="w-full sm:w-56">
           <Select value={selectedMonth} onValueChange={setSelectedMonth}>
@@ -76,98 +106,83 @@ export function MonthlyWithdrawalsClient({ monthlyData, availableMonths, current
         </div>
       </div>
 
-      {/* Selected Month Display */}
-      {selectedMonthData && (
-        <Card className="bg-card border border-border shadow-xl transition-all duration-300 hover:shadow-2xl hover:bg-card">
-          <CardHeader className="transition-colors duration-300 hover:bg-muted rounded-t-lg">
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <Wallet className="w-5 h-5 text-primary" />
-                {selectedMonthData.data.monthName} - Approved Withdrawals
-              </CardTitle>
-              <div className="text-right">
-                <div className="text-2xl font-bold text-primary">
-                  ${selectedMonthData.data.totalAmount.toFixed(2)}
-                </div>
-                <div className="text-lg font-semibold text-foreground">
-                  {(selectedMonthData.data.totalAmount * 100).toLocaleString()} pts
-                </div>
+      <Card>
+        <CardHeader>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <CardTitle className="flex items-center gap-2">
+              <Wallet className="size-5 text-primary" />
+              {data.monthName} — approved withdrawals
+            </CardTitle>
+            <div className="text-right">
+              <div className="text-2xl font-bold text-primary">
+                {formatDollars(data.totalAmount)}
+              </div>
+              <div className="text-sm text-muted-foreground">
+                {formatPoints(dollarsToPoints(data.totalAmount))} pts
               </div>
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 md:grid-cols-2 mb-6">
-              <div className="text-center p-4 bg-gradient-to-r from-cyan-50 to-teal-50 rounded-xl">
-                <div className="text-xl font-bold text-primary">{selectedMonthData.data.totalWithdrawals}</div>
-                <p className="text-sm text-primary">Total Approved</p>
-              </div>
-              <div className="text-center p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl">
-                <div className="text-xl font-bold text-success">
-                  {[...new Set(selectedMonthData.data.withdrawalsList.map((w: any) => w.accountId))].length}
-                </div>
-                <p className="text-sm text-success">Active Accounts</p>
-              </div>
-            </div>
+          </div>
+        </CardHeader>
 
-            {/* Individual Withdrawals List */}
-            <div className="space-y-4">
-              <h4 className="font-semibold text-foreground mb-3">Individual Withdrawals</h4>
-              {selectedMonthData.data.withdrawalsList.length === 0 ? (
-                <div className="text-center py-8">
-                  <Wallet className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-                  <p className="text-muted-foreground">No approved withdrawals this month</p>
-                  <p className="text-muted-foreground text-sm">Withdrawals will appear here once they are completed</p>
-                </div>
-              ) : (
-                [...selectedMonthData.data.withdrawalsList]
-                  .sort((a: any, b: any) => new Date(b.completedDate).getTime() - new Date(a.completedDate).getTime())
-                  .map((withdrawal: any) => {
-                  return (
-                    <div key={withdrawal.id} className="flex items-center justify-between gap-3 rounded-md border p-3">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-md ring-2 ring-white/20 ${getAvatarGradient(withdrawal.accountColor || "blue")}`}>
-                          {withdrawal.accountName.charAt(0).toUpperCase()}
-                        </div>
-                        <div>
-                          <p className="font-medium text-foreground">{withdrawal.accountName}</p>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <span>Requested: {new Date(withdrawal.requestDate).toLocaleDateString('en-GB', {
-                              day: 'numeric',
-                              month: 'short',
-                              year: 'numeric'
-                            })}</span>
-                            <span className="text-muted-foreground">•</span>
-                            <span>Completed: {new Date(withdrawal.completedDate).toLocaleDateString('en-GB', {
-                              day: 'numeric',
-                              month: 'short',
-                              year: 'numeric'
-                            })}</span>
-                          </div>
-                          <div className="flex items-center gap-2 mt-1">
-                            <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${getProcessingTimeColor(withdrawal.processingDays)}`}>
-                              <Clock className="w-3 h-3" />
-                              {withdrawal.processingDays} days processing
-                              <span className="ml-1">
-                                {getProcessingTimeLabel(withdrawal.processingDays)}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-lg font-bold text-foreground">
-                          ${withdrawal.amount.toFixed(2)}
-                        </p>
-                        <p className="text-sm text-muted-foreground">{(withdrawal.amount * 100).toLocaleString()} pts</p>
-                      </div>
-                    </div>
-                  )
-                })
-              )}
+        <CardContent>
+          <div className="mb-6 grid gap-4 sm:grid-cols-2">
+            <div className="rounded-xl border border-border bg-muted/50 p-4 text-center">
+              <div className="text-xl font-bold text-foreground">{data.totalWithdrawals}</div>
+              <p className="text-sm text-muted-foreground">Total approved</p>
             </div>
-          </CardContent>
-        </Card>
-      )}
+            <div className="rounded-xl border border-border bg-muted/50 p-4 text-center">
+              <div className="text-xl font-bold text-foreground">{activeAccounts}</div>
+              <p className="text-sm text-muted-foreground">Active accounts</p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <h4 className="font-semibold text-foreground">Individual withdrawals</h4>
+
+            {sortedWithdrawals.length === 0 ? (
+              <div className="py-8 text-center">
+                <Wallet className="mx-auto mb-2 size-8 text-muted-foreground" />
+                <p className="text-muted-foreground">No approved withdrawals this month</p>
+                <p className="text-sm text-muted-foreground">
+                  Withdrawals appear here once they are completed
+                </p>
+              </div>
+            ) : (
+              sortedWithdrawals.map((withdrawal) => (
+                <div
+                  key={withdrawal.id}
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border p-3"
+                >
+                  <div className="flex items-center gap-3">
+                    <AccountAvatar name={withdrawal.accountName} color={withdrawal.accountColor} />
+                    <div>
+                      <p className="font-medium text-foreground">{withdrawal.accountName}</p>
+                      <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                        <span>Requested: {formatDate(withdrawal.requestDate)}</span>
+                        <span aria-hidden>•</span>
+                        <span>Completed: {formatDate(withdrawal.completedDate)}</span>
+                      </div>
+                      <ProcessingTimeBadge
+                        className="mt-1"
+                        requestedAt={withdrawal.requestDate}
+                        completedAt={withdrawal.completedDate}
+                      />
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-lg font-bold text-foreground">
+                      {formatDollars(withdrawal.amount)}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {formatPoints(dollarsToPoints(withdrawal.amount))} pts
+                    </p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }

@@ -41,11 +41,14 @@ interface PendingWithdrawal {
   status: string
 }
 
+/** The minimum needed to tell which withdrawal on an account came first. */
+export type WithdrawalOrderRef = { id: string; accountId: string; date: Date | string }
+
 interface PendingWithdrawalsModalProps {
   isOpen: boolean
   onClose: () => void
   withdrawals: PendingWithdrawal[]
-  allWithdrawals?: any[]
+  allWithdrawals?: WithdrawalOrderRef[]
 }
 
 export function PendingWithdrawalsModal({

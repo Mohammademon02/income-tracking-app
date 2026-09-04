@@ -1,6 +1,11 @@
 "use client"
 
 import { useState } from "react"
+import { Calendar, Clock, TrendingUp } from "lucide-react"
+
+import { AccountAvatar } from "@/components/account-avatar"
+import { DatePicker } from "@/components/date-picker"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Select,
   SelectContent,
@@ -8,56 +13,90 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { formatDate, formatTimeOfDay, toDateKey } from "@/lib/date-utils"
+import { formatDollars, formatPoints, pointsToDollars } from "@/lib/money"
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { TrendingUp, Calendar, Clock } from "lucide-react"
-import { getAvatarGradient } from "@/lib/avatar-utils"
-import { DatePicker } from "@/components/date-picker"
+/**
+ * Entries logged on one calendar date.
+ *
+ * The list used to sort and label itself by `entry.createdAt` — a field the
+ * page never put on these rows. Every entry therefore rendered
+ * "Added: Invalid Date", and the sort compared `NaN` to `NaN`, so the order was
+ * whatever the database happened to return.
+ */
 
-interface DailyEarningsClientProps {
-  dailyData: Record<string, any>
-  availableDates: Array<{
-    key: string
-    name: string
-    data: any
-  }>
-  todayKey: string
+export type DayEntry = {
+  id: string
+  accountId: string
+  accountName: string
+  accountColor: string
+  points: number
+  date: Date
+  createdAt: Date
 }
 
-export function DailyEarningsClient({ dailyData, availableDates, todayKey }: DailyEarningsClientProps) {
-  // Set default to today if available, otherwise first available date
-  const defaultDate = availableDates.find(d => d.key === todayKey) || availableDates[0]
-  const [selectedDate, setSelectedDate] = useState(defaultDate?.key || '')
+export type DayGroup = {
+  dateDisplay: string
+  totalPoints: number
+  totalEntries: number
+  entriesList: DayEntry[]
+}
+
+export type AvailableDate = {
+  key: string
+  name: string
+  data: DayGroup
+}
+
+export function DailyEarningsClient({
+  availableDates,
+  todayKey,
+}: {
+  availableDates: AvailableDate[]
+  todayKey: string
+}) {
+  const defaultDate = availableDates.find((date) => date.key === todayKey) ?? availableDates[0]
+  const [selectedDate, setSelectedDate] = useState(defaultDate?.key ?? "")
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
 
-  const selectedDateData = availableDates.find(d => d.key === selectedDate)
+  const selected = availableDates.find((date) => date.key === selectedDate)
 
   if (availableDates.length === 0) {
     return (
-      <Card className="bg-card border border-border shadow-xl">
-        <CardContent className="text-center py-12">
-          <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-          <p className="text-muted-foreground text-lg">No earnings data yet</p>
-          <p className="text-muted-foreground text-sm">Start adding entries to see your daily earnings history</p>
+      <Card>
+        <CardContent className="py-12 text-center">
+          <Calendar className="mx-auto mb-4 size-12 text-muted-foreground" />
+          <p className="text-lg text-muted-foreground">No earnings data yet</p>
+          <p className="text-sm text-muted-foreground">
+            Start adding entries to see your daily earnings history
+          </p>
         </CardContent>
       </Card>
     )
   }
 
+  if (!selected) return null
+
+  const { data } = selected
+  const activeAccounts = new Set(data.entriesList.map((entry) => entry.accountId)).size
+
+  // Copy before sorting: `.sort()` mutates, and this list comes from a prop.
+  const sortedEntries = [...data.entriesList].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  )
+
   return (
     <div className="space-y-6">
-      {/* Date Selector */}
       <div className="flex justify-end gap-2">
-        {/* Calendar Picker Button */}
         <button
+          type="button"
           onClick={() => setIsCalendarOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-card border border-border rounded-lg shadow-sm hover:bg-muted transition-colors"
-          title="Open Calendar"
+          className="flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-2 shadow-sm transition-colors hover:bg-muted"
+          aria-label="Open calendar"
         >
-          <Calendar className="w-4 h-4 text-muted-foreground" />
+          <Calendar className="size-4 text-muted-foreground" />
         </button>
 
-        {/* Dropdown Selector */}
         <div className="w-full sm:w-56">
           <Select value={selectedDate} onValueChange={setSelectedDate}>
             <SelectTrigger aria-label="Date" className="w-full">
@@ -74,103 +113,101 @@ export function DailyEarningsClient({ dailyData, availableDates, todayKey }: Dai
         </div>
       </div>
 
-      {/* Calendar Picker Modal */}
       {isCalendarOpen && (
         <DatePicker
           selectedDate={selectedDate}
-          availableDates={availableDates.map(d => d.key)}
+          availableDates={availableDates.map((date) => date.key)}
           onDateSelect={setSelectedDate}
           onClose={() => setIsCalendarOpen(false)}
         />
       )}
 
-      {/* Selected Date Display */}
-      {selectedDateData && (
-        <Card className="bg-card border border-border shadow-xl transition-all duration-300 hover:shadow-2xl hover:bg-card">
-          <CardHeader className="transition-colors duration-300 hover:bg-muted rounded-t-lg">
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-destructive" />
-                {selectedDateData.data.dateDisplay} - Earnings
-              </CardTitle>
-              <div className="text-right">
-                <div className="text-2xl font-bold text-destructive">
-                  {selectedDateData.data.totalPoints.toLocaleString()} <span className="text-sm text-destructive">pts</span>
-                </div>
-                <div className="text-lg font-semibold text-foreground">
-                  ${(selectedDateData.data.totalPoints / 100).toFixed(2)}
-                </div>
+      <Card>
+        <CardHeader>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="size-5 text-primary" />
+              {data.dateDisplay}
+            </CardTitle>
+            <div className="text-right">
+              <div className="text-2xl font-bold text-primary">
+                {formatPoints(data.totalPoints)} <span className="text-sm">pts</span>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                {formatDollars(pointsToDollars(data.totalPoints))}
               </div>
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 md:grid-cols-2 mb-6">
-              <div className="text-center p-4 bg-gradient-to-r from-rose-50 to-pink-50 rounded-xl">
-                <div className="text-xl font-bold text-destructive">{selectedDateData.data.totalEntries}</div>
-                <p className="text-sm text-destructive">Total Entries</p>
-              </div>
-              <div className="text-center p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl">
-                <div className="text-xl font-bold text-success">
-                  {[...new Set(selectedDateData.data.entriesList.map((e: any) => e.accountId))].length}
-                </div>
-                <p className="text-sm text-success">Active Accounts</p>
-              </div>
-            </div>
+          </div>
+        </CardHeader>
 
-            {/* Individual Entries List */}
-            <div className="space-y-4">
-              <h4 className="font-semibold text-foreground mb-3">Individual Entries</h4>
-              {selectedDateData.data.entriesList.length === 0 ? (
-                <div className="text-center py-8">
-                  <Calendar className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-                  <p className="text-muted-foreground">No entries for this date</p>
-                  <p className="text-muted-foreground text-sm">Entries will appear here when you add them</p>
-                </div>
-              ) : (
-                [...selectedDateData.data.entriesList]
-                  .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-                  .map((entry: any) => {
-                  return (
-                    <div key={entry.id} className="flex items-center justify-between gap-3 rounded-md border p-3">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-md ring-2 ring-white/20 ${getAvatarGradient(entry.accountColor || "blue")}`}>
-                          {entry.accountName.charAt(0).toUpperCase()}
+        <CardContent>
+          <div className="mb-6 grid gap-4 sm:grid-cols-2">
+            <div className="rounded-xl border border-border bg-muted/50 p-4 text-center">
+              <div className="text-xl font-bold text-foreground">{data.totalEntries}</div>
+              <p className="text-sm text-muted-foreground">Total entries</p>
+            </div>
+            <div className="rounded-xl border border-border bg-muted/50 p-4 text-center">
+              <div className="text-xl font-bold text-foreground">{activeAccounts}</div>
+              <p className="text-sm text-muted-foreground">Active accounts</p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <h4 className="font-semibold text-foreground">Individual entries</h4>
+
+            {sortedEntries.length === 0 ? (
+              <div className="py-8 text-center">
+                <Calendar className="mx-auto mb-2 size-8 text-muted-foreground" />
+                <p className="text-muted-foreground">No entries for this date</p>
+                <p className="text-sm text-muted-foreground">
+                  Entries appear here when you add them
+                </p>
+              </div>
+            ) : (
+              sortedEntries.map((entry) => {
+                // The row is grouped by its entry date, so repeating that date
+                // is only worth doing when the entry was logged on a different
+                // day from the one it counts towards — a backdated entry.
+                const loggedOn = toDateKey(new Date(entry.createdAt))
+                const countsTowards = toDateKey(new Date(entry.date))
+
+                return (
+                  <div
+                    key={entry.id}
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border p-3"
+                  >
+                    <div className="flex items-center gap-3">
+                      <AccountAvatar name={entry.accountName} color={entry.accountColor} />
+                      <div>
+                        <p className="font-medium text-foreground">{entry.accountName}</p>
+                        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                          <Clock className="size-3" />
+                          <span>Added: {formatTimeOfDay(new Date(entry.createdAt))}</span>
+                          {loggedOn !== countsTowards && (
+                            <>
+                              <span aria-hidden>•</span>
+                              <span>Entry date: {formatDate(entry.date)}</span>
+                            </>
+                          )}
                         </div>
-                        <div>
-                          <p className="font-medium text-foreground">{entry.accountName}</p>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Clock className="w-3 h-3" />
-                            <span>Added: {new Date(entry.createdAt).toLocaleTimeString('en-GB', {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                              hour12: true
-                            })}</span>
-                            {entry.date !== entry.createdAt && (
-                              <>
-                                <span className="text-muted-foreground">•</span>
-                                <span>Entry date: {new Date(entry.date).toLocaleDateString('en-GB', {
-                                  day: 'numeric',
-                                  month: 'short'
-                                })}</span>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-lg font-bold text-foreground">
-                          +{entry.points.toLocaleString()} <span className="text-sm text-muted-foreground">pts</span>
-                        </p>
-                        <p className="text-sm text-muted-foreground">${(entry.points / 100).toFixed(2)}</p>
                       </div>
                     </div>
-                  )
-                })
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+                    <div className="text-right">
+                      <p className="text-lg font-bold text-foreground">
+                        +{formatPoints(entry.points)}{" "}
+                        <span className="text-sm text-muted-foreground">pts</span>
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {formatDollars(pointsToDollars(entry.points))}
+                      </p>
+                    </div>
+                  </div>
+                )
+              })
+            )}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }

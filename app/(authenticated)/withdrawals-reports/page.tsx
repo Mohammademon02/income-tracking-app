@@ -1,59 +1,54 @@
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 
-import { getAccounts } from "@/app/actions/accounts"
 import { getWithdrawals } from "@/app/actions/withdrawals"
-import { MonthlyWithdrawalsClient } from "@/components/monthly-withdrawals-client"
+import {
+  MonthlyWithdrawalsClient,
+  type AvailableMonth,
+  type MonthGroup,
+} from "@/components/monthly-withdrawals-client"
 import { PageContainer, PageHeader } from "@/components/page-shell"
 import { Button } from "@/components/ui/button"
-import { daysBetween, formatDate, toDateKey, todayKey } from "@/lib/date-utils"
+import { formatDate, toDateKey, todayKey } from "@/lib/date-utils"
 
 export default async function WithdrawalsReportsPage() {
-  const [withdrawals] = await Promise.all([getWithdrawals(), getAccounts()])
+  const withdrawals = await getWithdrawals()
 
   // Grouped by the UTC parts of the completion date. Local getMonth() on a
   // UTC-midnight marker files the 1st of a month into the previous one on any
   // server west of UTC.
   const monthlyData = withdrawals
-    .filter((withdrawal) => withdrawal.status === "COMPLETED" && withdrawal.completedAt)
-    .reduce(
-      (acc, withdrawal) => {
-        const completedKey = toDateKey(new Date(withdrawal.completedAt!))
-        const monthYear = completedKey.slice(0, 7)
+    .filter((withdrawal) => withdrawal.completedAt && withdrawal.status === "COMPLETED")
+    .reduce<Record<string, MonthGroup>>((acc, withdrawal) => {
+      // Narrowed above; `completedAt` is non-null for everything that gets here.
+      const completedAt = withdrawal.completedAt as Date
+      const monthYear = toDateKey(new Date(completedAt)).slice(0, 7)
 
-        if (!acc[monthYear]) {
-          acc[monthYear] = {
-            monthName: formatDate(`${monthYear}-01`, { month: "long", year: "numeric" }),
-            totalAmount: 0,
-            totalWithdrawals: 0,
-            withdrawalsList: [],
-            date: new Date(withdrawal.completedAt!),
-          }
-        }
+      const group = (acc[monthYear] ??= {
+        monthName: formatDate(`${monthYear}-01`, { month: "long", year: "numeric" }),
+        totalAmount: 0,
+        totalWithdrawals: 0,
+        withdrawalsList: [],
+      })
 
-        acc[monthYear].totalAmount += withdrawal.amount
-        acc[monthYear].totalWithdrawals += 1
+      group.totalAmount += withdrawal.amount
+      group.totalWithdrawals += 1
+      group.withdrawalsList.push({
+        id: withdrawal.id,
+        accountId: withdrawal.accountId,
+        accountName: withdrawal.accountName,
+        accountColor: withdrawal.accountColor,
+        amount: withdrawal.amount,
+        requestDate: withdrawal.date,
+        completedDate: completedAt,
+      })
 
-        acc[monthYear].withdrawalsList.push({
-          id: withdrawal.id,
-          accountId: withdrawal.accountId,
-          accountName: withdrawal.accountName,
-          accountColor: withdrawal.accountColor,
-          amount: withdrawal.amount,
-          requestDate: withdrawal.date,
-          completedDate: withdrawal.completedAt,
-          // Whole calendar days, so the count cannot drift with the offset.
-          processingDays: daysBetween(toDateKey(new Date(withdrawal.date)), completedKey),
-        })
+      return acc
+    }, {})
 
-        return acc
-      },
-      {} as Record<string, any>
-    )
-
-  const sortedMonths = Object.entries(monthlyData)
+  const availableMonths: AvailableMonth[] = Object.entries(monthlyData)
     .sort(([a], [b]) => b.localeCompare(a))
-    .map(([key, data]) => ({ key, name: (data as any).monthName, data }))
+    .map(([key, data]) => ({ key, name: data.monthName, data }))
 
   const currentMonthKey = todayKey().slice(0, 7)
   const currentMonthName = formatDate(`${currentMonthKey}-01`, {
@@ -61,8 +56,9 @@ export default async function WithdrawalsReportsPage() {
     year: "numeric",
   })
 
-  if (!sortedMonths.some((month) => month.key === currentMonthKey)) {
-    sortedMonths.unshift({
+  // The current month is always selectable, even before anything clears in it.
+  if (!availableMonths.some((month) => month.key === currentMonthKey)) {
+    availableMonths.unshift({
       key: currentMonthKey,
       name: currentMonthName,
       data: {
@@ -70,7 +66,6 @@ export default async function WithdrawalsReportsPage() {
         totalAmount: 0,
         totalWithdrawals: 0,
         withdrawalsList: [],
-        date: new Date(),
       },
     })
   }
@@ -90,8 +85,7 @@ export default async function WithdrawalsReportsPage() {
       />
 
       <MonthlyWithdrawalsClient
-        monthlyData={monthlyData}
-        availableMonths={sortedMonths}
+        availableMonths={availableMonths}
         currentMonthKey={currentMonthKey}
       />
     </PageContainer>

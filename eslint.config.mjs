@@ -11,7 +11,7 @@ import typescript from 'eslint-config-next/typescript'
  * eslint-config-next 16 ships flat configs directly, so there is no need for
  * the FlatCompat bridge (which throws on this version anyway).
  */
-export default [
+const config = [
   ...coreWebVitals,
   ...typescript,
   {
@@ -25,9 +25,10 @@ export default [
   },
   {
     rules: {
-      // The CSV import works with rows whose shape comes from a file, so `any`
-      // is load-bearing there rather than laziness. Flag it, do not fail on it.
-      '@typescript-eslint/no-explicit-any': 'warn',
+      // No `any` is left in the codebase, so a new one is a mistake rather
+      // than a backlog item. The CSV importer — the one place that genuinely
+      // handles values of unknown shape — types them as `unknown` and narrows.
+      '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/no-unused-vars': [
         'warn',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
@@ -35,3 +36,5 @@ export default [
     },
   },
 ]
+
+export default config

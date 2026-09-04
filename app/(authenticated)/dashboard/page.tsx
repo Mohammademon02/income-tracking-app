@@ -31,7 +31,7 @@ export default async function DashboardPage() {
     recentEntries,
     allEntries,
     recentWithdrawals,
-    ,
+    allWithdrawals,
     pendingWithdrawals,
     monthlyStats,
   ] = await Promise.all([
@@ -65,16 +65,17 @@ export default async function DashboardPage() {
 
   return (
     <PageContainer>
+      {/* The full report was fed the five most recent withdrawals, while the
+          complete list sat unused in an empty destructuring slot. */}
       <PageHeader
         title="Dashboard"
         description="Your survey earnings and withdrawals at a glance."
         actions={
           <ExportButton
-            data={accounts}
             type="comprehensive"
             accounts={accounts}
             entries={allEntries}
-            withdrawals={recentWithdrawals}
+            withdrawals={allWithdrawals}
           />
         }
       />
@@ -94,7 +95,7 @@ export default async function DashboardPage() {
           icon={Wallet}
           tone="success"
         />
-        <PendingWithdrawalsCard withdrawals={pendingWithdrawals} />
+        <PendingWithdrawalsCard withdrawals={pendingWithdrawals} allWithdrawals={allWithdrawals} />
         <StatCard
           label="Available"
           value={formatPoints(totalBalance)}

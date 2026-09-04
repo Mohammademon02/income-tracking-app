@@ -41,8 +41,13 @@ export function useNotificationsFeed() {
 
       setError(null)
       setEnabled(data.enabled !== false)
+      // The API sends the same shape with the timestamp as an ISO string; only
+      // that one field has to be revived.
+      const incoming: (Omit<FeedNotification, "timestamp"> & { timestamp: string })[] =
+        data.notifications ?? []
+
       setNotifications(
-        (data.notifications ?? []).map((notification: any) => ({
+        incoming.map((notification) => ({
           ...notification,
           timestamp: new Date(notification.timestamp),
         }))

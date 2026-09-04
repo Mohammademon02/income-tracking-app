@@ -4,7 +4,6 @@ import { useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import {
   CheckCircle2,
-  Clock,
   Eye,
   Filter,
   MoreHorizontal,
@@ -17,6 +16,7 @@ import {
 
 import { deleteWithdrawal, updateWithdrawal } from "@/app/actions/withdrawals"
 import { AccountAvatar } from "@/components/account-avatar"
+import { ProcessingTimeBadge } from "@/components/processing-time-badge"
 import { WithdrawalDetailsModal } from "@/components/withdrawal-details-modal"
 import {
   AlertDialog,
@@ -70,7 +70,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { daysBetween, formatDate, toDateKey, todayKey } from "@/lib/date-utils"
+import { formatDate, toDateKey, todayKey } from "@/lib/date-utils"
 import { dollarsToPoints, formatDollars, formatPoints } from "@/lib/money"
 import { cn } from "@/lib/utils"
 
@@ -89,20 +89,6 @@ type Account = {
   id: string
   name: string
   color: string
-}
-
-/** How a completion time reads, by number of days from request to payout. */
-function speedOf(days: number): { label: string; className: string } {
-  if (days <= 7) return { label: "Fast", className: "bg-success-muted text-success" }
-  if (days <= 15) return { label: "Normal", className: "bg-muted text-muted-foreground" }
-  if (days <= 25) return { label: "Slow", className: "bg-warning-muted text-warning" }
-  return { label: "Very slow", className: "bg-destructive-muted text-destructive" }
-}
-
-/** Days from request to completion, compared as calendar dates. */
-function processingDays(withdrawal: Withdrawal): number | null {
-  if (!withdrawal.completedAt) return null
-  return daysBetween(toDateKey(new Date(withdrawal.date)), toDateKey(new Date(withdrawal.completedAt)))
 }
 
 export function WithdrawalsTable({
@@ -319,31 +305,11 @@ export function WithdrawalsTable({
     </Badge>
   )
 
-  const processingBadge = (withdrawal: Withdrawal) => {
-    const days = processingDays(withdrawal)
-
-    if (days === null) {
-      return (
-        <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-          <Clock className="size-3" />
-          Processing
-        </span>
-      )
-    }
-
-    const speed = speedOf(days)
-    return (
-      <span
-        className={cn(
-          "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium",
-          speed.className
-        )}
-      >
-        <Clock className="size-3" />
-        {days} {days === 1 ? "day" : "days"} · {speed.label}
-      </span>
-    )
-  }
+  // Was a line-for-line copy of `ProcessingTimeBadge`, including its threshold
+  // table — two places to change whenever "Slow" moves.
+  const processingBadge = (withdrawal: Withdrawal) => (
+    <ProcessingTimeBadge requestedAt={withdrawal.date} completedAt={withdrawal.completedAt} />
+  )
 
   const rowActions = (withdrawal: Withdrawal) => (
     <DropdownMenu>

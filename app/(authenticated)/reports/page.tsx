@@ -1,57 +1,51 @@
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 
-import { getAccounts } from "@/app/actions/accounts"
 import { getEntries } from "@/app/actions/entries"
-import { MonthlyIncomeClient } from "@/components/monthly-income-client"
+import {
+  MonthlyIncomeClient,
+  type AvailableIncomeMonth,
+  type IncomeMonth,
+} from "@/components/monthly-income-client"
 import { PageContainer, PageHeader } from "@/components/page-shell"
 import { Button } from "@/components/ui/button"
 import { formatDate, toDateKey, todayKey } from "@/lib/date-utils"
 
 export default async function ReportsPage() {
-  const [entries] = await Promise.all([getEntries(), getAccounts()])
+  const entries = await getEntries()
 
   // Group by calendar month read from the UTC parts. Using local getMonth() on
   // a UTC-midnight marker files the 1st of each month into the previous one on
   // any server west of UTC.
-  const monthlyData = entries.reduce(
-    (acc, entry) => {
-      const dateKey = toDateKey(new Date(entry.date))
-      const monthYear = dateKey.slice(0, 7)
+  const monthlyData = entries.reduce<Record<string, IncomeMonth>>((acc, entry) => {
+    const monthYear = toDateKey(new Date(entry.date)).slice(0, 7)
 
-      if (!acc[monthYear]) {
-        acc[monthYear] = {
-          monthName: formatDate(`${monthYear}-01`, { month: "long", year: "numeric" }),
-          totalPoints: 0,
-          totalEntries: 0,
-          accounts: {} as Record<string, any>,
-          date: new Date(entry.date),
-        }
-      }
+    const month = (acc[monthYear] ??= {
+      monthName: formatDate(`${monthYear}-01`, { month: "long", year: "numeric" }),
+      totalPoints: 0,
+      totalEntries: 0,
+      accounts: {},
+    })
 
-      acc[monthYear].totalPoints += entry.points
-      acc[monthYear].totalEntries += 1
+    month.totalPoints += entry.points
+    month.totalEntries += 1
 
-      if (!acc[monthYear].accounts[entry.accountId]) {
-        acc[monthYear].accounts[entry.accountId] = {
-          name: entry.accountName,
-          color: entry.accountColor,
-          points: 0,
-          entries: 0,
-        }
-      }
+    const account = (month.accounts[entry.accountId] ??= {
+      name: entry.accountName,
+      color: entry.accountColor,
+      points: 0,
+      entries: 0,
+    })
 
-      acc[monthYear].accounts[entry.accountId].points += entry.points
-      acc[monthYear].accounts[entry.accountId].entries += 1
+    account.points += entry.points
+    account.entries += 1
 
-      return acc
-    },
-    {} as Record<string, any>
-  )
+    return acc
+  }, {})
 
-  const sortedMonths = Object.entries(monthlyData)
+  const availableMonths: AvailableIncomeMonth[] = Object.entries(monthlyData)
     .sort(([a], [b]) => b.localeCompare(a))
-    .map(([key, data]) => ({ key, name: (data as any).monthName, data }))
+    .map(([key, data]) => ({ key, name: data.monthName, data }))
 
   const currentMonthKey = todayKey().slice(0, 7)
   const currentMonthName = formatDate(`${currentMonthKey}-01`, {
@@ -60,8 +54,8 @@ export default async function ReportsPage() {
   })
 
   // The current month is always offered, even before anything is logged in it.
-  if (!sortedMonths.some((month) => month.key === currentMonthKey)) {
-    sortedMonths.unshift({
+  if (!availableMonths.some((month) => month.key === currentMonthKey)) {
+    availableMonths.unshift({
       key: currentMonthKey,
       name: currentMonthName,
       data: {
@@ -69,7 +63,6 @@ export default async function ReportsPage() {
         totalPoints: 0,
         totalEntries: 0,
         accounts: {},
-        date: new Date(),
       },
     })
   }
@@ -88,11 +81,7 @@ export default async function ReportsPage() {
         description="Points earned per month, broken down by account."
       />
 
-      <MonthlyIncomeClient
-        monthlyData={monthlyData}
-        availableMonths={sortedMonths}
-        currentMonthKey={currentMonthKey}
-      />
+      <MonthlyIncomeClient availableMonths={availableMonths} currentMonthKey={currentMonthKey} />
     </PageContainer>
   )
 }

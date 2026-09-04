@@ -43,7 +43,6 @@ export function AddAccountDialog() {
     } else {
       setOpen(false)
       setLoading(false)
-      const name = accountName
       setAccountName("")
       setSelectedColor("blue")
       router.refresh()

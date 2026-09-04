@@ -1,125 +1,121 @@
 "use client"
 
 import { useState } from "react"
-import { Download, FileText, Database, FileSpreadsheet } from "lucide-react"
+import { Database, Download, FileSpreadsheet, FileText } from "lucide-react"
+
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { enhancedToast, commonToasts } from "@/components/ui/enhanced-toast"
-import { 
-  exportToCSV, 
-  exportToJSON, 
-  formatAccountsForExport, 
-  formatEntriesForExport, 
+import { commonToasts, enhancedToast } from "@/components/ui/enhanced-toast"
+import {
+  exportComprehensiveReport,
+  exportToCSV,
+  exportToJSON,
+  formatAccountsForExport,
+  formatEntriesForExport,
   formatWithdrawalsForExport,
-  exportComprehensiveReport
+  type ExportableAccount,
+  type ExportableEntry,
+  type ExportableWithdrawal,
+  type ExportRow,
 } from "@/lib/export-utils"
+import { todayKey } from "@/lib/date-utils"
 
-interface ExportButtonProps {
-  data: any[]
-  type: 'accounts' | 'entries' | 'withdrawals' | 'comprehensive'
-  filename?: string
-  className?: string
-  accounts?: any[]
-  entries?: any[]
-  withdrawals?: any[]
-}
+/**
+ * The prop shape is a union rather than `data: any[]` plus a `type` string,
+ * because the two were never independent: passing entries with `type="accounts"`
+ * type-checked and then exported a file of `undefined` columns.
+ */
+type ExportButtonProps = { filename?: string; className?: string } & (
+  | { type: "accounts"; data: ExportableAccount[] }
+  | { type: "entries"; data: ExportableEntry[] }
+  | { type: "withdrawals"; data: ExportableWithdrawal[] }
+  | {
+      type: "comprehensive"
+      accounts: ExportableAccount[]
+      entries: ExportableEntry[]
+      withdrawals: ExportableWithdrawal[]
+    }
+)
 
-export function ExportButton({ 
-  data, 
-  type, 
-  filename, 
-  className,
-  accounts = [],
-  entries = [],
-  withdrawals = []
-}: ExportButtonProps) {
+export function ExportButton(props: ExportButtonProps) {
+  const { type, filename, className } = props
   const [loading, setLoading] = useState(false)
 
-  const getFormattedData = () => {
-    switch (type) {
-      case 'accounts':
-        return formatAccountsForExport(data)
-      case 'entries':
-        return formatEntriesForExport(data)
-      case 'withdrawals':
-        return formatWithdrawalsForExport(data)
-      default:
-        return data
+  const recordCount =
+    props.type === "comprehensive"
+      ? props.accounts.length + props.entries.length + props.withdrawals.length
+      : props.data.length
+
+  const formatRows = (): ExportRow[] => {
+    switch (props.type) {
+      case "accounts":
+        return formatAccountsForExport(props.data)
+      case "entries":
+        return formatEntriesForExport(props.data)
+      case "withdrawals":
+        return formatWithdrawalsForExport(props.data)
+      case "comprehensive":
+        return []
     }
   }
 
-  const getDefaultFilename = () => {
-    const timestamp = new Date().toISOString().split('T')[0]
-    return filename || `${type}-${timestamp}`
-  }
-
-  const handleExport = async (format: 'csv' | 'json' | 'comprehensive') => {
-    if (data.length === 0 && type !== 'comprehensive') {
+  const handleExport = (format: "csv" | "json" | "comprehensive") => {
+    if (recordCount === 0) {
       enhancedToast.warning("No data to export", {
-        description: "There are no records to export"
+        description: "There are no records to export",
       })
       return
     }
 
     setLoading(true)
-    
+
     try {
-      const exportFilename = getDefaultFilename()
-      
-      if (format === 'comprehensive') {
-        exportComprehensiveReport(accounts, entries, withdrawals)
-        commonToasts.dataExported('comprehensive report')
-      } else {
-        const formattedData = getFormattedData()
-        
-        if (format === 'csv') {
-          exportToCSV(formattedData, exportFilename)
-          commonToasts.dataExported('CSV')
-        } else if (format === 'json') {
-          exportToJSON(formattedData, exportFilename)
-          commonToasts.dataExported('JSON')
-        }
+      if (props.type === "comprehensive") {
+        exportComprehensiveReport(props.accounts, props.entries, props.withdrawals)
+        commonToasts.dataExported("comprehensive report")
+        return
       }
-    } catch (error) {
+
+      const rows = formatRows()
+      const exportFilename = filename ?? `${type}-${todayKey()}`
+
+      if (format === "csv") {
+        exportToCSV(rows, exportFilename)
+        commonToasts.dataExported("CSV")
+      } else {
+        exportToJSON(rows, exportFilename)
+        commonToasts.dataExported("JSON")
+      }
+    } catch {
       enhancedToast.error("Export failed", {
-        description: "There was an error exporting your data. Please try again."
+        description: "There was an error exporting your data. Please try again.",
       })
     } finally {
       setLoading(false)
     }
   }
 
-  const getButtonText = () => {
-    if (type === 'comprehensive') return 'Export Report'
-    return `Export ${type.charAt(0).toUpperCase() + type.slice(1)}`
-  }
-
-  const getRecordCount = () => {
-    if (type === 'comprehensive') {
-      return accounts.length + entries.length + withdrawals.length
-    }
-    return data.length
-  }
+  const buttonText =
+    type === "comprehensive" ? "Export Report" : `Export ${type[0].toUpperCase()}${type.slice(1)}`
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button 
-          variant="outline" 
-          className={`hover:bg-success-muted hover:border-success/30 transition-colors ${className}`}
+        <Button
+          variant="outline"
+          className={`hover:bg-success-muted hover:border-success/30 transition-colors ${className ?? ""}`}
           disabled={loading}
         >
           <Download className="w-4 h-4 mr-2" />
-          {loading ? "Exporting..." : getButtonText()}
+          {loading ? "Exporting..." : buttonText}
           {!loading && (
             <span className="ml-2 text-xs bg-muted text-foreground px-2 py-0.5 rounded-full">
-              {getRecordCount()}
+              {recordCount}
             </span>
           )}
         </Button>
@@ -128,48 +124,33 @@ export function ExportButton({
         <div className="px-2 py-1.5 text-sm font-medium text-foreground border-b border-border">
           Export Options
         </div>
-        
-        {type !== 'comprehensive' && (
+
+        {type === "comprehensive" ? (
+          <DropdownMenuItem onClick={() => handleExport("comprehensive")} className="cursor-pointer">
+            <FileText className="w-4 h-4 mr-2 text-primary" />
+            <div>
+              <div className="font-medium">Full Report</div>
+              <div className="text-xs text-muted-foreground">All data + summary</div>
+            </div>
+          </DropdownMenuItem>
+        ) : (
           <>
-            <DropdownMenuItem 
-              onClick={() => handleExport('csv')}
-              className="cursor-pointer"
-            >
+            <DropdownMenuItem onClick={() => handleExport("csv")} className="cursor-pointer">
               <FileSpreadsheet className="w-4 h-4 mr-2 text-success" />
               <div>
                 <div className="font-medium">CSV Format</div>
                 <div className="text-xs text-muted-foreground">Excel compatible</div>
               </div>
             </DropdownMenuItem>
-            
-            <DropdownMenuItem 
-              onClick={() => handleExport('json')}
-              className="cursor-pointer"
-            >
+
+            <DropdownMenuItem onClick={() => handleExport("json")} className="cursor-pointer">
               <Database className="w-4 h-4 mr-2 text-primary" />
               <div>
                 <div className="font-medium">JSON Format</div>
                 <div className="text-xs text-muted-foreground">Developer friendly</div>
               </div>
             </DropdownMenuItem>
-            
-            <DropdownMenuSeparator />
           </>
-        )}
-        
-        {(type === 'comprehensive' || (accounts.length > 0 && entries.length > 0)) && (
-          <DropdownMenuItem 
-            onClick={() => handleExport('comprehensive')}
-            className="cursor-pointer"
-          >
-            <FileText className="w-4 h-4 mr-2 text-primary" />
-            <div>
-              <div className="font-medium">Full Report</div>
-              <div className="text-xs text-muted-foreground">
-                All data + summary
-              </div>
-            </div>
-          </DropdownMenuItem>
         )}
       </DropdownMenuContent>
     </DropdownMenu>

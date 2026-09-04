@@ -51,10 +51,8 @@ export function MonthlyTargetSettings() {
         setDraft(String(targetData.points))
 
         if (entriesResponse.ok) {
-          const entries = await entriesResponse.json()
-          setMonthPoints(
-            entries.reduce((sum: number, entry: any) => sum + entry.points, 0)
-          )
+          const entries: { points: number }[] = await entriesResponse.json()
+          setMonthPoints(entries.reduce((sum, entry) => sum + entry.points, 0))
         }
       } catch (cause) {
         if ((cause as Error).name === "AbortError") return

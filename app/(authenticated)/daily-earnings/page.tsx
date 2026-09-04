@@ -2,7 +2,11 @@ import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 
 import { getEntries } from "@/app/actions/entries"
-import { DailyEarningsClient } from "@/components/daily-earnings-client"
+import {
+  DailyEarningsClient,
+  type AvailableDate,
+  type DayGroup,
+} from "@/components/daily-earnings-client"
 import { PageContainer, PageHeader } from "@/components/page-shell"
 import { Button } from "@/components/ui/button"
 import { addDays, formatDate, toDateKey, todayKey } from "@/lib/date-utils"
@@ -24,44 +28,40 @@ export default async function DailyEarningsPage() {
     return key >= windowStart && key <= today
   })
 
-  const dailyData = recentEntries.reduce(
-    (acc, entry) => {
-      const key = toDateKey(new Date(entry.date))
+  const dailyData = recentEntries.reduce<Record<string, DayGroup>>((acc, entry) => {
+    const key = toDateKey(new Date(entry.date))
 
-      if (!acc[key]) {
-        acc[key] = {
-          dateDisplay: formatDate(key, {
-            weekday: "long",
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          }),
-          totalPoints: 0,
-          totalEntries: 0,
-          entriesList: [],
-          date: new Date(entry.date),
-        }
-      }
+    const group = (acc[key] ??= {
+      dateDisplay: formatDate(key, {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      }),
+      totalPoints: 0,
+      totalEntries: 0,
+      entriesList: [],
+    })
 
-      acc[key].totalPoints += entry.points
-      acc[key].totalEntries += 1
-      acc[key].entriesList.push({
-        id: entry.id,
-        accountId: entry.accountId,
-        accountName: entry.accountName,
-        accountColor: entry.accountColor,
-        points: entry.points,
-        date: entry.date,
-      })
+    group.totalPoints += entry.points
+    group.totalEntries += 1
+    group.entriesList.push({
+      id: entry.id,
+      accountId: entry.accountId,
+      accountName: entry.accountName,
+      accountColor: entry.accountColor,
+      points: entry.points,
+      date: entry.date,
+      // Omitted before, which is why every row read "Added: Invalid Date".
+      createdAt: entry.createdAt,
+    })
 
-      return acc
-    },
-    {} as Record<string, any>
-  )
+    return acc
+  }, {})
 
-  const sortedDates = Object.entries(dailyData)
+  const sortedDates: AvailableDate[] = Object.entries(dailyData)
     .sort(([a], [b]) => b.localeCompare(a))
-    .map(([key, data]) => ({ key, name: (data as any).dateDisplay, data }))
+    .map(([key, data]) => ({ key, name: data.dateDisplay, data }))
 
   const todayDisplay = formatDate(today, {
     weekday: "long",
@@ -80,7 +80,6 @@ export default async function DailyEarningsPage() {
         totalPoints: 0,
         totalEntries: 0,
         entriesList: [],
-        date: new Date(),
       },
     })
   }
@@ -99,11 +98,7 @@ export default async function DailyEarningsPage() {
         description={`Points logged per day over the last ${WINDOW_DAYS} days.`}
       />
 
-      <DailyEarningsClient
-        dailyData={dailyData}
-        availableDates={sortedDates}
-        todayKey={today}
-      />
+      <DailyEarningsClient availableDates={sortedDates} todayKey={today} />
     </PageContainer>
   )
 }

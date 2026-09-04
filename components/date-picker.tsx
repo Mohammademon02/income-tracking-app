@@ -1,7 +1,20 @@
 "use client"
 
 import { useState } from "react"
-import { Calendar, ChevronLeft, ChevronRight } from "lucide-react"
+import { ChevronLeft, ChevronRight } from "lucide-react"
+
+import { addDays, dateKeyToDate, todayKey } from "@/lib/date-utils"
+
+/**
+ * The month grid behind the daily-earnings date field.
+ *
+ * Every cell key used to come from `localMidnight.toISOString()`, which is the
+ * previous UTC day for anyone east of UTC — so in a +06 timezone clicking the
+ * 5th selected the 4th, and no cell ever matched a date that had data. Keys are
+ * now built from the calendar parts directly and compared as strings.
+ */
+
+const WINDOW_DAYS = 30
 
 interface DatePickerProps {
   selectedDate: string
@@ -11,49 +24,39 @@ interface DatePickerProps {
 }
 
 export function DatePicker({ selectedDate, availableDates, onDateSelect, onClose }: DatePickerProps) {
-  const [currentMonth, setCurrentMonth] = useState(new Date())
+  const today = todayKey()
+  const [currentMonth, setCurrentMonth] = useState(() =>
+    dateKeyToDate(`${today.slice(0, 7)}-01`)
+  )
 
-  const today = new Date()
-  const thirtyDaysAgo = new Date(today)
-  thirtyDaysAgo.setDate(today.getDate() - 30)
+  const windowStart = addDays(today, -(WINDOW_DAYS - 1))
+  const withData = new Set(availableDates)
 
-  // Generate calendar days for current month view
   const generateCalendarDays = () => {
-    const year = currentMonth.getFullYear()
-    const month = currentMonth.getMonth()
-    
-    const firstDay = new Date(year, month, 1)
-    const lastDay = new Date(year, month + 1, 0)
-    const startDate = new Date(firstDay)
-    startDate.setDate(startDate.getDate() - firstDay.getDay()) // Start from Sunday
-    
-    const days = []
-    const currentDate = new Date(startDate)
-    
-    // Generate 42 days (6 weeks)
-    for (let i = 0; i < 42; i++) {
-      const dateKey = currentDate.toISOString().split('T')[0]
-      const isCurrentMonth = currentDate.getMonth() === month
-      const isToday = dateKey === today.toISOString().split('T')[0]
-      const isSelected = dateKey === selectedDate
-      const hasData = availableDates.includes(dateKey)
-      const isInRange = currentDate >= thirtyDaysAgo && currentDate <= today
-      
-      days.push({
-        date: new Date(currentDate),
+    const year = currentMonth.getUTCFullYear()
+    const month = currentMonth.getUTCMonth()
+
+    // Back up to the Sunday on or before the 1st.
+    const firstDay = new Date(Date.UTC(year, month, 1))
+    const cursor = new Date(firstDay)
+    cursor.setUTCDate(cursor.getUTCDate() - firstDay.getUTCDay())
+
+    // Six weeks, so the grid height never jumps between months.
+    return Array.from({ length: 42 }, () => {
+      const dateKey = cursor.toISOString().slice(0, 10)
+      const day = {
         dateKey,
-        day: currentDate.getDate(),
-        isCurrentMonth,
-        isToday,
-        isSelected,
-        hasData,
-        isInRange
-      })
-      
-      currentDate.setDate(currentDate.getDate() + 1)
-    }
-    
-    return days
+        day: cursor.getUTCDate(),
+        isCurrentMonth: cursor.getUTCMonth() === month,
+        isToday: dateKey === today,
+        isSelected: dateKey === selectedDate,
+        hasData: withData.has(dateKey),
+        isInRange: dateKey >= windowStart && dateKey <= today,
+      }
+
+      cursor.setUTCDate(cursor.getUTCDate() + 1)
+      return day
+    })
   }
 
   const calendarDays = generateCalendarDays()
@@ -63,11 +66,11 @@ export function DatePicker({ selectedDate, availableDates, onDateSelect, onClose
   ]
 
   const goToPreviousMonth = () => {
-    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))
+    setCurrentMonth(new Date(Date.UTC(currentMonth.getUTCFullYear(), currentMonth.getUTCMonth() - 1, 1)))
   }
 
   const goToNextMonth = () => {
-    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))
+    setCurrentMonth(new Date(Date.UTC(currentMonth.getUTCFullYear(), currentMonth.getUTCMonth() + 1, 1)))
   }
 
   return (
@@ -82,7 +85,7 @@ export function DatePicker({ selectedDate, availableDates, onDateSelect, onClose
             <ChevronLeft className="w-5 h-5" />
           </button>
           <h3 className="font-semibold text-foreground">
-            {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
+            {monthNames[currentMonth.getUTCMonth()]} {currentMonth.getUTCFullYear()}
           </h3>
           <button
             onClick={goToNextMonth}
@@ -116,7 +119,7 @@ export function DatePicker({ selectedDate, availableDates, onDateSelect, onClose
               className={`
                 aspect-square text-sm rounded transition-all duration-200 relative
                 ${!day.isCurrentMonth ? 'text-muted-foreground' : 'text-foreground'}
-                ${day.isToday ? 'ring-2 ring-rose-500' : ''}
+                ${day.isToday ? 'ring-2 ring-primary' : ''}
                 ${day.isSelected ? 'bg-destructive text-white' : ''}
                 ${day.hasData && !day.isSelected ? 'bg-destructive-muted text-destructive font-medium' : ''}
                 ${day.isInRange && !day.isSelected ? 'hover:bg-muted' : ''}
@@ -138,10 +141,10 @@ export function DatePicker({ selectedDate, availableDates, onDateSelect, onClose
             <span>Has earnings data</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 border-2 border-rose-500 rounded"></div>
+            <div className="w-3 h-3 border-2 border-primary rounded"></div>
             <span>Today</span>
           </div>
-          <p className="text-muted-foreground mt-2">Showing last 30 days only</p>
+          <p className="text-muted-foreground mt-2">Showing the last {WINDOW_DAYS} days only</p>
         </div>
       </div>
     </div>

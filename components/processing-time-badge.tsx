@@ -1,6 +1,6 @@
 import { Clock } from "lucide-react"
 
-import { daysBetween, toDateKey } from "@/lib/date-utils"
+import { processingDays } from "@/lib/date-utils"
 import { cn } from "@/lib/utils"
 
 /**
@@ -19,12 +19,6 @@ const THRESHOLDS = [
 ] as const
 
 const SLOWEST = { label: "Very slow", className: "bg-destructive-muted text-destructive" }
-
-export function processingDays(requestedAt: Date, completedAt: Date | null): number | null {
-  if (!completedAt) return null
-  // Whole calendar days, so the count cannot drift with the server's offset.
-  return daysBetween(toDateKey(new Date(requestedAt)), toDateKey(new Date(completedAt)))
-}
 
 export function ProcessingTimeBadge({
   requestedAt,

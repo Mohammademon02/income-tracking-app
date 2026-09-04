@@ -64,7 +64,7 @@ export function EarningsChart({ data, accounts }: EarningsChartProps) {
     return Object.values(grouped)
       .sort((a, b) => a.sortDate - b.sortDate) // Sort by actual date
       .slice(-14) // Last 14 days
-      .map(({ dateKey, date, points, earnings }) => ({ date, points, earnings }))
+      .map(({ date, points, earnings }) => ({ date, points, earnings }))
   }, [recentData])
 
   const accountData = useMemo(() => {
@@ -113,7 +113,7 @@ export function EarningsChart({ data, accounts }: EarningsChartProps) {
     return Object.values(weeks)
       .sort((a, b) => a.sortDate - b.sortDate) // Sort by actual date
       .slice(-12) // Last 12 weeks
-      .map(({ weekKey, week, points, entries }) => ({ week, points, entries }))
+      .map(({ week, points, entries }) => ({ week, points, entries }))
   }, [data])
 
   const totalPoints = accountData.reduce((sum, account) => sum + account.points, 0)
@@ -218,7 +218,7 @@ export function EarningsChart({ data, accounts }: EarningsChartProps) {
           
           {/* Legend */}
           <div className="mt-4 space-y-2">
-            {accountData.map((account, index) => (
+            {accountData.map((account) => (
               <div key={account.name} className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-2">
                   <div 

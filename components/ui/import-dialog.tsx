@@ -12,16 +12,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { useRouter } from "next/navigation"
 
@@ -38,14 +30,16 @@ import {
   validateCSVFile,
   readFileContent,
   CSV_TEMPLATES,
+  type ImportAccountRef,
   type ImportResult,
   type ImportOptions
 } from "@/lib/import-utils"
 
 interface ImportDialogProps {
   type: 'accounts' | 'entries' | 'withdrawals'
-  accounts?: any[]
-  onImportComplete?: (data: any[]) => void
+  /** Existing accounts, used to resolve the account column by name. */
+  accounts?: ImportAccountRef[]
+  onImportComplete?: (rows: unknown[]) => void
   className?: string
 }
 
@@ -56,7 +50,6 @@ export function ImportDialog({ type, accounts = [], onImportComplete, className 
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState<ImportResult | null>(null)
   const [options, setOptions] = useState<ImportOptions>({
-    skipDuplicates: true,
     validateData: true,
     dryRun: false
   })
@@ -78,7 +71,13 @@ export function ImportDialog({ type, accounts = [], onImportComplete, className 
     setImportResult(null)
   }
 
-  const handleImport = async () => {
+  /**
+   * `dryRun` is a parameter rather than a read of state, because "Confirm
+   * Import" used to call `setOptions({dryRun: false})` and then `handleImport()`
+   * in the same tick — the closure still saw `dryRun: true`, so confirming a
+   * previewed import parsed the file again and wrote nothing.
+   */
+  const handleImport = async (dryRun = options.dryRun) => {
     if (!file) return
 
     setImporting(true)
@@ -104,7 +103,7 @@ export function ImportDialog({ type, accounts = [], onImportComplete, className 
 
       setImportResult(result)
 
-      if (!result.success || !result.data || options.dryRun) return
+      if (!result.success || !result.data || dryRun) return
 
       // Parsing the file is not importing it. This step is what was missing:
       // the rows used to be handed to a callback that discarded them.
@@ -163,7 +162,6 @@ export function ImportDialog({ type, accounts = [], onImportComplete, className 
     setFile(null)
     setImportResult(null)
     setOptions({
-      skipDuplicates: true,
       validateData: true,
       dryRun: false
     })
@@ -182,7 +180,7 @@ export function ImportDialog({ type, accounts = [], onImportComplete, className 
       if (!isOpen) resetDialog()
     }}>
       <DialogTrigger asChild>
-        <Button variant="outline" className={`hover:bg-primary/10 hover:border-primary/30 ${className}`}>
+        <Button variant="outline" className={`hover:bg-primary/10 hover:border-primary/30 ${className ?? ""}`}>
           <Upload className="w-4 h-4 mr-2" />
           Import {getTypeLabel()}
         </Button>
@@ -215,7 +213,7 @@ export function ImportDialog({ type, accounts = [], onImportComplete, className 
           {/* File Upload */}
           <div className="space-y-3">
             <Label>Select CSV File</Label>
-            <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
+            <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
               <input
                 ref={fileInputRef}
                 type="file"
@@ -261,19 +259,10 @@ export function ImportDialog({ type, accounts = [], onImportComplete, className 
                 </Label>
               </div>
               
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="skipDuplicates"
-                  checked={options.skipDuplicates}
-                  onCheckedChange={(checked) => 
-                    setOptions(prev => ({ ...prev, skipDuplicates: !!checked }))
-                  }
-                />
-                <Label htmlFor="skipDuplicates" className="text-sm">
-                  Skip duplicate entries
-                </Label>
-              </div>
-              
+              {/* "Skip duplicate entries" was a third checkbox here that no code
+                  ever read. Accounts with a name that already exists are always
+                  skipped server-side; nothing else is deduplicated. */}
+
               <div className="flex items-center space-x-2">
                 <Checkbox
                   id="dryRun"
@@ -293,7 +282,7 @@ export function ImportDialog({ type, accounts = [], onImportComplete, className 
           {importing && (
             <div className="space-y-3">
               <div className="flex items-center gap-2">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
                 <span className="text-sm font-medium">Processing import...</span>
               </div>
               <Progress value={undefined} className="h-2" />
@@ -315,7 +304,7 @@ export function ImportDialog({ type, accounts = [], onImportComplete, className 
               </div>
 
               {importResult.summary && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-3 gap-4">
                   <div className="text-center p-3 bg-muted rounded-lg">
                     <div className="text-lg font-bold text-foreground">{importResult.summary.total}</div>
                     <div className="text-xs text-muted-foreground">Total Rows</div>
@@ -323,10 +312,6 @@ export function ImportDialog({ type, accounts = [], onImportComplete, className 
                   <div className="text-center p-3 bg-success-muted rounded-lg">
                     <div className="text-lg font-bold text-success">{importResult.summary.imported}</div>
                     <div className="text-xs text-success">Imported</div>
-                  </div>
-                  <div className="text-center p-3 bg-warning-muted rounded-lg">
-                    <div className="text-lg font-bold text-warning">{importResult.summary.skipped}</div>
-                    <div className="text-xs text-warning">Skipped</div>
                   </div>
                   <div className="text-center p-3 bg-destructive-muted rounded-lg">
                     <div className="text-lg font-bold text-destructive">{importResult.summary.failed}</div>
@@ -375,17 +360,16 @@ export function ImportDialog({ type, accounts = [], onImportComplete, className 
             {importResult?.success && !options.dryRun ? 'Close' : 'Cancel'}
           </Button>
           {file && !importing && (!importResult || options.dryRun) && (
-            <Button onClick={handleImport} disabled={importing}>
+            <Button onClick={() => handleImport()} disabled={importing}>
               {options.dryRun ? 'Preview Import' : `Import ${getTypeLabel()}`}
             </Button>
           )}
           {importResult?.success && options.dryRun && (
-            <Button 
+            <Button
               onClick={() => {
                 setOptions(prev => ({ ...prev, dryRun: false }))
-                handleImport()
+                handleImport(false)
               }}
-              className="bg-success hover:bg-green-700"
             >
               Confirm Import
             </Button>

@@ -3,7 +3,10 @@
 import { useState } from "react"
 import { Clock } from "lucide-react"
 
-import { PendingWithdrawalsModal } from "@/components/pending-withdrawals-modal"
+import {
+  PendingWithdrawalsModal,
+  type WithdrawalOrderRef,
+} from "@/components/pending-withdrawals-modal"
 import { Card, CardContent } from "@/components/ui/card"
 import { dollarsToPoints, formatDollars, formatPoints } from "@/lib/money"
 
@@ -32,7 +35,7 @@ export function PendingWithdrawalsCard({
   allWithdrawals = [],
 }: {
   withdrawals: PendingWithdrawal[]
-  allWithdrawals?: any[]
+  allWithdrawals?: WithdrawalOrderRef[]
 }) {
   const [isOpen, setIsOpen] = useState(false)
 

@@ -207,6 +207,20 @@ export function businessDaysBetween(from: DateKey, to: DateKey): number {
   return count
 }
 
+/**
+ * How long a withdrawal took, in whole calendar days, or null while it is still
+ * pending.
+ *
+ * Three copies of this existed — the withdrawals table, the reports page and
+ * the export — and only two of them compared calendar dates, so the same
+ * withdrawal could be reported as taking a different number of days depending
+ * on which screen you asked.
+ */
+export function processingDays(requestedAt: Date, completedAt: Date | null | undefined): number | null {
+  if (!completedAt) return null
+  return daysBetween(toDateKey(new Date(requestedAt)), toDateKey(new Date(completedAt)))
+}
+
 /** The hour (0-23) an instant falls on, in the given timezone. */
 export function hourInTimeZone(instant: Date, timeZone: string = APP_TIMEZONE): number {
   const hour = new Intl.DateTimeFormat("en-US", {
@@ -216,6 +230,21 @@ export function hourInTimeZone(instant: Date, timeZone: string = APP_TIMEZONE): 
   }).format(instant)
   // `hour12: false` can render midnight as "24" in some environments.
   return Number(hour) % 24
+}
+
+/**
+ * Format a real instant's time of day, in the app's timezone.
+ *
+ * Unlike a date marker, `createdAt` is a genuine instant, so it has a
+ * meaningful time — but it should read in the business timezone rather than
+ * wherever the browser happens to be.
+ */
+export function formatTimeOfDay(instant: Date, timeZone: string = APP_TIMEZONE): string {
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(instant)
 }
 
 /** Format a stored date marker for display, in UTC so the day never shifts. */

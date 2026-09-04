@@ -1,408 +1,380 @@
-// Data import utilities for CSV and other formats
+/**
+ * Reading a CSV back in.
+ *
+ * The mirror of `lib/export-utils`, and it had the mirror bugs:
+ *
+ * - The parser split the file on `\n` before looking at quotes, so a quoted
+ *   field containing a line break — exactly what the exporter now writes
+ *   correctly — was torn into two malformed rows.
+ * - A UTF-8 BOM at the start of the file became part of the first header name,
+ *   so `name` did not match `﻿name` and every file this app exported was
+ *   rejected as "missing required columns".
+ * - Dates went through `new Date(value)`, which reads `01/15/2024` as *local*
+ *   midnight. Taking the UTC parts of that instant moves the day backwards
+ *   anywhere east of UTC.
+ *
+ * Rows come out of here as plain calendar-date strings rather than `Date`
+ * objects: they cross a server-action boundary next, where a `Date` would be
+ * serialized anyway, and `YYYY-MM-DD` cannot pick up an offset in transit.
+ */
 
-export interface ImportResult {
+import { ACCOUNT_COLOR_VALUES, DEFAULT_ACCOUNT_COLOR } from "@/lib/avatar-utils"
+import { isDateKey, todayKey, type DateKey } from "@/lib/date-utils"
+
+export interface ImportResult<T = unknown> {
   success: boolean
-  data?: any[]
+  data?: T[]
   errors?: string[]
   warnings?: string[]
   summary?: {
     total: number
     imported: number
-    skipped: number
+    /** Rows that could not be read; each one has a message in `errors`. */
     failed: number
   }
 }
 
 export interface ImportOptions {
-  skipDuplicates?: boolean
   validateData?: boolean
   dryRun?: boolean
 }
 
-// CSV parsing utility
+/** An account that already exists, used to resolve the `account` column. */
+export type ImportAccountRef = { id: string; name: string }
+
+export type ImportedAccount = { name: string; color: string }
+export type ImportedEntry = { accountId: string; date: DateKey; points: number }
+export type ImportedWithdrawal = {
+  accountId: string
+  date: DateKey
+  amount: number
+  status: "PENDING" | "COMPLETED"
+  completedAt?: DateKey
+}
+
+/* -------------------------------------------------------------------------- */
+/* Parsing                                                                    */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * RFC 4180 CSV, parsed as one character stream rather than line by line.
+ *
+ * Quoted fields may contain commas, escaped quotes (`""`) and line breaks.
+ * Everything outside quotes is trimmed; inside quotes the text is kept exactly
+ * as written, because the quotes are what say the whitespace was deliberate.
+ */
 export function parseCSV(csvContent: string): string[][] {
-  const lines = csvContent.split('\n').filter(line => line.trim())
-  const result: string[][] = []
-  
-  for (const line of lines) {
-    const row: string[] = []
-    let current = ''
-    let inQuotes = false
-    
-    for (let i = 0; i < line.length; i++) {
-      const char = line[i]
-      
+  // A byte-order mark belongs to the file, not to the first column name.
+  const text = csvContent.replace(/^﻿/, "")
+
+  const rows: string[][] = []
+  let row: string[] = []
+  let field = ""
+  let quoted = false
+  let inQuotes = false
+
+  const endField = () => {
+    row.push(quoted ? field : field.trim())
+    field = ""
+    quoted = false
+  }
+
+  const endRow = () => {
+    endField()
+    // A trailing newline, or a blank line between records, is not a record.
+    if (row.length > 1 || row[0] !== "") rows.push(row)
+    row = []
+  }
+
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i]
+
+    if (inQuotes) {
       if (char === '"') {
-        if (inQuotes && line[i + 1] === '"') {
-          current += '"'
-          i++ // Skip next quote
+        if (text[i + 1] === '"') {
+          field += '"'
+          i++
         } else {
-          inQuotes = !inQuotes
+          inQuotes = false
         }
-      } else if (char === ',' && !inQuotes) {
-        row.push(current.trim())
-        current = ''
       } else {
-        current += char
+        field += char
       }
+      continue
     }
-    
-    row.push(current.trim())
-    result.push(row)
+
+    if (char === '"') {
+      inQuotes = true
+      quoted = true
+    } else if (char === ",") {
+      endField()
+    } else if (char === "\n") {
+      endRow()
+    } else if (char !== "\r") {
+      field += char
+    }
   }
-  
-  return result
+
+  if (field !== "" || row.length > 0) endRow()
+
+  return rows
 }
 
-// Account import
-export function importAccounts(csvContent: string, options: ImportOptions = {}): ImportResult {
+/**
+ * A calendar date from whatever the user's spreadsheet wrote.
+ *
+ * `YYYY-MM-DD` is taken as-is. Anything else is parsed by the platform, which
+ * treats a bare date as local midnight — so the calendar date is read off the
+ * *local* parts. Reading UTC parts instead is what shifted imported dates back
+ * a day for anyone east of UTC.
+ */
+function parseDateKey(value: string): DateKey | null {
+  if (isDateKey(value)) return value
+
+  const parsed = new Date(value)
+  if (Number.isNaN(parsed.getTime())) return null
+
+  const year = parsed.getFullYear()
+  const month = String(parsed.getMonth() + 1).padStart(2, "0")
+  const day = String(parsed.getDate()).padStart(2, "0")
+  return `${year}-${month}-${day}`
+}
+
+/** Strict number parsing: `parseInt("12abc")` returning 12 imported silent garbage. */
+function parseNumber(value: string): number | null {
+  const cleaned = value.replace(/[$,\s]/g, "")
+  if (!/^-?\d*\.?\d+$/.test(cleaned)) return null
+
+  const parsed = Number(cleaned)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+/* -------------------------------------------------------------------------- */
+/* Shared row machinery                                                       */
+/* -------------------------------------------------------------------------- */
+
+type RowContext = {
+  /** Column value by header name, already trimmed. Empty string when absent. */
+  get: (header: string) => string
+  warn: (message: string) => void
+}
+
+/**
+ * The header check, the per-row try/catch, the error prefixing and the summary
+ * were written out three times with small differences. One place now.
+ */
+function importRows<T>(
+  csvContent: string,
+  requiredHeaders: string[],
+  aliases: Record<string, string>,
+  readRow: (ctx: RowContext) => T
+): ImportResult<T> {
+  let rows: string[][]
   try {
-    const rows = parseCSV(csvContent)
-    if (rows.length === 0) {
-      return { success: false, errors: ['CSV file is empty'] }
-    }
-    
-    const headers = rows[0].map(h => h.toLowerCase().trim())
-    const dataRows = rows.slice(1)
-    
-    // Expected headers
-    const requiredHeaders = ['name']
-    const optionalHeaders = ['color', 'description']
-    
-    // Validate headers
-    const missingHeaders = requiredHeaders.filter(h => !headers.includes(h))
-    if (missingHeaders.length > 0) {
-      return {
-        success: false,
-        errors: [`Missing required columns: ${missingHeaders.join(', ')}`]
-      }
-    }
-    
-    const accounts: any[] = []
-    const errors: string[] = []
-    const warnings: string[] = []
-    let skipped = 0
-    
-    for (let i = 0; i < dataRows.length; i++) {
-      const row = dataRows[i]
-      const rowNum = i + 2 // +2 because we start from row 1 and skip header
-      
-      try {
-        const account: any = {}
-        
-        // Map CSV columns to account fields
-        headers.forEach((header, index) => {
-          const value = row[index]?.trim()
-          
-          switch (header) {
-            case 'name':
-              if (!value) {
-                throw new Error('Account name is required')
-              }
-              account.name = value
-              break
-            case 'color':
-              account.color = value || 'blue'
-              break
-            case 'description':
-              account.description = value
-              break
-          }
-        })
-        
-        // Validate account data
-        if (options.validateData) {
-          if (account.name.length < 1 || account.name.length > 50) {
-            throw new Error('Account name must be between 1 and 50 characters')
-          }
-          
-          const validColors = ['blue', 'green', 'red', 'yellow', 'purple', 'pink', 'indigo', 'gray']
-          if (account.color && !validColors.includes(account.color)) {
-            warnings.push(`Row ${rowNum}: Invalid color '${account.color}', using 'blue' instead`)
-            account.color = 'blue'
-          }
-        }
-        
-        accounts.push(account)
-      } catch (error) {
-        errors.push(`Row ${rowNum}: ${error instanceof Error ? error.message : 'Unknown error'}`)
-        skipped++
-      }
-    }
-    
-    return {
-      success: errors.length === 0 || accounts.length > 0,
-      data: accounts,
-      errors: errors.length > 0 ? errors : undefined,
-      warnings: warnings.length > 0 ? warnings : undefined,
-      summary: {
-        total: dataRows.length,
-        imported: accounts.length,
-        skipped,
-        failed: errors.length
-      }
-    }
+    rows = parseCSV(csvContent)
   } catch (error) {
     return {
       success: false,
-      errors: [`Failed to parse CSV: ${error instanceof Error ? error.message : 'Unknown error'}`]
+      errors: [`Failed to parse CSV: ${error instanceof Error ? error.message : "Unknown error"}`],
     }
+  }
+
+  if (rows.length === 0) {
+    return { success: false, errors: ["CSV file is empty"] }
+  }
+
+  const headers = rows[0].map((header) => {
+    const normalized = header.toLowerCase().trim()
+    return aliases[normalized] ?? normalized
+  })
+  const dataRows = rows.slice(1)
+
+  const missing = requiredHeaders.filter((header) => !headers.includes(header))
+  if (missing.length > 0) {
+    return { success: false, errors: [`Missing required columns: ${missing.join(", ")}`] }
+  }
+
+  const imported: T[] = []
+  const errors: string[] = []
+  const warnings: string[] = []
+
+  dataRows.forEach((row, index) => {
+    // +2: the header is row 1, and spreadsheet rows are 1-based.
+    const rowNumber = index + 2
+
+    const ctx: RowContext = {
+      get: (header) => row[headers.indexOf(header)]?.trim() ?? "",
+      warn: (message) => warnings.push(`Row ${rowNumber}: ${message}`),
+    }
+
+    try {
+      imported.push(readRow(ctx))
+    } catch (error) {
+      errors.push(`Row ${rowNumber}: ${error instanceof Error ? error.message : "Unknown error"}`)
+    }
+  })
+
+  return {
+    // A file is worth importing if anything in it parsed. A file where nothing
+    // did is a failure, even though the old check called it a success whenever
+    // there were no errors at all — including for a header-only file.
+    success: imported.length > 0,
+    data: imported,
+    errors: errors.length > 0 ? errors : undefined,
+    warnings: warnings.length > 0 ? warnings : undefined,
+    summary: {
+      total: dataRows.length,
+      imported: imported.length,
+      failed: errors.length,
+    },
   }
 }
 
-// Entry import
-export function importEntries(csvContent: string, accounts: any[], options: ImportOptions = {}): ImportResult {
-  try {
-    const rows = parseCSV(csvContent)
-    if (rows.length === 0) {
-      return { success: false, errors: ['CSV file is empty'] }
-    }
-    
-    const headers = rows[0].map(h => h.toLowerCase().trim())
-    const dataRows = rows.slice(1)
-    
-    // Expected headers
-    const requiredHeaders = ['date', 'points', 'account']
-    
-    // Validate headers
-    const missingHeaders = requiredHeaders.filter(h => !headers.includes(h))
-    if (missingHeaders.length > 0) {
-      return {
-        success: false,
-        errors: [`Missing required columns: ${missingHeaders.join(', ')}`]
-      }
-    }
-    
-    const entries: any[] = []
-    const errors: string[] = []
-    const warnings: string[] = []
-    let skipped = 0
-    
-    // Create account lookup map
-    const accountMap = new Map(accounts.map(acc => [acc.name.toLowerCase(), acc.id]))
-    
-    for (let i = 0; i < dataRows.length; i++) {
-      const row = dataRows[i]
-      const rowNum = i + 2
-      
-      try {
-        const entry: any = {}
-        
-        headers.forEach((header, index) => {
-          const value = row[index]?.trim()
-          
-          switch (header) {
-            case 'date':
-              if (!value) {
-                throw new Error('Date is required')
-              }
-              const date = new Date(value)
-              if (isNaN(date.getTime())) {
-                throw new Error('Invalid date format')
-              }
-              entry.date = date
-              break
-            case 'points':
-              if (!value) {
-                throw new Error('Points is required')
-              }
-              const points = parseInt(value)
-              if (isNaN(points) || points < 0) {
-                throw new Error('Points must be a positive number')
-              }
-              entry.points = points
-              break
-            case 'account':
-              if (!value) {
-                throw new Error('Account is required')
-              }
-              const accountId = accountMap.get(value.toLowerCase())
-              if (!accountId) {
-                throw new Error(`Account '${value}' not found`)
-              }
-              entry.accountId = accountId
-              break
-          }
-        })
-        
-        // Additional validation
-        if (options.validateData) {
-          if (entry.points > 100000) {
-            warnings.push(`Row ${rowNum}: Very high points value (${entry.points})`)
-          }
-          
-          if (entry.date > new Date()) {
-            warnings.push(`Row ${rowNum}: Future date detected`)
-          }
-        }
-        
-        entries.push(entry)
-      } catch (error) {
-        errors.push(`Row ${rowNum}: ${error instanceof Error ? error.message : 'Unknown error'}`)
-        skipped++
-      }
-    }
-    
-    return {
-      success: errors.length === 0 || entries.length > 0,
-      data: entries,
-      errors: errors.length > 0 ? errors : undefined,
-      warnings: warnings.length > 0 ? warnings : undefined,
-      summary: {
-        total: dataRows.length,
-        imported: entries.length,
-        skipped,
-        failed: errors.length
-      }
-    }
-  } catch (error) {
-    return {
-      success: false,
-      errors: [`Failed to parse CSV: ${error instanceof Error ? error.message : 'Unknown error'}`]
-    }
-  }
+/**
+ * The column names this app's own exports write, mapped onto the ones the
+ * importer looks for. Without these, a file exported from the accounts table
+ * came straight back as "Missing required columns: name".
+ */
+const EXPORT_HEADER_ALIASES: Record<string, string> = {
+  "account name": "name",
+  "request date": "date",
+  "completed date": "completed_date",
+  "amount ($)": "amount",
 }
 
-// Withdrawal import
-export function importWithdrawals(csvContent: string, accounts: any[], options: ImportOptions = {}): ImportResult {
-  try {
-    const rows = parseCSV(csvContent)
-    if (rows.length === 0) {
-      return { success: false, errors: ['CSV file is empty'] }
-    }
-    
-    const headers = rows[0].map(h => h.toLowerCase().trim())
-    const dataRows = rows.slice(1)
-    
-    // Expected headers
-    const requiredHeaders = ['date', 'amount', 'account']
-    const optionalHeaders = ['status', 'completed_date']
-    
-    // Validate headers
-    const missingHeaders = requiredHeaders.filter(h => !headers.includes(h))
-    if (missingHeaders.length > 0) {
-      return {
-        success: false,
-        errors: [`Missing required columns: ${missingHeaders.join(', ')}`]
-      }
-    }
-    
-    const withdrawals: any[] = []
-    const errors: string[] = []
-    const warnings: string[] = []
-    let skipped = 0
-    
-    // Create account lookup map
-    const accountMap = new Map(accounts.map(acc => [acc.name.toLowerCase(), acc.id]))
-    
-    for (let i = 0; i < dataRows.length; i++) {
-      const row = dataRows[i]
-      const rowNum = i + 2
-      
-      try {
-        const withdrawal: any = {}
-        
-        headers.forEach((header, index) => {
-          const value = row[index]?.trim()
-          
-          switch (header) {
-            case 'date':
-              if (!value) {
-                throw new Error('Date is required')
-              }
-              const date = new Date(value)
-              if (isNaN(date.getTime())) {
-                throw new Error('Invalid date format')
-              }
-              withdrawal.date = date
-              break
-            case 'amount':
-              if (!value) {
-                throw new Error('Amount is required')
-              }
-              const amount = parseFloat(value)
-              if (isNaN(amount) || amount <= 0) {
-                throw new Error('Amount must be a positive number')
-              }
-              withdrawal.amount = amount
-              break
-            case 'account':
-              if (!value) {
-                throw new Error('Account is required')
-              }
-              const accountId = accountMap.get(value.toLowerCase())
-              if (!accountId) {
-                throw new Error(`Account '${value}' not found`)
-              }
-              withdrawal.accountId = accountId
-              break
-            case 'status':
-              const status = value?.toUpperCase()
-              if (status && !['PENDING', 'COMPLETED'].includes(status)) {
-                throw new Error('Status must be PENDING or COMPLETED')
-              }
-              withdrawal.status = status || 'PENDING'
-              break
-            case 'completed_date':
-              if (value) {
-                const completedDate = new Date(value)
-                if (isNaN(completedDate.getTime())) {
-                  throw new Error('Invalid completed date format')
-                }
-                withdrawal.completedAt = completedDate
-              }
-              break
-          }
-        })
-        
-        // Additional validation
-        if (options.validateData) {
-          if (withdrawal.amount > 1000) {
-            warnings.push(`Row ${rowNum}: Very high withdrawal amount ($${withdrawal.amount})`)
-          }
-          
-          if (withdrawal.completedAt && withdrawal.completedAt < withdrawal.date) {
-            throw new Error('Completed date cannot be before request date')
-          }
-          
-          if (withdrawal.status === 'COMPLETED' && !withdrawal.completedAt) {
-            warnings.push(`Row ${rowNum}: Completed withdrawal without completion date`)
-          }
-        }
-        
-        withdrawals.push(withdrawal)
-      } catch (error) {
-        errors.push(`Row ${rowNum}: ${error instanceof Error ? error.message : 'Unknown error'}`)
-        skipped++
-      }
-    }
-    
-    return {
-      success: errors.length === 0 || withdrawals.length > 0,
-      data: withdrawals,
-      errors: errors.length > 0 ? errors : undefined,
-      warnings: warnings.length > 0 ? warnings : undefined,
-      summary: {
-        total: dataRows.length,
-        imported: withdrawals.length,
-        skipped,
-        failed: errors.length
-      }
-    }
-  } catch (error) {
-    return {
-      success: false,
-      errors: [`Failed to parse CSV: ${error instanceof Error ? error.message : 'Unknown error'}`]
-    }
-  }
+function required(value: string, label: string): string {
+  if (!value) throw new Error(`${label} is required`)
+  return value
 }
 
-// Generate sample CSV templates
+function resolveAccountId(value: string, accountIds: Map<string, string>): string {
+  const id = accountIds.get(required(value, "Account").toLowerCase())
+  if (!id) throw new Error(`Account '${value}' not found`)
+  return id
+}
+
+function accountLookup(accounts: ImportAccountRef[]): Map<string, string> {
+  return new Map(accounts.map((account) => [account.name.toLowerCase(), account.id]))
+}
+
+function requiredDate(value: string, label: string): DateKey {
+  const key = parseDateKey(required(value, label))
+  if (!key) throw new Error(`Invalid ${label.toLowerCase()} format`)
+  return key
+}
+
+/* -------------------------------------------------------------------------- */
+/* Importers                                                                  */
+/* -------------------------------------------------------------------------- */
+
+export function importAccounts(
+  csvContent: string,
+  options: ImportOptions = {}
+): ImportResult<ImportedAccount> {
+  return importRows(csvContent, ["name"], EXPORT_HEADER_ALIASES, ({ get, warn }) => {
+    const name = required(get("name"), "Account name")
+
+    if (options.validateData && name.length > 50) {
+      throw new Error("Account name must be between 1 and 50 characters")
+    }
+
+    // Checked against the palette the colour picker offers, which is where
+    // these values come from. The importer used to carry a shorter, different
+    // list and rewrote half the real colours to blue.
+    let color = get("color").toLowerCase() || DEFAULT_ACCOUNT_COLOR
+    if (!ACCOUNT_COLOR_VALUES.includes(color)) {
+      warn(`Invalid color '${color}', using '${DEFAULT_ACCOUNT_COLOR}' instead`)
+      color = DEFAULT_ACCOUNT_COLOR
+    }
+
+    return { name, color }
+  })
+}
+
+export function importEntries(
+  csvContent: string,
+  accounts: ImportAccountRef[],
+  options: ImportOptions = {}
+): ImportResult<ImportedEntry> {
+  const accountIds = accountLookup(accounts)
+  const today = todayKey()
+
+  return importRows(csvContent, ["date", "points", "account"], EXPORT_HEADER_ALIASES, ({ get, warn }) => {
+    const date = requiredDate(get("date"), "Date")
+    const points = parseNumber(required(get("points"), "Points"))
+
+    if (points === null || points < 0 || !Number.isInteger(points)) {
+      throw new Error("Points must be a whole positive number")
+    }
+
+    const accountId = resolveAccountId(get("account"), accountIds)
+
+    if (options.validateData) {
+      if (points > 100_000) warn(`Very high points value (${points})`)
+      // Compared as calendar dates. The old check compared a UTC-midnight
+      // marker against `new Date()`, so today's own entries never tripped it
+      // but a tomorrow-dated row in an eastern timezone did.
+      if (date > today) warn("Future date detected")
+    }
+
+    return { accountId, date, points }
+  })
+}
+
+export function importWithdrawals(
+  csvContent: string,
+  accounts: ImportAccountRef[],
+  options: ImportOptions = {}
+): ImportResult<ImportedWithdrawal> {
+  const accountIds = accountLookup(accounts)
+
+  return importRows(csvContent, ["date", "amount", "account"], EXPORT_HEADER_ALIASES, ({ get, warn }) => {
+    const date = requiredDate(get("date"), "Date")
+    const amount = parseNumber(required(get("amount"), "Amount"))
+
+    if (amount === null || amount <= 0) {
+      throw new Error("Amount must be a positive number")
+    }
+
+    const accountId = resolveAccountId(get("account"), accountIds)
+
+    const rawStatus = get("status").toUpperCase()
+    if (rawStatus && rawStatus !== "PENDING" && rawStatus !== "COMPLETED") {
+      throw new Error("Status must be PENDING or COMPLETED")
+    }
+    const status = rawStatus === "COMPLETED" ? "COMPLETED" : "PENDING"
+
+    const rawCompleted = get("completed_date")
+    let completedAt: DateKey | undefined
+    if (rawCompleted) {
+      const key = parseDateKey(rawCompleted)
+      if (!key) throw new Error("Invalid completed date format")
+      completedAt = key
+    }
+
+    if (options.validateData) {
+      if (amount > 1000) warn(`Very high withdrawal amount ($${amount})`)
+      if (completedAt && completedAt < date) {
+        throw new Error("Completed date cannot be before request date")
+      }
+      if (status === "COMPLETED" && !completedAt) {
+        warn("Completed withdrawal without completion date")
+      }
+    }
+
+    return { accountId, date, amount, status, completedAt }
+  })
+}
+
+/* -------------------------------------------------------------------------- */
+/* Templates and file handling                                                */
+/* -------------------------------------------------------------------------- */
+
 export const CSV_TEMPLATES = {
-  accounts: `name,color,description
-Swagbucks,blue,Popular survey platform
-Survey Junkie,green,Quick surveys and polls
-InboxDollars,purple,Surveys and cashback`,
+  accounts: `name,color
+Swagbucks,blue
+Survey Junkie,green
+InboxDollars,purple`,
 
   entries: `date,account,points
 2024-01-01,Swagbucks,150
@@ -411,32 +383,30 @@ InboxDollars,purple,Surveys and cashback`,
 
   withdrawals: `date,account,amount,status,completed_date
 2024-01-15,Swagbucks,25.00,COMPLETED,2024-01-20
-2024-01-20,Survey Junkie,10.00,PENDING,`
+2024-01-20,Survey Junkie,10.00,PENDING,`,
 }
 
-// File validation
 export function validateCSVFile(file: File): { valid: boolean; error?: string } {
   if (!file) {
-    return { valid: false, error: 'No file selected' }
+    return { valid: false, error: "No file selected" }
   }
-  
-  if (file.type !== 'text/csv' && !file.name.endsWith('.csv')) {
-    return { valid: false, error: 'File must be a CSV file' }
+
+  if (file.type !== "text/csv" && !file.name.toLowerCase().endsWith(".csv")) {
+    return { valid: false, error: "File must be a CSV file" }
   }
-  
-  if (file.size > 5 * 1024 * 1024) { // 5MB limit
-    return { valid: false, error: 'File size must be less than 5MB' }
+
+  if (file.size > 5 * 1024 * 1024) {
+    return { valid: false, error: "File size must be less than 5MB" }
   }
-  
+
   return { valid: true }
 }
 
-// Read file content
 export function readFileContent(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
-    reader.onload = (e) => resolve(e.target?.result as string)
-    reader.onerror = () => reject(new Error('Failed to read file'))
+    reader.onload = (event) => resolve(String(event.target?.result ?? ""))
+    reader.onerror = () => reject(new Error("Failed to read file"))
     reader.readAsText(file)
   })
 }
