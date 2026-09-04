@@ -1,23 +1,33 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Award, Target, TrendingDown, TrendingUp, Zap } from "lucide-react"
+
 import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
-import {
-  TrendingUp,
-  TrendingDown,
-  Target,
-  Calendar,
-  Clock,
-  Zap,
-  Award
-} from "lucide-react"
+import { Skeleton } from "@/components/ui/skeleton"
+import { formatDollars, formatPoints, pointsToDollars } from "@/lib/money"
+import { cn } from "@/lib/utils"
+
+/**
+ * Headline performance figures.
+ *
+ * The monthly goal used to be read once from localStorage on mount and then
+ * never re-read, so changing the target left this card showing the old one
+ * until a hard reload. It also fetched the month's entries separately just to
+ * recompute progress the API had already got wrong. The API now returns the
+ * goal, the month's points and the progress together, from the settings row —
+ * so there is one number and one request.
+ */
 
 interface PerformanceMetrics {
   dailyAverage: number
   weeklyTrend: number
   monthlyGoalProgress: number
+  monthlyGoal: number
+  thisMonthPoints: number
+  daysElapsedThisMonth: number
   streakDays: number
   topPerformingAccount: string
   efficiency: number
@@ -27,314 +37,143 @@ export function PerformanceMonitor() {
   const [metrics, setMetrics] = useState<PerformanceMetrics | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [monthlyTarget, setMonthlyTarget] = useState(14000)
-  const [currentMonthPoints, setCurrentMonthPoints] = useState(0)
 
   useEffect(() => {
+    const controller = new AbortController()
+
     async function fetchMetrics() {
       try {
-        setLoading(true)
         setError(null)
+        const response = await fetch("/api/performance/metrics", { signal: controller.signal })
+        if (!response.ok) throw new Error("Could not load performance metrics")
 
-        // Get user's custom monthly target
-        let customTarget = 14000 // Default
-        try {
-          const savedTarget = localStorage.getItem('monthly-target')
-          if (savedTarget) {
-            const parsed = JSON.parse(savedTarget)
-            customTarget = parsed.points || 14000
-          }
-        } catch (e) {
-          // Using default target
-        }
-
-        setMonthlyTarget(customTarget)
-
-        const response = await fetch('/api/performance/metrics')
-        if (!response.ok) {
-          throw new Error('Failed to fetch performance metrics')
-        }
-
-        const data = await response.json()
-
-        // Always recalculate monthly goal progress with custom target
-        let actualCurrentPoints = 0
-        try {
-          const entriesResponse = await fetch('/api/entries/current-month')
-          if (entriesResponse.ok) {
-            const entriesData = await entriesResponse.json()
-            actualCurrentPoints = entriesData.reduce((sum: number, entry: any) => sum + entry.points, 0)
-            data.monthlyGoalProgress = Math.min((actualCurrentPoints / customTarget) * 100, 100)
-          }
-        } catch (e) {
-          // Could not fetch current month entries, using API default
-          // Fallback calculation
-          actualCurrentPoints = Math.round((data.monthlyGoalProgress / 100) * customTarget)
-        }
-
-        setCurrentMonthPoints(actualCurrentPoints)
-
-        setMetrics(data)
-      } catch (err) {
-        console.error('Error fetching performance metrics:', err)
-        setError(err instanceof Error ? err.message : 'Unknown error')
-        // Fallback to basic metrics if API fails
-        setMetrics({
-          dailyAverage: 0,
-          weeklyTrend: 0,
-          monthlyGoalProgress: 0,
-          streakDays: 0,
-          topPerformingAccount: "No data",
-          efficiency: 0
-        })
+        setMetrics(await response.json())
+      } catch (cause) {
+        if ((cause as Error).name === "AbortError") return
+        // Reported as a failure rather than shown as a set of zeros, which
+        // renders an outage as "you earned nothing".
+        setError(cause instanceof Error ? cause.message : "Could not load metrics")
+        setMetrics(null)
       } finally {
-        setLoading(false)
+        if (!controller.signal.aborted) setLoading(false)
       }
     }
 
-    fetchMetrics()
+    void fetchMetrics()
+
+    return () => controller.abort()
   }, [])
 
-  if (loading) {
-    return (
-      <Card className="bg-white/80 backdrop-blur-sm border border-white/60 shadow-xl">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-green-600" />
-            Performance Insights
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="animate-pulse">
-                <div className="h-4 bg-slate-200 rounded w-3/4 mb-2"></div>
-                <div className="h-2 bg-slate-200 rounded w-full"></div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    )
-  }
-
-  if (error) {
-    return (
-      <Card className="bg-white/80 backdrop-blur-sm border border-white/60 shadow-xl">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-green-600" />
-            Performance Insights
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8 text-slate-500">
-            <Clock className="w-12 h-12 mx-auto mb-3 text-slate-300" />
-            <p className="font-medium">Unable to load performance data</p>
-            <p className="text-sm">{error}</p>
-          </div>
-        </CardContent>
-      </Card>
-    )
-  }
-
-  if (!metrics) return null
-
-  const getTrendIcon = (trend: number) => {
-    if (trend > 0) return <TrendingUp className="w-4 h-4 text-green-600" />
-    if (trend < 0) return <TrendingDown className="w-4 h-4 text-red-600" />
-    return <Target className="w-4 h-4 text-slate-600" />
-  }
-
-  const getTrendColor = (trend: number) => {
-    if (trend > 0) return "text-green-600"
-    if (trend < 0) return "text-red-600"
-    return "text-slate-600"
-  }
-
-  const getEfficiencyColor = (efficiency: number) => {
-    if (efficiency >= 80) return "text-green-600"
-    if (efficiency >= 60) return "text-orange-600"
-    return "text-red-600"
-  }
-
-  const getEfficiencyBadge = (efficiency: number) => {
-    if (efficiency >= 90) return { label: "Excellent", color: "bg-green-100 text-green-700 border-green-200" }
-    if (efficiency >= 80) return { label: "Good", color: "bg-blue-100 text-blue-700 border-blue-200" }
-    if (efficiency >= 60) return { label: "Average", color: "bg-orange-100 text-orange-700 border-orange-200" }
-    return { label: "Needs Improvement", color: "bg-red-100 text-red-700 border-red-200" }
-  }
-
-  const efficiencyBadge = getEfficiencyBadge(metrics.efficiency)
-
   return (
-    <Card className="bg-white/80 backdrop-blur-sm border border-white/60 shadow-xl">
+    <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <TrendingUp className="w-5 h-5 text-green-600" />
-          Performance Insights
+          <TrendingUp className="size-4 text-muted-foreground" />
+          Performance
         </CardTitle>
+        <CardDescription>How this month is tracking.</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Daily Average */}
-        <div className="flex items-center justify-between p-3 bg-linear-to-r from-blue-50 to-indigo-50 rounded-lg">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
-              <Calendar className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <p className="text-sm text-slate-600">Daily Average (Last 30 Days)</p>
-              <p className="text-xl font-bold text-slate-800">
-                {metrics.dailyAverage.toLocaleString()} pts
-              </p>
-              <p className="text-xs text-slate-500">
-                ${(metrics.dailyAverage / 100).toFixed(2)} per day
-              </p>
-            </div>
+      <CardContent>
+        {loading ? (
+          <div className="space-y-4">
+            <Skeleton className="h-16 w-full" />
+            <Skeleton className="h-24 w-full" />
           </div>
-          <div className="text-right">
-            <div className={`flex items-center gap-1 ${getTrendColor(metrics.weeklyTrend)}`}>
-              {getTrendIcon(metrics.weeklyTrend)}
-              <span className="text-sm font-medium">
-                {Math.abs(metrics.weeklyTrend).toFixed(1)}%
-              </span>
-            </div>
-            <p className="text-xs text-slate-500">vs last week</p>
+        ) : error || !metrics ? (
+          <div className="py-8 text-center text-muted-foreground">
+            <Target className="mx-auto mb-2 size-6" />
+            <p className="text-sm">{error ?? "No metrics available"}</p>
           </div>
-        </div>
-
-        {/* Monthly Goal Progress */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Target className="w-4 h-4 text-purple-600" />
-              <span className="text-sm font-medium text-slate-700">Monthly Goal</span>
-            </div>
-            <span className="text-sm text-slate-600">{metrics.monthlyGoalProgress.toFixed(1)}%</span>
-          </div>
-          <Progress value={metrics.monthlyGoalProgress} className="h-2" />
-
-          {/* Current vs Target Display */}
-          <div className="flex items-center justify-between text-xs">
-            <div className="text-slate-600">
-              <span className="font-medium">Current:</span> {currentMonthPoints.toLocaleString()} pts
-            </div>
-            <div className="text-slate-600">
-              <span className="font-medium">Target:</span> {monthlyTarget.toLocaleString()} pts
-            </div>
-          </div>
-
-          {/* Goal Achievement Celebration */}
-          {metrics.monthlyGoalProgress >= 100 ? (
-            <div className="relative overflow-hidden rounded-lg p-1 bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 animate-pulse shadow-lg">
-              {/* Animated border effect */}
-              <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 animate-spin rounded-lg" style={{ animationDuration: '3s' }}></div>
-
-              {/* Inner content container */}
-              <div className="relative bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500 rounded-lg p-4 text-white">
-                {/* Animated background pattern */}
-                <div className="absolute inset-0 bg-gradient-to-r from-green-400/20 via-emerald-400/20 to-teal-400/20 animate-pulse"></div>
-
-                {/* Content */}
-                <div className="relative z-10">
-                  <div className="flex items-center justify-center gap-2 mb-2">
-                    <div className="text-2xl animate-bounce">🎉</div>
-                    <h3 className="text-lg font-bold text-center">Goal Achieved!</h3>
-                    <div className="text-2xl animate-bounce" style={{ animationDelay: '0.1s' }}>🌟</div>
-                  </div>
-
-                  <div className="text-center space-y-1">
-                    <p className="text-sm font-medium">
-                      {currentMonthPoints.toLocaleString()} / {monthlyTarget.toLocaleString()} points
-                    </p>
-                    <p className="text-xs opacity-90">
-                      ${(currentMonthPoints / 100).toFixed(2)} earned this month
-                    </p>
-                    {currentMonthPoints > monthlyTarget && (
-                      <p className="text-xs font-medium bg-white/20 rounded-full px-2 py-1 inline-block">
-                        +{(currentMonthPoints - monthlyTarget).toLocaleString()} bonus points!
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Decorative elements */}
-                <div className="absolute top-1 right-1 text-yellow-300 animate-spin" style={{ animationDuration: '3s' }}>✨</div>
-                <div className="absolute bottom-1 left-1 text-yellow-300 animate-spin" style={{ animationDuration: '4s', animationDirection: 'reverse' }}>⭐</div>
+        ) : (
+          <div className="space-y-5">
+            {/* Monthly goal */}
+            <div className="space-y-2">
+              <div className="flex items-baseline justify-between">
+                <p className="text-sm font-medium">Monthly goal</p>
+                <p className="text-sm text-muted-foreground tabular-nums">
+                  {formatPoints(metrics.thisMonthPoints)} / {formatPoints(metrics.monthlyGoal)}
+                </p>
+              </div>
+              <Progress value={metrics.monthlyGoalProgress} />
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>{metrics.monthlyGoalProgress}%</span>
+                <span>{formatDollars(pointsToDollars(metrics.thisMonthPoints))}</span>
               </div>
             </div>
-          ) : (
-            <div className={`text-xs font-medium p-2 rounded-lg ${metrics.monthlyGoalProgress >= 80
-              ? 'bg-orange-50 text-orange-700 border border-orange-200'
-              : 'bg-blue-50 text-blue-700 border border-blue-200'
-              }`}>
-              {metrics.monthlyGoalProgress >= 80 ? "🔥 Almost there! You're so close!" :
-                metrics.monthlyGoalProgress >= 50 ? "📈 Great progress! Keep it up!" :
-                  "💪 Keep going! You've got this!"}
-            </div>
-          )}
-        </div>
 
-        {/* Streak & Top Account */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="text-center p-3 bg-linear-to-r from-orange-50 to-amber-50 rounded-lg">
-            <div className="flex items-center justify-center mb-2">
-              <Zap className="w-5 h-5 text-orange-600" />
+            {/* Figures */}
+            <div className="grid grid-cols-2 gap-3">
+              <Metric
+                label="Daily average"
+                value={formatPoints(metrics.dailyAverage)}
+                hint="Last 30 days"
+              />
+              <Metric
+                label="Week on week"
+                value={`${metrics.weeklyTrend > 0 ? "+" : ""}${metrics.weeklyTrend}%`}
+                hint="Against the previous 7 days"
+                tone={
+                  metrics.weeklyTrend > 0
+                    ? "success"
+                    : metrics.weeklyTrend < 0
+                      ? "destructive"
+                      : "muted"
+                }
+                icon={metrics.weeklyTrend < 0 ? TrendingDown : TrendingUp}
+              />
+              <Metric
+                label="Streak"
+                value={`${metrics.streakDays}d`}
+                hint="Consecutive days logged"
+                icon={Zap}
+              />
+              <Metric
+                label="Efficiency"
+                value={`${metrics.efficiency}%`}
+                hint="Consistency, goal and activity"
+                icon={Award}
+              />
             </div>
-            <p className="text-2xl font-bold text-orange-600">{metrics.streakDays}</p>
-            <p className="text-xs text-orange-700">Day Streak</p>
+
+            <div className="flex items-center justify-between border-t pt-3">
+              <span className="text-sm text-muted-foreground">Top account</span>
+              <Badge variant="secondary">{metrics.topPerformingAccount}</Badge>
+            </div>
           </div>
-
-          <div className="text-center p-3 bg-linear-to-r from-green-50 to-emerald-50 rounded-lg">
-            <div className="flex items-center justify-center mb-2">
-              <Award className="w-5 h-5 text-green-600" />
-            </div>
-            <p className="text-sm font-bold text-green-600 truncate" title={metrics.topPerformingAccount}>
-              {metrics.topPerformingAccount}
-            </p>
-            <p className="text-xs text-green-700">Top Account</p>
-          </div>
-        </div>
-
-        {/* Efficiency Score */}
-        <div className="p-4 bg-linear-to-r from-slate-50 to-gray-50 rounded-lg border border-slate-200">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 text-slate-600" />
-              <span className="text-sm font-medium text-slate-700">Efficiency Score</span>
-            </div>
-            <Badge className={efficiencyBadge.color}>
-              {efficiencyBadge.label}
-            </Badge>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="flex-1">
-              <Progress value={metrics.efficiency} className="h-3" />
-            </div>
-            <span className={`text-lg font-bold ${getEfficiencyColor(metrics.efficiency)}`}>
-              {metrics.efficiency}%
-            </span>
-          </div>
-
-          <p className="text-xs text-slate-500 mt-2">
-            Based on consistency, goal achievement, and earning patterns
-          </p>
-        </div>
-
-        {/* Quick Tips */}
-        <div className="p-3 bg-linear-to-r from-indigo-50 to-purple-50 rounded-lg border border-indigo-200">
-          <h4 className="text-sm font-medium text-indigo-800 mb-2">💡 Performance Tip</h4>
-          <p className="text-xs text-indigo-700">
-            {metrics.efficiency >= 80
-              ? "Great work! Try setting higher daily goals to maximize earnings."
-              : metrics.streakDays >= 5
-                ? "Your consistency is paying off! Focus on your top-performing accounts."
-                : "Build a daily routine to improve your earning consistency."
-            }
-          </p>
-        </div>
+        )}
       </CardContent>
     </Card>
+  )
+}
+
+function Metric({
+  label,
+  value,
+  hint,
+  tone = "default",
+  icon: Icon,
+}: {
+  label: string
+  value: string
+  hint?: string
+  tone?: "default" | "success" | "destructive" | "muted"
+  icon?: typeof TrendingUp
+}) {
+  const toneClass = {
+    default: "text-foreground",
+    success: "text-success",
+    destructive: "text-destructive",
+    muted: "text-muted-foreground",
+  }[tone]
+
+  return (
+    <div className="rounded-md border p-3">
+      <div className="flex items-center gap-1.5">
+        {Icon ? <Icon className={cn("size-3.5", toneClass)} /> : null}
+        <p className={cn("metric-sm", toneClass)}>{value}</p>
+      </div>
+      <p className="mt-0.5 text-xs font-medium">{label}</p>
+      {hint ? <p className="text-xs text-muted-foreground">{hint}</p> : null}
+    </div>
   )
 }

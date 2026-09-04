@@ -1,412 +1,174 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useEffect, useState } from "react"
+import { Loader2, RotateCcw, Save } from "lucide-react"
+
 import { Button } from "@/components/ui/button"
+import { enhancedToast } from "@/components/ui/enhanced-toast"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
-import { Badge } from "@/components/ui/badge"
-import { Target, Calendar, Save, RotateCcw } from "lucide-react"
-import { notifications } from "@/lib/notification-service"
+import { Skeleton } from "@/components/ui/skeleton"
+import { formatDollars, formatPoints, pointsToDollars } from "@/lib/money"
 
-interface MonthlyTarget {
-  points: number
-  earnings: number // in dollars
-  lastUpdated: Date
-}
+/**
+ * The monthly points goal.
+ *
+ * The target lived in three places at once: a module-level Map on the server
+ * that vanished on redeploy, a localStorage copy the client fell back to, and
+ * UserSettings, which nothing wrote. It is stored in UserSettings now, so this
+ * only has to read and write one thing — and the dashboard's progress bar can
+ * no longer disagree with the number shown here.
+ */
+
+const MIN_POINTS = 1000
+const MAX_POINTS = 1_000_000
 
 export function MonthlyTargetSettings() {
-  const [target, setTarget] = useState<MonthlyTarget>({
-    points: 14000, // Default 14,000 points = $140 (Intermediate level)
-    earnings: 140,
-    lastUpdated: new Date()
-  })
-  
-  const [tempTarget, setTempTarget] = useState(target)
-  const [currentProgress, setCurrentProgress] = useState({
-    points: 0,
-    earnings: 0,
-    percentage: 0
-  })
-  const [loading, setLoading] = useState(false)
+  const [target, setTarget] = useState<number | null>(null)
+  const [draft, setDraft] = useState("")
+  const [monthPoints, setMonthPoints] = useState(0)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  // Load saved target from API and localStorage fallback
   useEffect(() => {
-    async function loadTarget() {
-      try {
-        // Try to load from API first
-        const response = await fetch('/api/settings/monthly-target')
-        if (response.ok) {
-          const data = await response.json()
-          const targetData = {
-            points: data.points,
-            earnings: data.earnings,
-            lastUpdated: new Date(data.lastUpdated)
-          }
-          setTarget(targetData)
-          setTempTarget(targetData)
-          return
-        }
-      } catch (error) {
-        // API not available, using localStorage
-      }
+    const controller = new AbortController()
 
-      // Fallback to localStorage
-      const saved = localStorage.getItem('monthly-target')
-      if (saved) {
-        try {
-          const parsed = JSON.parse(saved)
-          const targetData = {
-            ...parsed,
-            lastUpdated: new Date(parsed.lastUpdated)
-          }
-          setTarget(targetData)
-          setTempTarget(targetData)
-        } catch (error) {
-          console.error('Failed to load monthly target:', error)
+    async function load() {
+      try {
+        const [targetResponse, entriesResponse] = await Promise.all([
+          fetch("/api/settings/monthly-target", { signal: controller.signal }),
+          fetch("/api/entries/current-month", { signal: controller.signal }),
+        ])
+
+        if (!targetResponse.ok) throw new Error("Could not load your target")
+
+        const targetData = await targetResponse.json()
+        if (controller.signal.aborted) return
+
+        setTarget(targetData.points)
+        setDraft(String(targetData.points))
+
+        if (entriesResponse.ok) {
+          const entries = await entriesResponse.json()
+          setMonthPoints(
+            entries.reduce((sum: number, entry: any) => sum + entry.points, 0)
+          )
         }
+      } catch (cause) {
+        if ((cause as Error).name === "AbortError") return
+        setError(cause instanceof Error ? cause.message : "Could not load your target")
+      } finally {
+        if (!controller.signal.aborted) setLoading(false)
       }
     }
 
-    loadTarget()
+    void load()
+
+    return () => controller.abort()
   }, [])
 
-  // Fetch current month progress
-  useEffect(() => {
-    async function fetchProgress() {
-      try {
-        // Get actual current month entries directly
-        const response = await fetch('/api/entries/current-month')
-        if (response.ok) {
-          const entries = await response.json()
-          const currentPoints = entries.reduce((sum: number, entry: any) => sum + entry.points, 0)
-          const currentEarnings = currentPoints / 100
-          const percentage = target.points > 0 ? Math.min((currentPoints / target.points) * 100, 100) : 0
-          
-          setCurrentProgress({
-            points: currentPoints,
-            earnings: currentEarnings,
-            percentage: percentage
-          })
-        }
-      } catch (error) {
-        console.error('Failed to fetch progress:', error)
-        // Fallback to 0 if API fails
-        setCurrentProgress({
-          points: 0,
-          earnings: 0,
-          percentage: 0
-        })
-      }
+  async function save() {
+    const points = Number(draft)
+
+    if (!Number.isFinite(points) || points < MIN_POINTS || points > MAX_POINTS) {
+      enhancedToast.error(
+        `Target must be between ${formatPoints(MIN_POINTS)} and ${formatPoints(MAX_POINTS)} points.`
+      )
+      return
     }
 
-    fetchProgress()
-  }, [target.points])
+    setSaving(true)
 
-  const saveTarget = async () => {
-    setLoading(true)
-    
     try {
-      const targetToSave = {
-        ...tempTarget,
-        lastUpdated: new Date()
-      }
-      
-      // Try to save to API first
-      try {
-        const response = await fetch('/api/settings/monthly-target', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            points: targetToSave.points,
-            earnings: targetToSave.earnings
-          })
-        })
-        
-        if (response.ok) {
-          // Target saved to API
-        }
-      } catch (apiError) {
-        // API save failed, using localStorage only
-      }
-      
-      // Always save to localStorage as backup
-      localStorage.setItem('monthly-target', JSON.stringify(targetToSave))
-      setTarget(targetToSave)
-      
-      notifications.success("Monthly target updated!", {
-        description: `New target: ${tempTarget.points.toLocaleString()} points ($${tempTarget.earnings})`
+      const response = await fetch("/api/settings/monthly-target", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ points }),
       })
-      
-      // Refresh the page to update performance metrics with new target
-      setTimeout(() => {
-        window.location.reload()
-      }, 1000)
-      
-    } catch (error) {
-      notifications.error("Failed to save target", {
-        description: "Please try again"
-      })
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}))
+        throw new Error(payload.error ?? "Could not save the target")
+      }
+
+      setTarget(points)
+      enhancedToast.success("Monthly target saved")
+    } catch (cause) {
+      enhancedToast.error(cause instanceof Error ? cause.message : "Could not save.")
     } finally {
-      setLoading(false)
+      setSaving(false)
     }
   }
 
-  const resetToDefault = () => {
-    const defaultTarget = {
-      points: 14000,
-      earnings: 140,
-      lastUpdated: new Date()
-    }
-    setTempTarget(defaultTarget)
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-16 w-full" />
+      </div>
+    )
   }
 
-  const hasChanges = tempTarget.points !== target.points || tempTarget.earnings !== target.earnings
-
-  const getProgressColor = (percentage: number) => {
-    if (percentage >= 100) return "text-green-600"
-    if (percentage >= 75) return "text-blue-600"
-    if (percentage >= 50) return "text-orange-600"
-    return "text-slate-600"
+  if (error || target === null) {
+    return <p className="text-sm text-destructive">{error ?? "No target available"}</p>
   }
 
-  const getProgressMessage = (percentage: number) => {
-    if (percentage >= 100) return { 
-      text: "🎉 Target achieved!", 
-      celebration: true,
-      color: "text-green-600"
-    }
-    if (percentage >= 75) return { 
-      text: "🔥 Almost there!", 
-      celebration: false,
-      color: "text-orange-600"
-    }
-    if (percentage >= 50) return { 
-      text: "📈 Good progress!", 
-      celebration: false,
-      color: "text-blue-600"
-    }
-    if (percentage >= 25) return { 
-      text: "💪 Keep going!", 
-      celebration: false,
-      color: "text-slate-600"
-    }
-    return { 
-      text: "🚀 Let's start earning!", 
-      celebration: false,
-      color: "text-slate-600"
-    }
-  }
+  const progress = target > 0 ? Math.min((monthPoints / target) * 100, 100) : 0
+  const dirty = draft !== String(target)
 
   return (
-    <div className="space-y-6">
-      {/* Current Progress */}
-      <div className="p-4 bg-linear-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-blue-600" />
-            <span className="font-medium text-blue-800">
-              {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })} Progress
-            </span>
-          </div>
-          <Badge className="bg-blue-100 text-blue-700 border-blue-200">
-            {currentProgress.percentage.toFixed(1)}%
-          </Badge>
+    <div className="space-y-5">
+      <div className="space-y-2">
+        <Label htmlFor="monthly-target">Target (points)</Label>
+        <div className="flex items-center gap-2">
+          <Input
+            id="monthly-target"
+            type="number"
+            step="100"
+            min={MIN_POINTS}
+            max={MAX_POINTS}
+            inputMode="numeric"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+          />
+          <Button onClick={() => void save()} disabled={saving || !dirty}>
+            {saving ? (
+              <Loader2 className="mr-1.5 size-4 animate-spin" />
+            ) : (
+              <Save className="mr-1.5 size-4" />
+            )}
+            Save
+          </Button>
+          {dirty ? (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setDraft(String(target))}
+              aria-label="Reset to the saved target"
+              disabled={saving}
+            >
+              <RotateCcw className="size-4" />
+            </Button>
+          ) : null}
         </div>
-        
-        <Progress value={currentProgress.percentage} className="h-3 mb-3" />
-        
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <p className="text-blue-600 font-medium">Current</p>
-            <p className="text-blue-800">
-              {currentProgress.points.toLocaleString()} pts
-            </p>
-            <p className="text-blue-700">
-              ${currentProgress.earnings.toFixed(2)}
-            </p>
-          </div>
-          <div>
-            <p className="text-blue-600 font-medium">Target</p>
-            <p className="text-blue-800">
-              {target.points.toLocaleString()} pts
-            </p>
-            <p className="text-blue-700">
-              ${target.earnings.toFixed(2)}
-            </p>
-          </div>
-        </div>
-        
-        <p className={`text-sm font-medium mt-3 ${getProgressColor(currentProgress.percentage)}`}>
-          {getProgressMessage(currentProgress.percentage).text}
+        <p className="text-xs text-muted-foreground">
+          {formatDollars(pointsToDollars(Number(draft) || 0))} at 100 points to the dollar.
         </p>
-        
-        {/* Goal Achievement Celebration */}
-        {getProgressMessage(currentProgress.percentage).celebration && (
-          <div className="mt-3 relative overflow-hidden rounded-lg p-1 bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 animate-pulse shadow-lg">
-            {/* Animated border effect */}
-            <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 animate-spin rounded-lg" style={{ animationDuration: '3s' }}></div>
-            
-            {/* Inner content container */}
-            <div className="relative bg-gradient-to-r from-green-500 via-emerald-500 to-teal-500 rounded-lg p-4 text-white">
-              {/* Animated background */}
-              <div className="absolute inset-0 bg-gradient-to-r from-green-400/20 via-emerald-400/20 to-teal-400/20 animate-pulse"></div>
-            
-            {/* Content */}
-            <div className="relative z-10 text-center">
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <div className="text-xl animate-bounce">🎊</div>
-                <h4 className="text-base font-bold">Congratulations!</h4>
-                <div className="text-xl animate-bounce" style={{ animationDelay: '0.2s' }}>🏆</div>
-              </div>
-              
-              <p className="text-sm opacity-90">
-                You've reached your monthly target of ${target.earnings.toFixed(2)}!
-              </p>
-              
-              {currentProgress.points > target.points && (
-                <div className="mt-2">
-                  <span className="text-xs font-medium bg-white/20 rounded-full px-3 py-1 inline-block">
-                    Bonus: +{(currentProgress.points - target.points).toLocaleString()} points
-                  </span>
-                </div>
-              )}
-            </div>
-            
-            {/* Decorative elements */}
-            <div className="absolute top-1 right-2 text-yellow-300 animate-spin" style={{ animationDuration: '3s' }}>✨</div>
-            <div className="absolute bottom-1 left-2 text-yellow-300 animate-spin" style={{ animationDuration: '4s', animationDirection: 'reverse' }}>⭐</div>
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* Target Settings */}
-      <div className="space-y-4">
-        <div className="flex items-center gap-2 mb-4">
-          <Target className="w-5 h-5 text-purple-600" />
-          <h3 className="text-lg font-semibold text-slate-800">Set Monthly Target</h3>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="points-target">Points Target</Label>
-            <Input
-              id="points-target"
-              type="number"
-              value={tempTarget.points}
-              onChange={(e) => {
-                const points = parseInt(e.target.value) || 0
-                setTempTarget(prev => ({
-                  ...prev,
-                  points,
-                  earnings: points / 100 // Auto-calculate earnings
-                }))
-              }}
-              placeholder="14000"
-              min="1000"
-              max="100000"
-              step="500"
-            />
-            <p className="text-xs text-slate-500">
-              Recommended: 5,000 - 25,000 points
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="earnings-target">Earnings Target ($)</Label>
-            <Input
-              id="earnings-target"
-              type="number"
-              value={tempTarget.earnings}
-              onChange={(e) => {
-                const earnings = parseFloat(e.target.value) || 0
-                setTempTarget(prev => ({
-                  ...prev,
-                  earnings,
-                  points: earnings * 100 // Auto-calculate points
-                }))
-              }}
-              placeholder="140"
-              min="10"
-              max="1000"
-              step="5"
-            />
-            <p className="text-xs text-slate-500">
-              100 points = $1.00
-            </p>
-          </div>
-        </div>
-
-        {/* Preset Targets */}
-        <div className="space-y-2">
-          <Label>Quick Presets</Label>
-          <div className="grid grid-cols-3 gap-2">
-            {[
-              { label: "Beginner", points: 7000, earnings: 70 },
-              { label: "Intermediate", points: 14000, earnings: 140 },
-              { label: "Advanced", points: 21000, earnings: 210 }
-            ].map((preset) => (
-              <Button
-                key={preset.label}
-                variant="outline"
-                size="sm"
-                onClick={() => setTempTarget(prev => ({
-                  ...prev,
-                  points: preset.points,
-                  earnings: preset.earnings
-                }))}
-                className="text-xs"
-              >
-                {preset.label}
-                <br />
-                <span className="text-slate-500">
-                  ${preset.earnings}
-                </span>
-              </Button>
-            ))}
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex items-center gap-3 pt-4">
-          <Button
-            onClick={saveTarget}
-            disabled={!hasChanges || loading}
-            className="bg-linear-to-r from-purple-500 to-violet-600 hover:from-purple-600 hover:to-violet-700 text-white"
-          >
-            <Save className="w-4 h-4 mr-2" />
-            {loading ? "Saving..." : "Save Target"}
-          </Button>
-          
-          <Button
-            variant="outline"
-            onClick={resetToDefault}
-            disabled={loading}
-          >
-            <RotateCcw className="w-4 h-4 mr-2" />
-            Reset to Default
-          </Button>
-        </div>
-
-        {hasChanges && (
-          <p className="text-sm text-orange-600 bg-orange-50 p-2 rounded border border-orange-200">
-            💡 You have unsaved changes. Click "Save Target" to apply them.
+      <div className="space-y-2">
+        <div className="flex items-baseline justify-between">
+          <p className="text-sm font-medium">This month</p>
+          <p className="text-sm text-muted-foreground tabular-nums">
+            {formatPoints(monthPoints)} / {formatPoints(target)}
           </p>
-        )}
-
-        {/* Last Updated */}
-        <div className="text-xs text-slate-500 pt-2 border-t border-slate-200">
-          Last updated: {target.lastUpdated.toLocaleDateString('en-GB', {
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-          })}
         </div>
+        <Progress value={progress} />
+        <p className="text-xs text-muted-foreground tabular-nums">
+          {Math.round(progress)}% · {formatDollars(pointsToDollars(monthPoints))} earned
+        </p>
       </div>
     </div>
   )

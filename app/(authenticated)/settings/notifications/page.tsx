@@ -112,7 +112,7 @@ export default function NotificationSettingsPage() {
       <div className="p-6 space-y-8">
         <div className="text-center py-12">
           <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-slate-500">Loading settings...</p>
+          <p className="text-muted-foreground">Loading settings...</p>
         </div>
       </div>
     )
@@ -121,11 +121,11 @@ export default function NotificationSettingsPage() {
   if (!settings) {
     return (
       <div className="p-6 space-y-8">
-        <Card className="border-red-200 bg-red-50">
+        <Card className="border-destructive/30 bg-destructive-muted">
           <CardContent className="p-6 text-center">
             <Settings className="w-12 h-12 mx-auto mb-3 text-red-300" />
-            <p className="font-medium text-red-700">Error loading settings</p>
-            <p className="text-sm text-red-600 mt-1">{error}</p>
+            <p className="font-medium text-destructive">Error loading settings</p>
+            <p className="text-sm text-destructive mt-1">{error}</p>
             <Button 
               variant="outline" 
               className="mt-3"
@@ -150,10 +150,10 @@ export default function NotificationSettingsPage() {
         </Link>
         <div className="flex-1">
           <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Bell className="w-6 h-6 text-blue-600" />
+            <Bell className="w-6 h-6 text-primary" />
             Notification Settings
           </h1>
-          <p className="text-slate-600">Customize your goals and notifications</p>
+          <p className="text-foreground">Customize your goals and notifications</p>
         </div>
         <Button 
           onClick={saveSettings} 
@@ -167,14 +167,14 @@ export default function NotificationSettingsPage() {
 
       {/* Success/Error Messages */}
       {success && (
-        <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-          <p className="text-green-700 font-medium">✅ Settings saved successfully!</p>
+        <div className="mb-6 p-4 bg-success-muted border border-success/30 rounded-lg">
+          <p className="text-success font-medium">✅ Settings saved successfully!</p>
         </div>
       )}
 
       {error && (
-        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-          <p className="text-red-700 font-medium">❌ {error}</p>
+        <div className="mb-6 p-4 bg-destructive-muted border border-destructive/30 rounded-lg">
+          <p className="text-destructive font-medium">❌ {error}</p>
         </div>
       )}
 
@@ -183,7 +183,7 @@ export default function NotificationSettingsPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Target className="w-5 h-5 text-green-600" />
+              <Target className="w-5 h-5 text-success" />
               Daily Goal Settings
             </CardTitle>
           </CardHeader>
@@ -207,9 +207,9 @@ export default function NotificationSettingsPage() {
                   onChange={(e) => updateSetting('dailyGoalPoints', parseInt(e.target.value) || 0)}
                   className="max-w-xs"
                 />
-                <span className="text-sm text-slate-500">points per day</span>
+                <span className="text-sm text-muted-foreground">points per day</span>
               </div>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-muted-foreground">
                 Get notified when you reach your daily earning goal
               </p>
             </div>
@@ -220,7 +220,7 @@ export default function NotificationSettingsPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <DollarSign className="w-5 h-5 text-purple-600" />
+              <DollarSign className="w-5 h-5 text-primary" />
               Quick Goal Presets
             </CardTitle>
           </CardHeader>
@@ -251,7 +251,7 @@ export default function NotificationSettingsPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Bell className="w-5 h-5 text-blue-600" />
+              <Bell className="w-5 h-5 text-primary" />
               Notification Preferences
             </CardTitle>
           </CardHeader>
@@ -260,7 +260,7 @@ export default function NotificationSettingsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <Label className="font-medium">Enable Notifications</Label>
-                <p className="text-sm text-slate-500">Receive goal notifications</p>
+                <p className="text-sm text-muted-foreground">Receive goal notifications</p>
               </div>
               <Button
                 variant={settings.notificationsEnabled ? "default" : "outline"}
@@ -275,7 +275,7 @@ export default function NotificationSettingsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <Label className="font-medium">Push Notifications</Label>
-                <p className="text-sm text-slate-500">In-app notification alerts</p>
+                <p className="text-sm text-muted-foreground">In-app notification alerts</p>
               </div>
               <Button
                 variant={settings.pushNotifications ? "default" : "outline"}

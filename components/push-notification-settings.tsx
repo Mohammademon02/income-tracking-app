@@ -127,7 +127,7 @@ export function PushNotificationSettings() {
     }
     
     if (active) {
-      return <Badge className="bg-green-500 text-white">Active</Badge>
+      return <Badge className="bg-success text-white">Active</Badge>
     }
     
     return <Badge variant="outline">Inactive</Badge>
@@ -135,25 +135,25 @@ export function PushNotificationSettings() {
 
   const getStatusIcon = () => {
     if (!supported || permission === 'denied') {
-      return <BellOff className="w-5 h-5 text-red-500" />
+      return <BellOff className="w-5 h-5 text-destructive" />
     }
     
     if (active) {
-      return <BellRing className="w-5 h-5 text-green-500" />
+      return <BellRing className="w-5 h-5 text-success" />
     }
     
-    return <Bell className="w-5 h-5 text-slate-500" />
+    return <Bell className="w-5 h-5 text-muted-foreground" />
   }
 
   if (!supported) {
     return (
-      <Card className="border-red-200 bg-red-50">
+      <Card className="border-destructive/30 bg-destructive-muted">
         <CardContent className="p-6">
           <div className="flex items-center gap-3 mb-3">
-            <BellOff className="w-6 h-6 text-red-500" />
-            <h3 className="font-semibold text-red-700">Notifications Not Supported</h3>
+            <BellOff className="w-6 h-6 text-destructive" />
+            <h3 className="font-semibold text-destructive">Notifications Not Supported</h3>
           </div>
-          <p className="text-sm text-red-600 mb-4">
+          <p className="text-sm text-destructive mb-4">
             Your browser doesn't support notifications. Please use a modern browser like Chrome, Firefox, or Safari.
           </p>
         </CardContent>
@@ -170,9 +170,9 @@ export function PushNotificationSettings() {
             <div>
               <div className="flex items-center gap-2">
                 Hourly Income Notifications
-                <Smartphone className="w-4 h-4 text-blue-500" />
+                <Smartphone className="w-4 h-4 text-primary" />
               </div>
-              <p className="text-sm font-normal text-slate-500 mt-1">
+              <p className="text-sm font-normal text-muted-foreground mt-1">
                 Works on mobile and desktop
               </p>
             </div>
@@ -183,57 +183,57 @@ export function PushNotificationSettings() {
       <CardContent className="space-y-6">
         {/* Next Notification Timer */}
         {active && nextNotificationTime && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="bg-primary/10 border border-primary/30 rounded-lg p-4">
             <div className="flex items-center gap-2 mb-2">
-              <Timer className="w-4 h-4 text-blue-500" />
-              <span className="font-medium text-sm text-blue-800">Next Notification</span>
+              <Timer className="w-4 h-4 text-primary" />
+              <span className="font-medium text-sm text-primary">Next Notification</span>
             </div>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-lg font-semibold text-blue-900">{nextNotificationTime}</p>
-                <p className="text-sm text-blue-600">Daily income summary</p>
+                <p className="text-lg font-semibold text-primary">{nextNotificationTime}</p>
+                <p className="text-sm text-primary">Daily income summary</p>
               </div>
               <div className="text-right">
-                <p className="text-2xl font-bold text-blue-700">{timeRemaining}</p>
-                <p className="text-xs text-blue-500">remaining</p>
+                <p className="text-2xl font-bold text-primary">{timeRemaining}</p>
+                <p className="text-xs text-primary">remaining</p>
               </div>
             </div>
           </div>
         )}
 
         {/* Status Information */}
-        <div className="bg-slate-50 rounded-lg p-4">
+        <div className="bg-muted rounded-lg p-4">
           <div className="flex items-center gap-2 mb-2">
-            <Clock className="w-4 h-4 text-blue-500" />
+            <Clock className="w-4 h-4 text-primary" />
             <span className="font-medium text-sm">24/7 Notification Schedule</span>
           </div>
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-foreground">
             Get your daily income summary every hour, 24 hours a day. Optimized for mobile devices.
           </p>
         </div>
 
         {/* Error Message */}
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="bg-destructive-muted border border-destructive/30 rounded-lg p-4">
             <div className="flex items-center gap-2 mb-1">
-              <AlertCircle className="w-4 h-4 text-red-500" />
-              <span className="font-medium text-red-700">Error</span>
+              <AlertCircle className="w-4 h-4 text-destructive" />
+              <span className="font-medium text-destructive">Error</span>
             </div>
-            <p className="text-sm text-red-600">{error}</p>
+            <p className="text-sm text-destructive">{error}</p>
           </div>
         )}
 
         {/* Permission Denied */}
         {permission === 'denied' && (
-          <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+          <div className="bg-warning-muted border border-warning/30 rounded-lg p-4">
             <div className="flex items-center gap-2 mb-2">
-              <BellOff className="w-4 h-4 text-orange-500" />
-              <span className="font-medium text-orange-700">Permission Denied</span>
+              <BellOff className="w-4 h-4 text-warning" />
+              <span className="font-medium text-warning">Permission Denied</span>
             </div>
-            <p className="text-sm text-orange-600 mb-3">
+            <p className="text-sm text-warning mb-3">
               To enable notifications:
             </p>
-            <ol className="text-sm text-orange-600 space-y-1 ml-4">
+            <ol className="text-sm text-warning space-y-1 ml-4">
               <li>1. Click the lock/info icon in your browser's address bar</li>
               <li>2. Allow notifications for this site</li>
               <li>3. Refresh this page</li>
@@ -279,7 +279,7 @@ export function PushNotificationSettings() {
               disabled={testLoading}
               className={cn(
                 "flex items-center gap-2",
-                testSuccess && "bg-green-100 text-green-700 border-green-200"
+                testSuccess && "bg-success-muted text-success border-success/30"
               )}
             >
               {testLoading ? (
@@ -296,12 +296,12 @@ export function PushNotificationSettings() {
 
         {/* Feature List */}
         {active && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+          <div className="bg-success-muted border border-success/30 rounded-lg p-4">
             <div className="flex items-center gap-2 mb-3">
-              <CheckCircle className="w-4 h-4 text-green-500" />
-              <span className="font-medium text-green-700">Active Features</span>
+              <CheckCircle className="w-4 h-4 text-success" />
+              <span className="font-medium text-success">Active Features</span>
             </div>
-            <ul className="text-sm text-green-600 space-y-1">
+            <ul className="text-sm text-success space-y-1">
               <li>• Hourly daily income summaries (24/7)</li>
               <li>• Mobile-optimized notifications</li>
               <li>• Works day and night</li>
