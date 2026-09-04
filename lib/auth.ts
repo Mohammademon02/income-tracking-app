@@ -1,15 +1,36 @@
 import { cookies } from "next/headers"
+import { createHash, timingSafeEqual } from "node:crypto"
 import { SignJWT, jwtVerify } from "jose"
 
-const secretKey = new TextEncoder().encode(
-  process.env.JWT_SECRET || process.env.APP_PASSWORD || "fallback-secret-key-change-me"
-)
+/**
+ * Resolve the JWT signing key.
+ *
+ * Why this throws instead of falling back: a hardcoded default secret means
+ * anyone who reads the source can forge a session cookie, which bypasses
+ * `verifySession()` on every route and the authenticated layout. Failing at
+ * startup is loud and safe; a silent fallback is neither. `APP_PASSWORD` is
+ * deliberately NOT reused here — a login password and a signing key must not
+ * be the same material.
+ */
+function getSecretKey() {
+  const secret = process.env.JWT_SECRET
+
+  if (!secret || secret.length < 32) {
+    throw new Error(
+      "JWT_SECRET is missing or too short. Set a random value of at least 32 characters " +
+        "in your environment (generate one with: openssl rand -base64 32)."
+    )
+  }
+
+  return new TextEncoder().encode(secret)
+}
 
 export async function createSession(username: string) {
   const token = await new SignJWT({ username })
     .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
     .setExpirationTime("7d")
-    .sign(secretKey)
+    .sign(getSecretKey())
 
   const cookieStore = await cookies()
   cookieStore.set("session", token, {
@@ -28,7 +49,7 @@ export async function verifySession() {
   if (!token) return null
 
   try {
-    const { payload } = await jwtVerify(token, secretKey)
+    const { payload } = await jwtVerify(token, getSecretKey())
     return payload as { username: string }
   } catch {
     return null
@@ -40,9 +61,31 @@ export async function deleteSession() {
   cookieStore.delete("session")
 }
 
+/**
+ * Compare two strings without leaking their contents through timing.
+ *
+ * Both sides are hashed first so the buffers handed to `timingSafeEqual` are
+ * always the same length — the function throws on a length mismatch, and the
+ * raw lengths would themselves be a side channel.
+ */
+function safeEquals(a: string, b: string): boolean {
+  const hashA = createHash("sha256").update(a).digest()
+  const hashB = createHash("sha256").update(b).digest()
+  return timingSafeEqual(hashA, hashB)
+}
+
 export function validateCredentials(username: string, password: string) {
   const validUsername = process.env.APP_USERNAME
   const validPassword = process.env.APP_PASSWORD
 
-  return username === validUsername && password === validPassword
+  if (!validUsername || !validPassword) {
+    throw new Error("APP_USERNAME and APP_PASSWORD must be set in the environment.")
+  }
+
+  // Both comparisons always run so a wrong username and a wrong password take
+  // the same amount of time.
+  const usernameOk = safeEquals(username, validUsername)
+  const passwordOk = safeEquals(password, validPassword)
+
+  return usernameOk && passwordOk
 }
