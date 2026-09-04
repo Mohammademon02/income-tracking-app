@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache"
 
 import { dateKeyToDate } from "@/lib/date-utils"
+import { dispatchQuietly } from "@/lib/notifications/dispatch"
 import { prisma } from "@/lib/prisma"
 import { type ActionResult, requireSession, toActionError } from "@/lib/server-utils"
 import { createEntrySchema, parseFormData, updateEntrySchema } from "@/lib/validation"
@@ -101,6 +102,8 @@ export async function createEntry(formData: FormData): Promise<ActionResult> {
     return toActionError(error, "Failed to save the entry.")
   }
 
+  // A new entry can push the day or the month over its goal.
+  await dispatchQuietly()
   revalidateEntryPaths()
 
   return { success: true }
@@ -127,6 +130,7 @@ export async function updateEntry(id: string, formData: FormData): Promise<Actio
     return toActionError(error, "Failed to update the entry.")
   }
 
+  await dispatchQuietly()
   revalidateEntryPaths()
 
   return { success: true }

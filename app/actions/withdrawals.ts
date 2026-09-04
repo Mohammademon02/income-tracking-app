@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache"
 
 import { dateKeyToDate, todayKey } from "@/lib/date-utils"
 import { pointsToDollars } from "@/lib/money"
+import { dispatchQuietly } from "@/lib/notifications/dispatch"
 import { prisma } from "@/lib/prisma"
 import { type ActionResult, requireSession, toActionError } from "@/lib/server-utils"
 import { createWithdrawalSchema, parseFormData, updateWithdrawalSchema } from "@/lib/validation"
@@ -120,6 +121,7 @@ export async function createWithdrawal(formData: FormData): Promise<ActionResult
     return toActionError(error, "Failed to save the withdrawal.")
   }
 
+  await dispatchQuietly()
   revalidateWithdrawalPaths()
 
   return { success: true }
@@ -171,6 +173,8 @@ export async function updateWithdrawal(id: string, formData: FormData): Promise<
     return toActionError(error, "Failed to update the withdrawal.")
   }
 
+  // Marking a withdrawal COMPLETED is the main thing worth pushing.
+  await dispatchQuietly()
   revalidateWithdrawalPaths()
 
   return { success: true }

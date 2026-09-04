@@ -1,26 +1,25 @@
 import { NextResponse } from "next/server"
-import { verifySession } from "@/lib/auth"
-import { notificationStore } from "@/lib/notification-store"
+
+import { getApiSession, serverError, unauthorized } from "@/lib/api-utils"
+import { dismiss } from "@/lib/notifications/state"
 
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await verifySession()
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
+    const session = await getApiSession()
+    if (!session) return unauthorized()
 
     const { id } = await params
 
-    // Delete notification using shared store
-    notificationStore.deleteNotification(id);
+    // Dismissal is persisted against the notification's derived key, so it now
+    // survives a restart and applies on every device rather than living in one
+    // process's memory.
+    await dismiss(id)
 
     return NextResponse.json({ success: true })
-
   } catch (error) {
-    console.error("Error deleting notification:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return serverError("dismiss notification", error)
   }
 }

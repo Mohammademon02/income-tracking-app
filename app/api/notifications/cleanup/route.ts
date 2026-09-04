@@ -1,34 +1,20 @@
 import { NextResponse } from "next/server"
-import { verifySession } from "@/lib/auth"
-import { prisma } from "@/lib/prisma"
+
+import { getApiSession, serverError, unauthorized } from "@/lib/api-utils"
+import { pruneOrphanedState } from "@/lib/notifications/state"
 
 export async function POST() {
   try {
-    const session = await verifySession()
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
+    const session = await getApiSession()
+    if (!session) return unauthorized()
 
-    const thirtyDaysAgo = new Date()
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+    // Prunes read/dismissed rows whose notification can no longer derive. The
+    // old route deleted from the `Notification` model, which nothing ever
+    // wrote to, so it always reported zero.
+    const deletedCount = await pruneOrphanedState()
 
-    // Delete read notifications older than 30 days
-    const deletedCount = await prisma.notification.deleteMany({
-      where: {
-        read: true,
-        timestamp: {
-          lt: thirtyDaysAgo
-        }
-      }
-    })
-
-    return NextResponse.json({ 
-      success: true, 
-      deletedCount: deletedCount.count 
-    })
-
+    return NextResponse.json({ success: true, deletedCount })
   } catch (error) {
-    console.error("Error cleaning up notifications:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return serverError("notification cleanup", error)
   }
 }

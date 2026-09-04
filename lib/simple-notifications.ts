@@ -4,6 +4,8 @@
 class SimpleNotificationManager {
   private static instance: SimpleNotificationManager
   private intervalId: number | null = null
+  /** Handle for the delay until the top of the hour, so it can be cancelled. */
+  private timeoutId: number | null = null
 
   static getInstance(): SimpleNotificationManager {
     if (!SimpleNotificationManager.instance) {
@@ -75,6 +77,23 @@ class SimpleNotificationManager {
     }
   }
 
+  /** True when a timer is already pending or running. */
+  isScheduled(): boolean {
+    return this.timeoutId !== null || this.intervalId !== null
+  }
+
+  /**
+   * Start the schedule only if it is not already running.
+   *
+   * Callers that fire on every mount or state change want this rather than
+   * startHourlyNotifications(), which restarts the clock each time and would
+   * keep pushing the first notification back to the next full hour.
+   */
+  ensureHourlyNotifications(): void {
+    if (this.isScheduled()) return
+    this.startHourlyNotifications()
+  }
+
   // Start hourly notifications
   startHourlyNotifications(): void {
     this.stopHourlyNotifications()
@@ -95,15 +114,21 @@ class SimpleNotificationManager {
       console.log(`⏱️ Time until next notification: ${Math.round(timeUntilNextHour / 1000 / 60)} minutes`)
     }
     
-    // Send first notification at the next hour mark
-    setTimeout(() => {
+    // The handle is stored so stopHourlyNotifications() can cancel it.
+    //
+    // Previously this timeout was untracked: "Disable" only ever cleared
+    // `intervalId`, which stayed null until the timeout fired. Every call to
+    // this method scheduled another orphan that later overwrote `intervalId`,
+    // so earlier intervals became unreachable and ran forever — notifications
+    // kept arriving after the user turned them off, and multiplied with each
+    // remount of the settings UI.
+    this.timeoutId = window.setTimeout(() => {
+      this.timeoutId = null
       this.sendIncomeNotification()
-      
-      // Then schedule regular hourly notifications
+
       this.intervalId = window.setInterval(() => {
         this.sendIncomeNotification()
       }, 60 * 60 * 1000) // Exactly 1 hour (3,600,000 ms)
-      
     }, timeUntilNextHour)
 
     // Store state for persistence
@@ -113,13 +138,20 @@ class SimpleNotificationManager {
 
   // Stop hourly notifications
   stopHourlyNotifications(): void {
-    if (this.intervalId) {
+    if (this.timeoutId !== null) {
+      clearTimeout(this.timeoutId)
+      this.timeoutId = null
+    }
+
+    if (this.intervalId !== null) {
       clearInterval(this.intervalId)
       this.intervalId = null
-      if (process.env.NODE_ENV === 'development') {
-        console.log('🔕 Hourly notifications stopped')
-      }
     }
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔕 Hourly notifications stopped')
+    }
+
     localStorage.setItem('hourlyNotificationsActive', 'false')
     localStorage.removeItem('notificationStartTime')
   }

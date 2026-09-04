@@ -52,21 +52,46 @@ model Withdrawal {
   @@map("withdrawals")
 }
 
-model Notification {
-  id        String             @id @default(auto()) @map("_id") @db.ObjectId
-  type      NotificationType
-  title     String
-  message   String
-  timestamp DateTime           @default(now())
-  read      Boolean            @default(false)
-  actionUrl String?
-  priority  NotificationPriority @default(MEDIUM)
-  createdAt DateTime           @default(now())
-  updatedAt DateTime           @updatedAt
+/// Read/dismissed state for a derived notification.
+///
+/// Notifications themselves are not stored — they are recomputed from entries
+/// and withdrawals on every request, which is why each one has a stable
+/// synthetic key such as `withdrawal-completed-<id>` or `daily-goal-<date>`.
+/// Only the user's interaction with them needs to persist, and that is this
+/// row. The previous `Notification` model was never written to by any code
+/// path, while read state lived in process memory and vanished on restart.
+model NotificationState {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  /// The synthetic notification id. Not an ObjectId, which is why this cannot
+  /// simply reuse the primary key.
+  key       String    @unique
+  read      Boolean   @default(false)
+  dismissed Boolean   @default(false)
+  readAt    DateTime?
+  /// When a web push was sent for this notification. Its presence is what
+  /// stops the same event being pushed again on every subsequent mutation.
+  pushedAt  DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   @@index([read])
-  @@index([timestamp])
-  @@map("notifications")
+  @@index([dismissed])
+  @@map("notification_states")
+}
+
+/// A browser push endpoint registered by the PWA service worker.
+model PushSubscription {
+  id         String    @id @default(auto()) @map("_id") @db.ObjectId
+  endpoint   String    @unique
+  /// Client public key from the PushSubscription keys object.
+  p256dh     String
+  /// Client auth secret from the PushSubscription keys object.
+  auth       String
+  userAgent  String?
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+
+  @@map("push_subscriptions")
 }
 
 model UserSettings {
@@ -90,14 +115,6 @@ enum WithdrawalStatus {
   COMPLETED
 }
 
-enum NotificationType {
-  WITHDRAWAL
-  GOAL
-  SYSTEM
-}
-
-enum NotificationPriority {
-  LOW
-  MEDIUM
-  HIGH
-}
+// NotificationType and NotificationPriority are no longer Prisma enums: no
+// column stores them now that notifications are derived rather than persisted.
+// They live as TypeScript unions in lib/notifications/events.ts instead.

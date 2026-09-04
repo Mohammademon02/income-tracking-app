@@ -1,43 +1,51 @@
 import { NextResponse } from "next/server"
-import { verifySession } from "@/lib/auth"
 
-export async function GET() {
+import { getApiSession, serverError, unauthorized } from "@/lib/api-utils"
+import { isPushConfigured, sendToAll } from "@/lib/notifications/push"
+
+/**
+ * Send a real push to every registered device.
+ *
+ * This is the only honest way to test the feature end to end: it exercises the
+ * VAPID keys, the stored subscription and the service worker's push handler,
+ * rather than showing a local notification that would work even with push
+ * completely broken.
+ */
+export async function POST() {
   try {
-    const session = await verifySession()
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    const session = await getApiSession()
+    if (!session) return unauthorized()
+
+    if (!isPushConfigured) {
+      return NextResponse.json(
+        { error: "Push is not configured on this server (VAPID keys missing)." },
+        { status: 503 }
+      )
     }
 
-    // Return a test notification to verify the system works
-    const testNotifications = [
-      {
-        id: "test-notification-1",
-        type: "SYSTEM",
-        title: "Notification System Active! 🎉",
-        message: "Your notification system is working correctly. This is a test notification.",
-        timestamp: new Date(),
-        read: false,
-        priority: "MEDIUM",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-      {
-        id: "test-notification-2",
-        type: "SYSTEM",
-        title: "Welcome Message 🌟",
-        message: "You'll receive updates about withdrawals, daily goals, and monthly goals here.",
-        timestamp: new Date(Date.now() - 5 * 60 * 1000), // 5 minutes ago
-        read: false,
-        priority: "LOW",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      }
-    ]
+    const result = await sendToAll({
+      title: "SurvTrack test",
+      body: "Push notifications are working. You can close the app and still get these.",
+      url: "/dashboard",
+      tag: "test-notification",
+    })
 
-    return NextResponse.json(testNotifications)
+    if (result.sent === 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            result.removed > 0
+              ? "The stored subscription had expired. Enable notifications again."
+              : "No device is subscribed yet. Enable notifications first.",
+          ...result,
+        },
+        { status: 409 }
+      )
+    }
 
+    return NextResponse.json({ success: true, ...result })
   } catch (error) {
-    console.error("Error generating test notifications:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return serverError("send test push", error)
   }
 }

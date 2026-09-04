@@ -1,44 +1,20 @@
 import { NextResponse } from "next/server"
-import { verifySession } from "@/lib/auth"
-import { notificationStore } from "@/lib/notification-store"
 
-export async function POST(request: Request) {
+import { getApiSession, serverError, unauthorized } from "@/lib/api-utils"
+import { markAllRead } from "@/lib/notifications/state"
+
+export async function POST() {
   try {
-    const session = await verifySession()
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
+    const session = await getApiSession()
+    if (!session) return unauthorized()
 
-    // Get the current notification IDs from the request body or generate common ones
-    let notificationIds: string[] = [];
-    
-    try {
-      const body = await request.json();
-      notificationIds = body.notificationIds || [];
-    } catch {
-      // If no body, use common notification patterns
-      notificationIds = [
-        'demo-notification',
-        'error-notification',
-        'daily-goal-2026-02-21',
-        'daily-goal-2026-02-20',
-        'daily-goal-2026-02-19'
-      ];
+    // Keys come from live data. The previous version fell back to a hardcoded
+    // list of ids pinned to February 2026, matched nothing real, and reported
+    // markedCount: 25.
+    const markedCount = await markAllRead()
 
-      // Add withdrawal delay notifications
-      for (let i = 1; i <= 10; i++) {
-        notificationIds.push(`withdrawal-delayed-${i}`);
-        notificationIds.push(`withdrawal-completed-${i}`);
-      }
-    }
-
-    // Mark all notifications as read using shared store
-    notificationStore.markAllAsRead(notificationIds);
-
-    return NextResponse.json({ success: true, markedCount: notificationIds.length })
-
+    return NextResponse.json({ success: true, markedCount })
   } catch (error) {
-    console.error("Error marking all notifications as read:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return serverError("mark all notifications read", error)
   }
 }

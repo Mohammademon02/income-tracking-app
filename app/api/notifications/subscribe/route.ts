@@ -1,37 +1,47 @@
 import { NextResponse } from "next/server"
-import { verifySession } from "@/lib/auth"
+import { z } from "zod"
+
+import { badRequest, getApiSession, serverError, unauthorized } from "@/lib/api-utils"
+import { isPushConfigured, saveSubscription } from "@/lib/notifications/push"
+import { formatZodError } from "@/lib/validation"
+
+const subscriptionSchema = z.object({
+  endpoint: z.string().url(),
+  keys: z.object({
+    p256dh: z.string().min(1),
+    auth: z.string().min(1),
+  }),
+})
+
+const bodySchema = z.object({
+  subscription: subscriptionSchema,
+})
 
 export async function POST(request: Request) {
   try {
-    const session = await verifySession()
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    const session = await getApiSession()
+    if (!session) return unauthorized()
+
+    // Say so rather than claiming success, which is what this route used to do
+    // for a feature that had no keys, no storage and no sender behind it.
+    if (!isPushConfigured) {
+      return NextResponse.json(
+        { error: "Push is not configured on this server (VAPID keys missing)." },
+        { status: 503 }
+      )
     }
 
-    const { subscription } = await request.json()
+    const body = await request.json().catch(() => null)
+    const parsed = bodySchema.safeParse(body)
 
-    if (!subscription) {
-      return NextResponse.json({ error: "Subscription data required" }, { status: 400 })
+    if (!parsed.success) {
+      return badRequest(formatZodError(parsed.error))
     }
 
-    // Store subscription in localStorage for now
-    // In production, you'd store this in your database
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Push subscription received:', subscription)
-    }
+    await saveSubscription(parsed.data.subscription, request.headers.get("user-agent"))
 
-    // Here you would typically:
-    // 1. Store the subscription in your database
-    // 2. Associate it with the user
-    // 3. Set up server-side push notification scheduling
-
-    return NextResponse.json({ 
-      success: true, 
-      message: "Subscription saved successfully" 
-    })
-
+    return NextResponse.json({ success: true })
   } catch (error) {
-    console.error("Error saving push subscription:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return serverError("save push subscription", error)
   }
 }

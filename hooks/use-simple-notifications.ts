@@ -131,10 +131,17 @@ export function useSimpleNotifications() {
     }
   }, [checkStatus])
 
-  // Auto-restart notifications if they were previously active
+  // Auto-restart notifications if they were previously active.
+  //
+  // The manager is a module-level singleton, so without the guard below every
+  // mount of a component using this hook re-entered the schedule. There is
+  // deliberately no cleanup that stops the schedule: the timer is meant to
+  // outlive any single component, and tearing it down on unmount would switch
+  // notifications off whenever the settings panel closed. Stopping is the
+  // user's call, via disable().
   useEffect(() => {
     if (state.active && state.permission === 'granted') {
-      simpleNotificationManager.startHourlyNotifications()
+      simpleNotificationManager.ensureHourlyNotifications()
     }
   }, [state.active, state.permission])
 

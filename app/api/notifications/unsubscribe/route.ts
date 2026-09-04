@@ -1,26 +1,30 @@
 import { NextResponse } from "next/server"
-import { verifySession } from "@/lib/auth"
+import { z } from "zod"
+
+import { badRequest, getApiSession, serverError, unauthorized } from "@/lib/api-utils"
+import { removeSubscription } from "@/lib/notifications/push"
+import { formatZodError } from "@/lib/validation"
+
+const bodySchema = z.object({
+  endpoint: z.string().url(),
+})
 
 export async function POST(request: Request) {
   try {
-    const session = await verifySession()
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    const session = await getApiSession()
+    if (!session) return unauthorized()
+
+    const body = await request.json().catch(() => null)
+    const parsed = bodySchema.safeParse(body)
+
+    if (!parsed.success) {
+      return badRequest(formatZodError(parsed.error))
     }
 
-    // Remove subscription from storage
-    // In production, you'd remove this from your database
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Push subscription removed for user')
-    }
+    const { count } = await removeSubscription(parsed.data.endpoint)
 
-    return NextResponse.json({ 
-      success: true, 
-      message: "Subscription removed successfully" 
-    })
-
+    return NextResponse.json({ success: true, removed: count })
   } catch (error) {
-    console.error("Error removing push subscription:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return serverError("remove push subscription", error)
   }
 }
